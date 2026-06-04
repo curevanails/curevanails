@@ -164,7 +164,7 @@ const STAT_CARDS: {
 ];
 
 const selectCls =
-	"rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition";
+	"rounded-lg border border-slate-200 bg-slate-50 pl-3 pr-9 py-2 text-sm text-slate-700 focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition";
 ---
 
 <!DOCTYPE html>
@@ -477,8 +477,9 @@ const selectCls =
 																		data-id={app.id}
 																		rows="2"
 																		placeholder="Add a note…"
+																		oninput="autoGrow(this)"
 																		onblur="saveNotes(this)"
-																		class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm resize-y focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+																		class="note-area w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm resize-none overflow-hidden focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
 																	>{app.notes ?? ""}</textarea>
 																	<span class="note-saved absolute right-2 bottom-2 text-[11px] text-emerald-600 opacity-0 transition-opacity">Saved ✓</span>
 																</div>
@@ -576,12 +577,22 @@ const selectCls =
 				if (adv) adv.classList.toggle("hidden");
 			}
 
+			function autoGrow(el) {
+				el.style.height = "auto";
+				el.style.height = el.scrollHeight + "px";
+			}
+
 			function toggleDetail(rowEl) {
 				const group = rowEl.closest("tbody");
 				const detail = group.querySelector(".detail-row");
 				if (!detail) return;
 				const open = detail.classList.toggle("hidden");
 				group.classList.toggle("open", !open);
+				// Size the notes box now that it's visible (hidden elements report 0 height).
+				if (!open) {
+					const area = detail.querySelector(".note-area");
+					if (area) autoGrow(area);
+				}
 			}
 
 			function recomputeCounts() {
