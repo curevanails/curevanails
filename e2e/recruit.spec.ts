@@ -111,7 +111,7 @@ async function fillValidApplication(
 	const skip = new Set(opts.skip ?? []);
 	const want = (k: SkipKey) => !skip.has(k);
 
-	if (want("full_name")) await page.fill("#full_name", "E2E Jane Doe");
+	if (want("full_name")) await page.fill("#full_name", "Jane Doe");
 	if (want("phone")) await page.fill("#phone", "8015550100");
 	if (want("email"))
 		await page.fill("#email", `e2e+${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`);
