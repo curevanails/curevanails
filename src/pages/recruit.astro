@@ -1,0 +1,664 @@
+<!DOCTYPE html>
+<html class="light" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<title>Join the Team | CureVà Premium Nail Lounge</title>
+		<script is:inline src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+		<link
+			href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+		<style is:inline>
+			.material-symbols-outlined {
+				font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+				vertical-align: middle;
+			}
+			.clay-shadow {
+				box-shadow: 0 20px 40px 0 rgba(164, 208, 219, 0.15);
+			}
+			.organic-blob {
+				border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+			}
+			input:focus, select:focus, textarea:focus {
+				box-shadow: 0 0 0 2px rgba(164, 208, 219, 0.4) !important;
+				border-color: #3a656e !important;
+			}
+			.drag-active {
+				border-color: #3a656e !important;
+				background-color: #dff1f7 !important;
+			}
+			.field-error {
+				border: 2px solid #ba1a1a !important;
+			}
+			.error-msg {
+				color: #ba1a1a;
+				font-size: 12px;
+				margin-top: 4px;
+			}
+		</style>
+		<script is:inline id="tailwind-config">
+			tailwind.config = {
+				darkMode: "class",
+				theme: {
+					extend: {
+						"colors": {
+							"surface-dim": "#cbdde3",
+							"inverse-surface": "#233337",
+							"primary-fixed": "#bdeaf5",
+							"on-tertiary-fixed": "#002113",
+							"secondary": "#665f38",
+							"on-tertiary-fixed-variant": "#1e4f3a",
+							"on-error-container": "#93000a",
+							"tertiary-fixed-dim": "#9ed2b5",
+							"inverse-on-surface": "#e2f4fa",
+							"surface-variant": "#d3e6eb",
+							"outline": "#71787a",
+							"secondary-container": "#ece0af",
+							"secondary-fixed-dim": "#d2c798",
+							"outline-variant": "#c0c8ca",
+							"surface-container-low": "#e4f7fd",
+							"surface": "#f0fbff",
+							"error-container": "#ffdad6",
+							"on-tertiary-container": "#2c5d46",
+							"on-surface-variant": "#41484a",
+							"on-error": "#ffffff",
+							"surface-container-highest": "#d3e6eb",
+							"primary-container": "#a4d0db",
+							"tertiary": "#376850",
+							"surface-container-high": "#d9ebf1",
+							"on-primary-fixed-variant": "#204d56",
+							"on-primary-fixed": "#001f25",
+							"on-secondary-fixed": "#211b00",
+							"primary": "#3a656e",
+							"on-secondary-container": "#6b633c",
+							"primary-fixed-dim": "#a2ced9",
+							"secondary-fixed": "#eee3b2",
+							"background": "#f0fbff",
+							"tertiary-container": "#a0d4b7",
+							"error": "#ba1a1a",
+							"inverse-primary": "#a2ced9",
+							"surface-tint": "#3a656e",
+							"on-primary-container": "#2f5a64",
+							"tertiary-fixed": "#baeed0",
+							"surface-bright": "#f0fbff",
+							"on-secondary-fixed-variant": "#4e4722",
+							"surface-container-lowest": "#ffffff",
+							"on-primary": "#ffffff",
+							"on-surface": "#0d1e22",
+							"surface-container": "#dff1f7",
+							"on-secondary": "#ffffff",
+							"on-tertiary": "#ffffff",
+							"on-background": "#0d1e22"
+						},
+						"borderRadius": {
+							"DEFAULT": "1rem",
+							"lg": "2rem",
+							"xl": "3rem",
+							"full": "9999px"
+						},
+						"spacing": {
+							"gutter": "24px",
+							"container-max": "1200px",
+							"margin-mobile": "20px",
+							"section-padding": "80px",
+							"base": "8px",
+							"margin-desktop": "64px"
+						},
+						"fontFamily": {
+							"display-lg-mobile": ["DM Sans"],
+							"display-lg": ["DM Sans"],
+							"headline-lg": ["DM Sans"],
+							"label-sm": ["DM Sans"],
+							"label-md": ["DM Sans"],
+							"body-lg": ["DM Sans"],
+							"headline-md": ["DM Sans"],
+							"body-md": ["DM Sans"]
+						},
+						"fontSize": {
+							"display-lg-mobile": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+							"display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+							"headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "500"}],
+							"label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+							"label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+							"body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+							"headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "500"}],
+							"body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+						}
+					},
+				},
+			}
+		</script>
+	</head>
+	<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
+		<!-- TopNavBar -->
+		<nav class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md shadow-[0_10px_40px_0_rgba(164,208,219,0.08)]">
+			<div class="flex justify-between items-center px-margin-mobile md:px-margin-desktop h-20 w-full max-w-container-max mx-auto">
+				<a class="font-display-lg text-display-lg-mobile md:text-display-lg tracking-tight text-primary" href="/">CureVà</a>
+				<div class="hidden md:flex gap-8 items-center">
+					<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="/#services">Services</a>
+					<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="/#membership">Lounge</a>
+					<a class="font-label-md text-label-md text-primary font-bold border-b-2 border-primary pb-1" href="/recruit">Careers</a>
+					<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="/">Book Now</a>
+					<button class="bg-primary text-on-primary px-6 py-2.5 rounded-full font-label-md hover:scale-[1.02] transition-transform active:scale-95 shadow-md" onclick="document.getElementById('application-form').scrollIntoView({behavior: 'smooth'})">Join the Team</button>
+				</div>
+				<button class="md:hidden text-primary" onclick="document.getElementById('application-form').scrollIntoView({behavior: 'smooth'})">
+					<span class="material-symbols-outlined">menu</span>
+				</button>
+			</div>
+		</nav>
+		<main class="pt-20">
+			<!-- Section 1: Hero -->
+			<section class="relative overflow-hidden py-section-padding md:py-32">
+				<div class="absolute -top-24 -right-24 w-96 h-96 bg-primary-container/20 organic-blob blur-3xl -z-10"></div>
+				<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop grid grid-cols-1 md:grid-cols-2 gap-gutter items-center">
+					<div class="order-2 md:order-1 space-y-6">
+						<h1 class="font-display-lg text-display-lg-mobile md:text-display-lg text-primary max-w-lg leading-tight">
+							Join Our Growing Team in Utah!
+						</h1>
+						<p class="font-body-lg text-body-lg text-on-surface-variant max-w-md">
+							Experience a supportive work environment with competitive pay and flexible scheduling at our premium lounge.
+						</p>
+						<button class="bg-primary text-on-primary px-10 py-4 rounded-full font-label-md hover:scale-[1.02] transition-all clay-shadow flex items-center gap-2 group" onclick="document.getElementById('application-form').scrollIntoView({behavior: 'smooth'})">
+							Apply Now
+							<span class="material-symbols-outlined transition-transform group-hover:translate-x-1">arrow_forward</span>
+						</button>
+					</div>
+					<div class="order-1 md:order-2 relative">
+						<div class="absolute -bottom-6 -left-6 w-full h-full border-2 border-primary-container rounded-lg -z-10"></div>
+						<img alt="CureVà Spa Interior" class="w-full h-[400px] md:h-[500px] object-cover rounded-lg shadow-xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjl1Zj1hdgTj8rTRs94Koj_TvqoMKEb9Om1bk0BgbUVOqg7ylwc0vAU4Q7aTnAt6lV1Mb0MihUKkGpEaddcRUBv6OSQsqZpt8zUpZddEL_-ez7phvS7XdkQm8uT1b98A8O0Lm7s8mHJKe9ljIkwrmMFlb0gtwVlOE26C1rgCYClojK8ZTWeiZzx5klWsSeni3k8b75w5Yd6vahSqdBMZoW4bvqFjfCVf0gKsGcQrGVKqJ3S66_SHNYxjpBrHkOekXd4dd-FnYza2pp" />
+					</div>
+				</div>
+			</section>
+			<!-- Section 2: Why Join Us -->
+			<section class="bg-surface-container-low py-section-padding">
+				<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
+					<div class="text-center mb-16">
+						<h2 class="font-headline-lg text-headline-lg text-primary mb-4">Why CureVà?</h2>
+						<p class="text-on-surface-variant max-w-xl mx-auto">We believe that happy technicians lead to happy clients. Join a culture that values your craft and your time.</p>
+					</div>
+					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
+						<div class="bg-white p-8 rounded-lg clay-shadow text-center space-y-4 hover:translate-y-[-4px] transition-transform">
+							<div class="w-16 h-16 bg-primary-container/20 rounded-full flex items-center justify-center mx-auto text-primary">
+								<span class="material-symbols-outlined text-4xl">payments</span>
+							</div>
+							<h3 class="font-headline-md text-headline-md text-primary">Competitive Pay &amp; Tips</h3>
+							<p class="text-on-surface-variant font-body-md">Enjoy a guaranteed base rate plus high commission on services and retail.</p>
+						</div>
+						<div class="bg-white p-8 rounded-lg clay-shadow text-center space-y-4 hover:translate-y-[-4px] transition-transform">
+							<div class="w-16 h-16 bg-tertiary-container/20 rounded-full flex items-center justify-center mx-auto text-tertiary">
+								<span class="material-symbols-outlined text-4xl">calendar_month</span>
+							</div>
+							<h3 class="font-headline-md text-headline-md text-tertiary">Flexible Scheduling</h3>
+							<p class="text-on-surface-variant font-body-md">Choose your path with flexible full-time and part-time shift options.</p>
+						</div>
+						<div class="bg-white p-8 rounded-lg clay-shadow text-center space-y-4 hover:translate-y-[-4px] transition-transform">
+							<div class="w-16 h-16 bg-secondary-container/30 rounded-full flex items-center justify-center mx-auto text-on-secondary-container">
+								<span class="material-symbols-outlined text-4xl">spa</span>
+							</div>
+							<h3 class="font-headline-md text-headline-md text-on-secondary-container">Modern Environment</h3>
+							<p class="text-on-surface-variant font-body-md">Work in a clean, toxic-free, and high-end design environment.</p>
+						</div>
+						<div class="bg-white p-8 rounded-lg clay-shadow text-center space-y-4 hover:translate-y-[-4px] transition-transform">
+							<div class="w-16 h-16 bg-primary-container/20 rounded-full flex items-center justify-center mx-auto text-primary">
+								<span class="material-symbols-outlined text-4xl">group</span>
+							</div>
+							<h3 class="font-headline-md text-headline-md text-primary">Loyal Clientele</h3>
+							<p class="text-on-surface-variant font-body-md">Steady income through high walk-in traffic and regular membership clients.</p>
+						</div>
+					</div>
+				</div>
+			</section>
+			<!-- Section 3: Application Form -->
+			<section class="py-section-padding relative" id="application-form">
+				<div class="absolute bottom-0 left-0 w-80 h-80 bg-secondary-container/20 organic-blob blur-3xl -z-10"></div>
+				<div class="max-w-4xl mx-auto px-margin-mobile">
+					<div class="bg-white rounded-lg clay-shadow overflow-hidden">
+						<div class="bg-primary p-8 text-on-primary">
+							<h2 class="font-headline-lg text-headline-lg">Career Application</h2>
+							<p class="opacity-90 mt-1">Tell us about your passion for nail care.</p>
+						</div>
+
+						<!-- Success panel (hidden until submission succeeds) -->
+						<div id="success-panel" class="hidden p-12 text-center space-y-4">
+							<div class="w-20 h-20 bg-tertiary-container/30 rounded-full flex items-center justify-center mx-auto text-tertiary">
+								<span class="material-symbols-outlined text-5xl">check_circle</span>
+							</div>
+							<h3 class="font-headline-lg text-headline-lg text-primary">Application Received!</h3>
+							<p class="text-on-surface-variant max-w-md mx-auto">
+								Thank you for applying to CureVà. Our hiring team will review your application and reach out
+								if there's a great fit. Keep an eye on your inbox.
+							</p>
+							<a href="/" class="inline-block mt-4 text-primary font-bold hover:underline">Back to home</a>
+						</div>
+
+						<form id="recruit-form" action="/api/recruit" method="POST" enctype="multipart/form-data" class="p-8 space-y-12" novalidate>
+							<!-- Block 3.1: Personal Info -->
+							<div class="space-y-6">
+								<h3 class="font-headline-md text-primary flex items-center gap-2">
+									<span class="material-symbols-outlined">person</span>
+									Personal Information
+								</h3>
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+									<div class="space-y-1">
+										<label class="font-label-md text-on-surface-variant" for="full_name">Full Name *</label>
+										<input id="full_name" name="full_name" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" placeholder="Jane Doe" type="text" />
+									</div>
+									<div class="space-y-1">
+										<label class="font-label-md text-on-surface-variant" for="phone">Phone Number *</label>
+										<input id="phone" name="phone" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" placeholder="(801) 000-0000" type="tel" />
+									</div>
+									<div class="space-y-1">
+										<label class="font-label-md text-on-surface-variant" for="email">Email Address *</label>
+										<input id="email" name="email" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" placeholder="jane@example.com" type="email" />
+									</div>
+									<div class="space-y-1">
+										<label class="font-label-md text-on-surface-variant" for="city">City of Residence *</label>
+										<input id="city" name="city" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" placeholder="Salt Lake City" type="text" />
+									</div>
+								</div>
+							</div>
+							<!-- Block 3.2: Licensing -->
+							<div class="space-y-6">
+								<h3 class="font-headline-md text-primary flex items-center gap-2">
+									<span class="material-symbols-outlined">verified</span>
+									Professional Licensing
+								</h3>
+								<div class="space-y-4" data-group="license_types">
+									<p class="font-label-md text-on-surface-variant">License Type * <span class="text-on-surface-variant/60 font-normal">(select at least one)</span></p>
+									<div class="flex flex-wrap gap-4">
+										<label class="flex items-center gap-3 bg-surface-container px-4 py-3 rounded-lg cursor-pointer">
+											<input class="rounded text-primary focus:ring-primary h-5 w-5" type="checkbox" name="license_types" value="nail_tech" />
+											<span class="font-body-md">Active Utah Nail Tech</span>
+										</label>
+										<label class="flex items-center gap-3 bg-surface-container px-4 py-3 rounded-lg cursor-pointer">
+											<input class="rounded text-primary focus:ring-primary h-5 w-5" type="checkbox" name="license_types" value="cosmetologist_barber" />
+											<span class="font-body-md">Active Cosmetologist / Barber</span>
+										</label>
+										<label class="flex items-center gap-3 bg-surface-container px-4 py-3 rounded-lg cursor-pointer">
+											<input class="rounded text-primary focus:ring-primary h-5 w-5" type="checkbox" name="license_types" value="other" />
+											<span class="font-body-md">Other (Apprentice / Out-of-state)</span>
+										</label>
+									</div>
+								</div>
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
+									<div class="space-y-1">
+										<label class="font-label-md text-on-surface-variant" for="dopl_license_number">Utah DOPL License Number *</label>
+										<input id="dopl_license_number" name="dopl_license_number" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" placeholder="1234567-5501" type="text" />
+										<p class="text-[11px] text-on-surface-variant/70 italic">Format example: 1234567-5501. Required for background verification via the DOPL website.</p>
+									</div>
+									<div class="space-y-1">
+										<label class="font-label-md text-on-surface-variant" for="license_expiration">License Expiration Date *</label>
+										<input id="license_expiration" name="license_expiration" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" type="date" />
+									</div>
+								</div>
+								<div class="space-y-3" data-group="work_authorized">
+									<p class="font-label-md text-on-surface-variant">Are you legally authorized to work in the United States? *</p>
+									<div class="flex gap-6">
+										<label class="flex items-center gap-2 cursor-pointer">
+											<input class="text-primary focus:ring-primary h-5 w-5" name="work_authorized" type="radio" value="yes" />
+											<span>Yes</span>
+										</label>
+										<label class="flex items-center gap-2 cursor-pointer">
+											<input class="text-primary focus:ring-primary h-5 w-5" name="work_authorized" type="radio" value="no" />
+											<span>No</span>
+										</label>
+									</div>
+								</div>
+							</div>
+							<!-- Block 3.3: Skills -->
+							<div class="space-y-6">
+								<h3 class="font-headline-md text-primary flex items-center gap-2">
+									<span class="material-symbols-outlined">brush</span>
+									Skills &amp; Expertise
+								</h3>
+								<div class="space-y-4">
+									<p class="font-label-md text-on-surface-variant">Select your proficient services <span class="text-on-surface-variant/60 font-normal">(all that apply)</span></p>
+									<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+										<label class="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-lg hover:bg-primary-container/20 transition-colors cursor-pointer">
+											<input class="rounded text-primary focus:ring-primary" type="checkbox" name="skills" value="manicure_pedicure" />
+											<span>Mani/Pedi</span>
+										</label>
+										<label class="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-lg hover:bg-primary-container/20 transition-colors cursor-pointer">
+											<input class="rounded text-primary focus:ring-primary" type="checkbox" name="skills" value="gel_shellac" />
+											<span>Gel / Shellac</span>
+										</label>
+										<label class="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-lg hover:bg-primary-container/20 transition-colors cursor-pointer">
+											<input class="rounded text-primary focus:ring-primary" type="checkbox" name="skills" value="acrylic_full_set" />
+											<span>Acrylic Full Set</span>
+										</label>
+										<label class="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-lg hover:bg-primary-container/20 transition-colors cursor-pointer">
+											<input class="rounded text-primary focus:ring-primary" type="checkbox" name="skills" value="gel_x_soft_gel" />
+											<span>Gel-X / Soft Gel</span>
+										</label>
+										<label class="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-lg hover:bg-primary-container/20 transition-colors cursor-pointer">
+											<input class="rounded text-primary focus:ring-primary" type="checkbox" name="skills" value="dip_powder" />
+											<span>Dip Powder</span>
+										</label>
+										<label class="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-lg hover:bg-primary-container/20 transition-colors cursor-pointer">
+											<input class="rounded text-primary focus:ring-primary" type="checkbox" name="skills" value="nail_art_3d" />
+											<span>Nail Art &amp; 3D</span>
+										</label>
+									</div>
+								</div>
+								<div class="space-y-1">
+									<label class="font-label-md text-on-surface-variant" for="english_proficiency">English Proficiency *</label>
+									<select id="english_proficiency" name="english_proficiency" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md appearance-none">
+										<option value="" disabled selected>Select your level…</option>
+										<option value="native">Native / Bilingual</option>
+										<option value="fluent">Fluent (Can converse smoothly with clients)</option>
+										<option value="conversational">Salon English (Understands client requests &amp; basics)</option>
+										<option value="limited">Limited (Still practicing)</option>
+									</select>
+								</div>
+							</div>
+							<!-- Block 3.4: Availability -->
+							<div class="space-y-6">
+								<h3 class="font-headline-md text-primary flex items-center gap-2">
+									<span class="material-symbols-outlined">schedule</span>
+									Availability
+								</h3>
+								<div class="space-y-3" data-group="employment_type">
+									<p class="font-label-md text-on-surface-variant">Preferred Employment Type *</p>
+									<div class="flex gap-6">
+										<label class="flex items-center gap-2 cursor-pointer">
+											<input class="text-primary focus:ring-primary h-5 w-5" name="employment_type" type="radio" value="full_time" />
+											<span>Full-time</span>
+										</label>
+										<label class="flex items-center gap-2 cursor-pointer">
+											<input class="text-primary focus:ring-primary h-5 w-5" name="employment_type" type="radio" value="part_time" />
+											<span>Part-time</span>
+										</label>
+									</div>
+								</div>
+								<div class="space-y-4" data-group="days_available">
+									<p class="font-label-md text-on-surface-variant">Available Days * <span class="text-on-surface-variant/60 font-normal">(select all that apply)</span></p>
+									<div class="flex flex-wrap gap-2">
+										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
+											<input class="hidden" type="checkbox" name="days_available" value="monday" /> Mon
+										</label>
+										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
+											<input class="hidden" type="checkbox" name="days_available" value="tuesday" /> Tue
+										</label>
+										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
+											<input class="hidden" type="checkbox" name="days_available" value="wednesday" /> Wed
+										</label>
+										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
+											<input class="hidden" type="checkbox" name="days_available" value="thursday" /> Thu
+										</label>
+										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
+											<input class="hidden" type="checkbox" name="days_available" value="friday" /> Fri
+										</label>
+										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
+											<input class="hidden" type="checkbox" name="days_available" value="saturday" /> Sat
+										</label>
+										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
+											<input class="hidden" type="checkbox" name="days_available" value="sunday" /> Sun
+										</label>
+									</div>
+								</div>
+								<div class="space-y-1">
+									<label class="font-label-md text-on-surface-variant" for="start_date">Earliest Possible Start Date *</label>
+									<input id="start_date" name="start_date" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" type="date" />
+								</div>
+							</div>
+							<!-- Block 3.5: Documents -->
+							<div class="space-y-6">
+								<h3 class="font-headline-md text-primary flex items-center gap-2">
+									<span class="material-symbols-outlined">upload_file</span>
+									Supporting Documents
+								</h3>
+								<div class="space-y-4" data-group="resume">
+									<div class="border-2 border-dashed border-primary-container bg-surface p-12 rounded-lg text-center cursor-pointer transition-all hover:bg-surface-container-low" id="drop-zone">
+										<span class="material-symbols-outlined text-5xl text-primary mb-3">cloud_upload</span>
+										<p class="font-headline-md text-primary" id="drop-title">Upload Resume *</p>
+										<p class="text-on-surface-variant font-body-md mt-1" id="drop-subtitle">Drag and drop or click to browse (PDF, Word)</p>
+										<input class="hidden" id="resume-input" name="resume" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
+									</div>
+									<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+										<div class="space-y-2">
+											<label class="font-label-md text-on-surface-variant" for="license_photo">DOPL License Photo (Optional)</label>
+											<input id="license_photo" name="license_photo" accept="image/*,.pdf" class="block w-full text-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-container/20 file:text-primary hover:file:bg-primary-container/30" type="file" />
+										</div>
+										<div class="space-y-2">
+											<label class="font-label-md text-on-surface-variant" for="portfolio_link">Portfolio / Instagram (Optional)</label>
+											<input id="portfolio_link" name="portfolio_link" class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" placeholder="@yourhandle or link" type="text" />
+										</div>
+									</div>
+								</div>
+							</div>
+
+							<div id="form-error" class="hidden bg-error-container text-on-error-container rounded-lg p-4 font-body-md flex items-center gap-2">
+								<span class="material-symbols-outlined">error</span>
+								<span id="form-error-text">Please correct the highlighted fields.</span>
+							</div>
+
+							<div class="pt-4 text-center">
+								<button id="submit-btn" class="bg-primary text-on-primary px-16 py-5 rounded-full font-headline-md clay-shadow hover:scale-[1.03] transition-all active:scale-95 w-full md:w-auto disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100" type="submit">
+									Submit Application
+								</button>
+								<p class="text-on-surface-variant text-sm mt-6 flex items-center justify-center gap-1">
+									<span class="material-symbols-outlined text-base">lock</span>
+									Your data is securely processed and reviewed only by our hiring team.
+								</p>
+							</div>
+						</form>
+					</div>
+				</div>
+			</section>
+			<!-- Section 4: Location -->
+			<section class="pb-section-padding">
+				<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
+					<div class="h-96 w-full rounded-lg overflow-hidden shadow-lg relative group">
+						<img alt="CureVà Location Map" class="w-full h-full object-cover filter saturate-[0.8]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD29XNn3P_iRTw5wLnM6bhJux2dUXGCLUEz_K8eLOq8T2ITFCd-5IY3E4AMy8VJlwq_q8jWuKxC0ifnXxrB00yCegyNPUtXzni-x8hcRjWBI1-aHra6Tt8wjyPrTzi35zVnMAanf1xK-KRjYENeyEGd8VftKLS5yerTtg86eyl8pspTQxFJtX2gKVZpJBnB2FKL1vLUa14T7XozVJx_lZeM7S0cep512yPfRJmJwn3dWQ9n9QgZU7QXWHIkMmrhSTzLQ9SD1w61ULAE" />
+						<div class="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center">
+							<div class="bg-white p-6 rounded-lg shadow-2xl text-center max-w-sm">
+								<span class="material-symbols-outlined text-primary text-4xl mb-2">location_on</span>
+								<h4 class="font-headline-md text-primary">CureVà Flagship</h4>
+								<p class="text-on-surface-variant">123 Premium Lane, Salt Lake City, UT 84101</p>
+								<a class="inline-block mt-4 text-primary font-bold hover:underline" href="#">Get Directions</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+		</main>
+		<!-- Footer -->
+		<footer class="bg-surface-container-lowest w-full rounded-t-lg">
+			<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter px-margin-mobile md:px-margin-desktop py-section-padding w-full max-w-container-max mx-auto">
+				<div class="space-y-4">
+					<div class="font-headline-md text-headline-md text-primary">CureVà</div>
+					<p class="text-on-surface-variant font-body-md">Premium Nail Lounge offering an elevated wellness experience through artisanal craft and gentle care.</p>
+				</div>
+				<div class="space-y-4">
+					<h4 class="font-label-md text-primary">Contact Us</h4>
+					<ul class="space-y-2 text-on-surface-variant font-body-md">
+						<li class="flex items-center gap-2"><span class="material-symbols-outlined text-base">call</span> (801) 555-0199</li>
+						<li class="flex items-center gap-2"><span class="material-symbols-outlined text-base">mail</span> careers@cureva.com</li>
+						<li class="flex items-center gap-2"><span class="material-symbols-outlined text-base">location_on</span> Salt Lake City, UT</li>
+					</ul>
+				</div>
+				<div class="space-y-4">
+					<h4 class="font-label-md text-primary">Quick Links</h4>
+					<div class="flex flex-col gap-2">
+						<a class="text-on-surface-variant hover:text-primary transition-all hover:underline" href="#">Privacy Policy</a>
+						<a class="text-on-surface-variant hover:text-primary transition-all hover:underline" href="#">Terms of Service</a>
+						<a class="text-on-surface-variant hover:text-primary transition-all hover:underline" href="#">Utah Licensing</a>
+						<a class="text-on-surface-variant hover:text-primary transition-all hover:underline" href="#">Accessibility</a>
+					</div>
+				</div>
+				<div class="space-y-4">
+					<h4 class="font-label-md text-primary">Join Our Story</h4>
+					<p class="text-on-surface-variant font-body-md">Follow us for nail art inspiration and team updates.</p>
+					<div class="flex gap-4">
+						<div class="w-10 h-10 bg-primary-container/30 rounded-full flex items-center justify-center cursor-pointer hover:bg-primary-container transition-colors">
+							<span class="material-symbols-outlined text-primary">group</span>
+						</div>
+						<div class="w-10 h-10 bg-primary-container/30 rounded-full flex items-center justify-center cursor-pointer hover:bg-primary-container transition-colors">
+							<span class="material-symbols-outlined text-primary">camera</span>
+						</div>
+					</div>
+				</div>
+			</div>
+			<div class="px-margin-mobile md:px-margin-desktop py-8 border-t border-surface-container-high max-w-container-max mx-auto text-center md:text-left">
+				<p class="text-on-surface-variant font-body-md">© 2024 CureVà Premium Nail Lounge. All rights reserved.</p>
+			</div>
+		</footer>
+		<script is:inline>
+			(function () {
+				const form = document.getElementById("recruit-form");
+				const dropZone = document.getElementById("drop-zone");
+				const resumeInput = document.getElementById("resume-input");
+				const dropTitle = document.getElementById("drop-title");
+				const dropSubtitle = document.getElementById("drop-subtitle");
+				const submitBtn = document.getElementById("submit-btn");
+				const formError = document.getElementById("form-error");
+				const formErrorText = document.getElementById("form-error-text");
+				const successPanel = document.getElementById("success-panel");
+
+				// --- Resume drag & drop ---
+				["dragenter", "dragover"].forEach((ev) =>
+					dropZone.addEventListener(ev, (e) => {
+						e.preventDefault();
+						dropZone.classList.add("drag-active");
+					}),
+				);
+				["dragleave", "drop"].forEach((ev) =>
+					dropZone.addEventListener(ev, (e) => {
+						e.preventDefault();
+						dropZone.classList.remove("drag-active");
+					}),
+				);
+				dropZone.addEventListener("drop", (e) => {
+					if (e.dataTransfer && e.dataTransfer.files.length) {
+						resumeInput.files = e.dataTransfer.files;
+						showResumeName();
+					}
+				});
+				dropZone.addEventListener("click", () => resumeInput.click());
+				resumeInput.addEventListener("change", showResumeName);
+				function showResumeName() {
+					if (resumeInput.files && resumeInput.files.length) {
+						dropTitle.textContent = resumeInput.files[0].name;
+						dropSubtitle.textContent = "Click to choose a different file";
+						dropZone.classList.remove("field-error");
+					}
+				}
+
+				// --- Validation helpers ---
+				function clearErrors() {
+					formError.classList.add("hidden");
+					form.querySelectorAll(".field-error").forEach((el) => el.classList.remove("field-error"));
+					form.querySelectorAll(".error-msg").forEach((el) => el.remove());
+				}
+				function markGroup(name, message) {
+					const group = form.querySelector('[data-group="' + name + '"]');
+					if (!group) return;
+					if (!group.querySelector(".error-msg")) {
+						const p = document.createElement("p");
+						p.className = "error-msg";
+						p.textContent = message;
+						group.appendChild(p);
+					}
+				}
+
+				function validate() {
+					clearErrors();
+					let firstInvalid = null;
+					const fail = (el) => {
+						if (!firstInvalid) firstInvalid = el;
+					};
+
+					// Native required text/date/select/email fields
+					form.querySelectorAll("input[required], select[required]").forEach((el) => {
+						if (el.type === "file") return; // handled below
+						const valid = el.checkValidity() && el.value.trim() !== "";
+						if (!valid) {
+							el.classList.add("field-error");
+							fail(el);
+						}
+					});
+
+					// Checkbox / radio groups that require a selection
+					const groups = [
+						["license_types", "Select at least one license type."],
+						["work_authorized", "Please answer the work authorization question."],
+						["days_available", "Select at least one available day."],
+						["employment_type", "Select an employment type."],
+					];
+					groups.forEach(([name, msg]) => {
+						const checked = form.querySelectorAll('[name="' + name + '"]:checked').length;
+						if (checked === 0) {
+							markGroup(name, msg);
+							fail(form.querySelector('[name="' + name + '"]'));
+						}
+					});
+
+					// Resume file
+					if (!resumeInput.files || resumeInput.files.length === 0) {
+						dropZone.classList.add("field-error");
+						markGroup("resume", "Please attach your resume / CV.");
+						fail(dropZone);
+					}
+
+					if (firstInvalid) {
+						formError.classList.remove("hidden");
+						formErrorText.textContent = "Please complete the highlighted required fields.";
+						firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
+					}
+					return firstInvalid === null;
+				}
+
+				// --- Submit via fetch ---
+				form.addEventListener("submit", async (e) => {
+					e.preventDefault();
+					if (!validate()) return;
+
+					submitBtn.disabled = true;
+					submitBtn.textContent = "Submitting…";
+
+					try {
+						const res = await fetch(form.action, {
+							method: "POST",
+							body: new FormData(form),
+							headers: { Accept: "application/json" },
+						});
+						const data = await res.json().catch(() => ({}));
+
+						if (res.ok && data.ok) {
+							form.classList.add("hidden");
+							successPanel.classList.remove("hidden");
+							successPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+							return;
+						}
+
+						// Server-side field errors
+						if (data && data.errors) {
+							clearErrors();
+							Object.keys(data.errors).forEach((key) => {
+								const field = form.querySelector('[name="' + key + '"]');
+								if (field && field.type !== "checkbox" && field.type !== "radio" && field.type !== "file") {
+									field.classList.add("field-error");
+								} else {
+									markGroup(key, data.errors[key]);
+								}
+							});
+						}
+						formError.classList.remove("hidden");
+						formErrorText.textContent = data.error || "Something went wrong. Please review your entries and try again.";
+					} catch (err) {
+						formError.classList.remove("hidden");
+						formErrorText.textContent = "Network error. Please check your connection and try again.";
+					} finally {
+						submitBtn.disabled = false;
+						submitBtn.textContent = "Submit Application";
+					}
+				});
+			})();
+		</script>
+	</body>
+</html>
