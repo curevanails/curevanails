@@ -146,12 +146,70 @@ try {
 			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
 			rel="stylesheet"
 		/>
+		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
 		<style is:inline>
 			.material-symbols-outlined {
 				font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 				vertical-align: middle;
 			}
 			.row-hidden { display: none !important; }
+
+			/* ---- flatpickr themed to the CureVà teal palette ---- */
+			.flatpickr-calendar {
+				font-family: "DM Sans", sans-serif;
+				border-radius: 16px;
+				border: 1px solid #c0c8ca;
+				box-shadow: 0 16px 40px rgba(58, 101, 110, 0.22);
+				padding-bottom: 4px;
+			}
+			.flatpickr-months .flatpickr-month,
+			.flatpickr-current-month,
+			.flatpickr-current-month .flatpickr-monthDropdown-months {
+				color: #0d1e22;
+				font-weight: 600;
+			}
+			.flatpickr-weekday {
+				color: #41484a;
+				font-weight: 600;
+			}
+			.flatpickr-day {
+				border-radius: 10px;
+				color: #0d1e22;
+			}
+			.flatpickr-day:hover,
+			.flatpickr-day:focus {
+				background: #dff1f7;
+				border-color: #dff1f7;
+			}
+			.flatpickr-day.today {
+				border-color: #3a656e;
+			}
+			.flatpickr-day.selected,
+			.flatpickr-day.selected:hover,
+			.flatpickr-day.startRange,
+			.flatpickr-day.endRange {
+				background: #3a656e;
+				border-color: #3a656e;
+				color: #fff;
+				box-shadow: none;
+			}
+			.flatpickr-day.flatpickr-disabled,
+			.flatpickr-day.prevMonthDay,
+			.flatpickr-day.nextMonthDay {
+				color: #b0bcbf;
+			}
+			.flatpickr-months .flatpickr-prev-month:hover svg,
+			.flatpickr-months .flatpickr-next-month:hover svg {
+				fill: #3a656e;
+			}
+			/* Calendar-icon affordance on the date inputs */
+			.fp-input {
+				background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='18' viewBox='0 0 24 24' fill='none' stroke='%233a656e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+				background-repeat: no-repeat;
+				background-position: right 10px center;
+				padding-right: 34px;
+				cursor: pointer;
+			}
 		</style>
 		<script is:inline id="tailwind-config">
 			tailwind.config = {
@@ -291,12 +349,12 @@ try {
 
 							<label class="flex flex-col gap-1">
 								<span class="text-xs uppercase tracking-wider text-on-surface-variant">Received from</span>
-								<input id="f-from" type="date" onchange="applyFilters()" class="rounded-lg border border-outline-variant px-3 py-2 text-sm" />
+								<input id="f-from" type="text" placeholder="Any date" readonly class="fp-input rounded-lg border border-outline-variant px-3 py-2 text-sm bg-white w-[150px]" />
 							</label>
 
 							<label class="flex flex-col gap-1">
 								<span class="text-xs uppercase tracking-wider text-on-surface-variant">Received to</span>
-								<input id="f-to" type="date" onchange="applyFilters()" class="rounded-lg border border-outline-variant px-3 py-2 text-sm" />
+								<input id="f-to" type="text" placeholder="Any date" readonly class="fp-input rounded-lg border border-outline-variant px-3 py-2 text-sm bg-white w-[150px]" />
 							</label>
 
 							<button type="button" onclick="resetFilters()"
@@ -430,6 +488,7 @@ try {
 			)}
 		</main>
 
+		<script is:inline src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 		<script is:inline>
 			const STATUS_CLASS = {
 				new: "bg-slate-100 text-slate-700 border-slate-300",
@@ -494,15 +553,49 @@ try {
 					"f-english",
 					"f-skill",
 					"f-day",
-					"f-auth",
-					"f-from",
-					"f-to",
 				].forEach((id) => {
 					const el = document.getElementById(id);
 					if (el) el.value = "";
 				});
+				// Date inputs are managed by flatpickr.
+				["f-from", "f-to"].forEach((id) => {
+					const el = document.getElementById(id);
+					if (el && el._flatpickr) {
+						el._flatpickr.clear();
+						el._flatpickr.set("minDate", null);
+						el._flatpickr.set("maxDate", null);
+					} else if (el) {
+						el.value = "";
+					}
+				});
 				applyFilters();
 			}
+
+			// Pretty date pickers (flatpickr) for the Received-date range.
+			(function initDatePickers() {
+				if (!window.flatpickr) return;
+				const common = {
+					dateFormat: "Y-m-d", // value kept machine-readable for filtering
+					altInput: true,
+					altFormat: "M j, Y", // shown to the user, e.g. "Jun 4, 2026"
+					altInputClass:
+						"fp-input rounded-lg border border-outline-variant px-3 py-2 text-sm bg-white w-[150px]",
+				};
+				const fpFrom = window.flatpickr("#f-from", {
+					...common,
+					onChange: (sel) => {
+						if (fpTo) fpTo.set("minDate", sel[0] || null);
+						applyFilters();
+					},
+				});
+				const fpTo = window.flatpickr("#f-to", {
+					...common,
+					onChange: (sel) => {
+						if (fpFrom) fpFrom.set("maxDate", sel[0] || null);
+						applyFilters();
+					},
+				});
+			})();
 
 			async function updateStatus(sel) {
 				const id = sel.dataset.id;

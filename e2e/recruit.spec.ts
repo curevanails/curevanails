@@ -30,6 +30,38 @@ const FUTURE_START = offsetDate(14);
 const FUTURE_EXPIRY = offsetDate(365);
 const PAST_DATE = offsetDate(-30);
 
+/**
+ * The date fields are enhanced by flatpickr (altInput hides the real input),
+ * so we drive them through the flatpickr instance — which syncs the underlying
+ * `name=` input to the machine value the form submits and validation reads.
+ */
+async function setDate(page: Page, id: string, value: string): Promise<void> {
+	await page.evaluate(
+		({ id, value }) => {
+			const el = document.getElementById(id) as
+				| (HTMLInputElement & { _flatpickr?: { setDate: (v: string, fire: boolean) => void } })
+				| null;
+			if (el?._flatpickr) el._flatpickr.setDate(value, true);
+			else if (el) {
+				el.value = value;
+				el.dispatchEvent(new Event("change", { bubbles: true }));
+			}
+		},
+		{ id, value },
+	);
+}
+
+/** Force a raw value onto the hidden input, bypassing the picker's min-date UI. */
+async function forceRawDate(page: Page, id: string, value: string): Promise<void> {
+	await page.evaluate(
+		({ id, value }) => {
+			const el = document.getElementById(id) as HTMLInputElement | null;
+			if (el) el.value = value;
+		},
+		{ id, value },
+	);
+}
+
 const LICENSE_PHOTO = {
 	name: "license.png",
 	mimeType: "image/png",
@@ -90,7 +122,7 @@ async function fillValidApplication(
 	if (want("dopl_license_number"))
 		await page.fill("#dopl_license_number", "1234567-5501");
 	if (want("license_expiration"))
-		await page.fill("#license_expiration", FUTURE_EXPIRY);
+		await setDate(page, "license_expiration", FUTURE_EXPIRY);
 	if (want("work_authorized"))
 		await page.check('input[name="work_authorized"][value="yes"]');
 
@@ -106,7 +138,7 @@ async function fillValidApplication(
 		await page.locator('label:has(input[value="monday"])').click();
 		await page.locator('label:has(input[value="friday"])').click();
 	}
-	if (want("start_date")) await page.fill("#start_date", FUTURE_START);
+	if (want("start_date")) await setDate(page, "start_date", FUTURE_START);
 
 	if (want("portfolio_link")) await page.fill("#portfolio_link", "@janedoenails");
 	if (want("license_photo"))
@@ -432,9 +464,22 @@ test.describe("validation — field data rules", () => {
 		await expect(page.locator("#success-panel")).toBeHidden();
 	});
 
-	test("rejects a license expiration date in the past", async ({ page }) => {
+	test("the date pickers block past dates (min = today)", async ({ page }) => {
+		const today = new Date();
+		const pad = (n: number) => String(n).padStart(2, "0");
+		const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+		await expect(page.locator("#license_expiration")).toHaveAttribute(
+			"min",
+			todayStr,
+		);
+		await expect(page.locator("#start_date")).toHaveAttribute("min", todayStr);
+	});
+
+	test("rejects a past license expiration that slips past the picker", async ({
+		page,
+	}) => {
 		await fillValidApplication(page);
-		await page.fill("#license_expiration", PAST_DATE);
+		await forceRawDate(page, "license_expiration", PAST_DATE);
 		await submit(page);
 
 		await expect(page.locator("#license_expiration")).toHaveClass(
@@ -443,9 +488,11 @@ test.describe("validation — field data rules", () => {
 		await expect(page.locator("#success-panel")).toBeHidden();
 	});
 
-	test("rejects a start date in the past", async ({ page }) => {
+	test("rejects a past start date that slips past the picker", async ({
+		page,
+	}) => {
 		await fillValidApplication(page);
-		await page.fill("#start_date", PAST_DATE);
+		await forceRawDate(page, "start_date", PAST_DATE);
 		await submit(page);
 
 		await expect(page.locator("#start_date")).toHaveClass(/field-error/);
