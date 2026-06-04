@@ -23,10 +23,12 @@ npx emdash types      # Regenerate TypeScript types from schema
 pnpm build            # astro build (compiles the Cloudflare Worker)
 pnpm typecheck        # astro check
 pnpm deploy           # astro build && wrangler deploy (main curevanails site)
-pnpm deploy:getready  # build & deploy the standalone getready Worker
+pnpm deploy:getready  # build & deploy the standalone getready careers Worker
+pnpm deploy:admin     # build & deploy the standalone admin recruit-dashboard Worker
 ```
 
-The admin UI is at `http://localhost:4321/_emdash/admin`.
+The EmDash content admin is at `http://localhost:4321/_emdash/admin`.
+The recruit dashboard is at `/admin` (login at `/admin/login`) — see "Recruit & Admin" below and [`docs/ADMIN.md`](docs/ADMIN.md).
 
 ## Verify
 
@@ -38,6 +40,7 @@ After a change, verify end-to-end before committing:
 4. Booking CTAs (**Book now** in the header, **Book your visit** in the hero) open the Mangomint popup; they fall back to `https://booking.mangomint.com/463532` if the widget script hasn't loaded. Booking must be enabled in the Mangomint account for the popup to appear.
 5. Blog routes respond: `/posts`, a single post, `/search`, `/rss.xml`.
 6. `/_emdash/admin` loads.
+7. If you touched recruit/admin: `/recruit` renders the form; `/admin` redirects to `/admin/login` when signed out; logging in shows the dashboard. (See [`docs/ADMIN.md`](docs/ADMIN.md).)
 
 ## Key Files
 
@@ -50,6 +53,10 @@ After a change, verify end-to-end before committing:
 | `src/layouts/Base.astro` | Base layout with EmDash wiring (menus, search, page contributions)                 |
 | `src/pages/`             | Astro pages -- all server-rendered                                                 |
 | `src/pages/index.astro`  | **CureVà landing page** -- standalone, does NOT use `Base.astro` (see "Homepage")  |
+| `src/middleware.ts`      | Standalone-Worker root rewrites (`getready`/`admin`) + the admin auth gate         |
+| `src/pages/recruit.astro` + `src/pages/api/recruit.ts` | Job application form + intake endpoint (writes D1 `job_applications` + R2 `recruit/`) |
+| `src/pages/admin/`       | Recruit dashboard (`index.astro`), `login.astro`, `logout.ts`, `file.ts` (R2 download) |
+| `src/utils/admin-auth.ts` | Signed session-cookie helpers for the admin login (see "Recruit & Admin")          |
 
 ## Skills
 
@@ -89,6 +96,37 @@ A blog with posts, pages, categories, tags, full-text search, and RSS. Designed 
 | Category    | `/category/[slug]` | Posts filtered by category                                                                             |
 | Tag         | `/tag/[slug]`      | Posts filtered by tag                                                                                  |
 | RSS         | `/rss.xml`         | Generated feed                                                                                         |
+| Careers     | `/recruit`         | Nail-tech job application form (POSTs to `/api/recruit`)                                               |
+| Admin login | `/admin/login`     | Styled login form for the recruit dashboard                                                            |
+| Admin       | `/admin`           | Recruit dashboard — lists `job_applications`, résumé/license downloads (auth-gated)                    |
+
+## Recruit & Admin
+
+The careers form (`/recruit`) writes applicants to the D1 `job_applications`
+table and uploads résumé / DOPL-license files to R2 under `recruit/<id>/…`. A
+password-protected dashboard reviews them. **Full guide:
+[`docs/ADMIN.md`](docs/ADMIN.md).** Key points for editing:
+
+- **Three Workers, one codebase.** `getready` and `admin` reuse this code under
+  different Worker names (= subdomains), selected by a `*_STANDALONE` var read in
+  `src/middleware.ts`. The build must be driven by the matching wrangler config
+  via `WRANGLER_CONFIG` (the `deploy:getready` / `deploy:admin` scripts do this),
+  not by `wrangler deploy -c`. All three share the same D1 + R2.
+- **Auth is form-based with a signed cookie**, not HTTP Basic Auth.
+  `src/utils/admin-auth.ts` mints an HMAC-SHA256 token (keyed by
+  `ADMIN_PASSWORD`, 12 h TTL); `src/middleware.ts` verifies it on every
+  `/admin*` request and redirects unauthenticated users to `/admin/login`.
+  `/admin/login` and `/admin/logout` are the only public admin routes.
+- **Secrets, not vars:** `ADMIN_PASSWORD` (required) and optional
+  `ADMIN_USERNAME` (default `admin`) are set with
+  `wrangler secret put … --config wrangler.admin.jsonc`. **If `ADMIN_PASSWORD`
+  is unset the whole `/admin` area returns 404** — that is why `/admin` stays
+  hidden on the main `curevanails` Worker even though the route exists there.
+  Rotating `ADMIN_PASSWORD` invalidates all sessions.
+- **PII:** the dashboard shows names, phones, emails, license numbers, and
+  uploaded documents. Don't loosen the auth gate, and keep `/admin/file` locked
+  to the `recruit/` key prefix.
+- Local-dev admin credentials live in `.dev.vars` (gitignored).
 
 ## Homepage (CureVà landing page)
 
@@ -121,6 +159,7 @@ Because the two design systems are separate, the homepage does not inherit the b
 - `pages` collection: `title`, `content` (Portable Text). Used for `/about` etc.
 - Taxonomies: `category`, `tag`.
 - Single `primary` menu (Home, About, Posts by default).
+- **`job_applications`** is a plain D1 table (not an EmDash collection), created lazily by `src/pages/api/recruit.ts` with `CREATE TABLE IF NOT EXISTS` on first submission. Columns documented in [`docs/ADMIN.md`](docs/ADMIN.md).
 
 Site settings have `title` and `tagline` -- both render in the header / footer.
 

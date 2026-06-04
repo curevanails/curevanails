@@ -1,0 +1,298 @@
+---
+import { env } from "cloudflare:workers";
+
+// Server-rendered, never cached — this page shows applicant PII and is gated by
+// the Basic-Auth check in src/middleware.ts.
+export const prerender = false;
+
+interface ApplicationRow {
+	id: string;
+	created_at: string;
+	full_name: string;
+	phone: string;
+	email: string;
+	city: string;
+	license_types: string;
+	dopl_license_number: string;
+	license_expiration: string;
+	work_authorized: string;
+	skills: string;
+	english_proficiency: string;
+	employment_type: string;
+	days_available: string;
+	start_date: string;
+	resume_key: string | null;
+	resume_filename: string | null;
+	license_photo_key: string | null;
+	portfolio_link: string | null;
+}
+
+const LABELS: Record<string, string> = {
+	nail_tech: "Nail Technician",
+	cosmetologist_barber: "Cosmetologist / Barber",
+	other: "Other",
+	manicure_pedicure: "Manicure & Pedicure",
+	gel_shellac: "Gel / Shellac",
+	acrylic_full_set: "Acrylic Full Set",
+	gel_x_soft_gel: "Gel-X / Soft Gel",
+	dip_powder: "Dip Powder",
+	nail_art_3d: "Nail Art / 3D",
+	native: "Native",
+	fluent: "Fluent",
+	conversational: "Conversational",
+	limited: "Limited",
+	full_time: "Full-time",
+	part_time: "Part-time",
+	monday: "Mon",
+	tuesday: "Tue",
+	wednesday: "Wed",
+	thursday: "Thu",
+	friday: "Fri",
+	saturday: "Sat",
+	sunday: "Sun",
+};
+
+function label(v: string): string {
+	return LABELS[v] ?? v;
+}
+
+function parseList(json: string): string[] {
+	try {
+		const arr = JSON.parse(json);
+		return Array.isArray(arr) ? arr.map(String) : [];
+	} catch {
+		return [];
+	}
+}
+
+function fmtDate(iso: string): string {
+	const d = new Date(iso);
+	return Number.isNaN(d.getTime())
+		? iso
+		: d.toLocaleString("en-US", {
+				dateStyle: "medium",
+				timeStyle: "short",
+			});
+}
+
+const db = env.DB as D1Database;
+let applications: ApplicationRow[] = [];
+let loadError: string | null = null;
+
+try {
+	const result = await db
+		.prepare(
+			"SELECT * FROM job_applications ORDER BY datetime(created_at) DESC",
+		)
+		.all<ApplicationRow>();
+	applications = result.results ?? [];
+} catch (err) {
+	// The table is created lazily on first submission; treat "no such table" as
+	// simply "no applications yet" rather than an error.
+	const message = err instanceof Error ? err.message : String(err);
+	if (/no such table/i.test(message)) {
+		applications = [];
+	} else {
+		loadError = message;
+		console.error("admin: failed to load applications", err);
+	}
+}
+---
+
+<!DOCTYPE html>
+<html class="light" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<meta name="robots" content="noindex, nofollow" />
+		<title>Applications | CureVà Admin</title>
+		<script is:inline src="https://cdn.tailwindcss.com"></script>
+		<link
+			href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+		<style is:inline>
+			.material-symbols-outlined {
+				font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+				vertical-align: middle;
+			}
+		</style>
+		<script is:inline id="tailwind-config">
+			tailwind.config = {
+				theme: {
+					extend: {
+						colors: {
+							primary: "#3a656e",
+							"primary-container": "#a4d0db",
+							background: "#f0fbff",
+							surface: "#f0fbff",
+							"surface-container": "#dff1f7",
+							"on-surface": "#0d1e22",
+							"on-surface-variant": "#41484a",
+							"on-primary": "#ffffff",
+							outline: "#71787a",
+							"outline-variant": "#c0c8ca",
+						},
+						fontFamily: { sans: ["DM Sans", "sans-serif"] },
+					},
+				},
+			};
+		</script>
+	</head>
+	<body class="bg-background text-on-surface font-sans min-h-screen">
+		<header class="bg-primary text-on-primary">
+			<div class="max-w-[1400px] mx-auto px-6 py-6 flex items-center justify-between gap-4">
+				<div>
+					<h1 class="text-2xl font-bold tracking-tight">CureVà · Recruit Admin</h1>
+					<p class="text-sm opacity-80">Nail technician job applications</p>
+				</div>
+				<div class="flex items-center gap-5">
+					<div class="text-right">
+						<div class="text-3xl font-bold leading-none">{applications.length}</div>
+						<div class="text-xs uppercase tracking-wider opacity-80">
+							application{applications.length === 1 ? "" : "s"}
+						</div>
+					</div>
+					<a
+						href="/admin/logout"
+						class="inline-flex items-center gap-1.5 rounded-full border border-on-primary/40 px-4 py-2 text-sm font-medium hover:bg-on-primary/10 transition"
+					>
+						<span class="material-symbols-outlined text-base">logout</span>
+						Sign out
+					</a>
+				</div>
+			</div>
+		</header>
+
+		<main class="max-w-[1400px] mx-auto px-6 py-8 space-y-6">
+			{loadError && (
+				<div class="rounded-lg border border-red-300 bg-red-50 text-red-800 px-4 py-3 text-sm">
+					<strong>Couldn’t load applications:</strong> {loadError}
+				</div>
+			)}
+
+			{!loadError && applications.length === 0 && (
+				<div class="rounded-xl border border-outline-variant bg-surface-container px-6 py-16 text-center text-on-surface-variant">
+					<span class="material-symbols-outlined text-5xl text-primary mb-2 block">inbox</span>
+					<p class="text-lg font-medium">No applications yet</p>
+					<p class="text-sm">Submissions from <code>/recruit</code> will appear here.</p>
+				</div>
+			)}
+
+			{applications.map((app) => (
+				<article class="rounded-xl border border-outline-variant bg-white shadow-sm overflow-hidden">
+					<div class="flex flex-wrap items-start justify-between gap-3 px-6 py-4 bg-surface-container border-b border-outline-variant">
+						<div>
+							<h2 class="text-lg font-bold text-primary">{app.full_name}</h2>
+							<p class="text-sm text-on-surface-variant">{app.city}</p>
+						</div>
+						<div class="text-right text-xs text-on-surface-variant">
+							<div>Received {fmtDate(app.created_at)}</div>
+							<div class="font-mono opacity-60">{app.id.slice(0, 8)}</div>
+						</div>
+					</div>
+
+					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 px-6 py-5 text-sm">
+						<div>
+							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Phone</div>
+							<a class="text-primary font-medium" href={`tel:${app.phone}`}>{app.phone}</a>
+						</div>
+						<div>
+							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Email</div>
+							<a class="text-primary font-medium break-all" href={`mailto:${app.email}`}>{app.email}</a>
+						</div>
+						<div>
+							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Work authorized</div>
+							<div class="font-medium">{app.work_authorized === "yes" ? "Yes" : "No"}</div>
+						</div>
+
+						<div>
+							<div class="text-xs uppercase tracking-wider text-on-surface-variant">License type(s)</div>
+							<div class="font-medium">{parseList(app.license_types).map(label).join(", ") || "—"}</div>
+						</div>
+						<div>
+							<div class="text-xs uppercase tracking-wider text-on-surface-variant">DOPL number</div>
+							<div class="font-medium font-mono">{app.dopl_license_number}</div>
+						</div>
+						<div>
+							<div class="text-xs uppercase tracking-wider text-on-surface-variant">License expires</div>
+							<div class="font-medium">{app.license_expiration}</div>
+						</div>
+
+						<div class="sm:col-span-2 lg:col-span-3">
+							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Skills</div>
+							<div class="flex flex-wrap gap-1.5 mt-1">
+								{parseList(app.skills).map((s) => (
+									<span class="rounded-full bg-primary-container/40 text-primary px-2.5 py-0.5 text-xs font-medium">{label(s)}</span>
+								))}
+								{parseList(app.skills).length === 0 && <span class="text-on-surface-variant">—</span>}
+							</div>
+						</div>
+
+						<div>
+							<div class="text-xs uppercase tracking-wider text-on-surface-variant">English</div>
+							<div class="font-medium">{label(app.english_proficiency)}</div>
+						</div>
+						<div>
+							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Employment</div>
+							<div class="font-medium">{label(app.employment_type)}</div>
+						</div>
+						<div>
+							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Start date</div>
+							<div class="font-medium">{app.start_date}</div>
+						</div>
+
+						<div class="sm:col-span-2 lg:col-span-3">
+							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Days available</div>
+							<div class="flex flex-wrap gap-1.5 mt-1">
+								{parseList(app.days_available).map((d) => (
+									<span class="rounded-full border border-outline-variant px-2.5 py-0.5 text-xs font-medium">{label(d)}</span>
+								))}
+							</div>
+						</div>
+					</div>
+
+					<div class="flex flex-wrap items-center gap-3 px-6 py-4 border-t border-outline-variant bg-surface-container/50">
+						{app.resume_key ? (
+							<a
+								class="inline-flex items-center gap-1.5 rounded-full bg-primary text-on-primary px-4 py-2 text-sm font-medium hover:opacity-90"
+								href={`/admin/file?key=${encodeURIComponent(app.resume_key)}`}
+							>
+								<span class="material-symbols-outlined text-base">description</span>
+								Résumé{app.resume_filename ? ` · ${app.resume_filename}` : ""}
+							</a>
+						) : (
+							<span class="text-sm text-on-surface-variant">No résumé</span>
+						)}
+
+						{app.license_photo_key && (
+							<a
+								class="inline-flex items-center gap-1.5 rounded-full border border-primary text-primary px-4 py-2 text-sm font-medium hover:bg-primary-container/30"
+								href={`/admin/file?key=${encodeURIComponent(app.license_photo_key)}`}
+							>
+								<span class="material-symbols-outlined text-base">badge</span>
+								License photo
+							</a>
+						)}
+
+						{app.portfolio_link && (
+							<a
+								class="inline-flex items-center gap-1.5 rounded-full border border-outline-variant px-4 py-2 text-sm font-medium hover:bg-surface-container"
+								href={app.portfolio_link}
+								target="_blank"
+								rel="noopener noreferrer"
+							>
+								<span class="material-symbols-outlined text-base">link</span>
+								Portfolio
+							</a>
+						)}
+					</div>
+				</article>
+			))}
+		</main>
+	</body>
+</html>
