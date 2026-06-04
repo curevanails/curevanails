@@ -549,6 +549,15 @@
 					}
 				}
 
+				// --- Date limits: licence expiry / start date can't be in the past ---
+				const _now = new Date();
+				const _pad = (n) => String(n).padStart(2, "0");
+				const TODAY = `${_now.getFullYear()}-${_pad(_now.getMonth() + 1)}-${_pad(_now.getDate())}`;
+				const licExpInput = document.getElementById("license_expiration");
+				const startDateInput = document.getElementById("start_date");
+				if (licExpInput) licExpInput.min = TODAY;
+				if (startDateInput) startDateInput.min = TODAY;
+
 				// --- Validation helpers ---
 				function clearErrors() {
 					formError.classList.add("hidden");
@@ -565,6 +574,18 @@
 						group.appendChild(p);
 					}
 				}
+				function fieldError(id, message) {
+					const el = document.getElementById(id);
+					if (!el) return;
+					el.classList.add("field-error");
+					const container = el.closest(".space-y-1") || el.parentElement;
+					if (container && !container.querySelector(".error-msg")) {
+						const p = document.createElement("p");
+						p.className = "error-msg";
+						p.textContent = message;
+						container.appendChild(p);
+					}
+				}
 
 				function validate() {
 					clearErrors();
@@ -573,15 +594,31 @@
 						if (!firstInvalid) firstInvalid = el;
 					};
 
-					// Native required text/date/select/email fields
-					form.querySelectorAll("input[required], select[required]").forEach((el) => {
-						if (el.type === "file") return; // handled below
-						const valid = el.checkValidity() && el.value.trim() !== "";
-						if (!valid) {
-							el.classList.add("field-error");
+					const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+					const doplRe = /^\d{6,8}-\d{4}$/;
+					const validDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+					const letters = (v) => (v.match(/\p{L}/gu) || []).length;
+
+					// Per-field rules → error message, or null when valid.
+					const rules = {
+						full_name: (v) => !v ? "Full name is required." : /\d/.test(v) ? "Name can't contain numbers." : letters(v) < 2 ? "Please enter your full name." : null,
+						phone: (v) => !v ? "Phone number is required." : /[A-Za-z]/.test(v) ? "Phone number can't contain letters." : v.replace(/\D/g, "").length < 10 ? "Enter a valid phone number (at least 10 digits)." : null,
+						email: (v) => !v ? "Email address is required." : !emailRe.test(v) ? "Enter a valid email address." : null,
+						city: (v) => !v ? "City of residence is required." : /\d/.test(v) ? "City can't contain numbers." : null,
+						dopl_license_number: (v) => !v ? "DOPL license number is required." : !doplRe.test(v) ? "Use the format 1234567-5501." : null,
+						license_expiration: (v) => !v ? "License expiration date is required." : !validDate(v) ? "Enter a valid date." : v < TODAY ? "License has expired — enter a current expiration date." : null,
+						start_date: (v) => !v ? "Available start date is required." : !validDate(v) ? "Enter a valid date." : v < TODAY ? "Start date can't be in the past." : null,
+						english_proficiency: (v) => !v ? "Select your English proficiency." : null,
+					};
+					for (const id of Object.keys(rules)) {
+						const el = document.getElementById(id);
+						if (!el) continue;
+						const msg = rules[id]((el.value || "").trim());
+						if (msg) {
+							fieldError(id, msg);
 							fail(el);
 						}
-					});
+					}
 
 					// Checkbox / radio groups that require a selection
 					const groups = [
@@ -598,16 +635,43 @@
 						}
 					});
 
-					// Resume file
+					// Resume: required + type + size
+					const MAX = 10 * 1024 * 1024;
+					const resumeRe = /\.(pdf|docx?)$/i;
 					if (!resumeInput.files || resumeInput.files.length === 0) {
 						dropZone.classList.add("field-error");
 						markGroup("resume", "Please attach your resume / CV.");
 						fail(dropZone);
+					} else {
+						const f = resumeInput.files[0];
+						if (!resumeRe.test(f.name)) {
+							dropZone.classList.add("field-error");
+							markGroup("resume", "Resume must be a PDF or Word document (.pdf, .doc, .docx).");
+							fail(dropZone);
+						} else if (f.size > MAX) {
+							dropZone.classList.add("field-error");
+							markGroup("resume", "Resume must be 10 MB or smaller.");
+							fail(dropZone);
+						}
+					}
+
+					// License photo (optional): type + size when provided
+					const photoInput = document.getElementById("license_photo");
+					const photoRe = /\.(png|jpe?g|gif|webp|heic|pdf)$/i;
+					if (photoInput && photoInput.files && photoInput.files.length) {
+						const f = photoInput.files[0];
+						if (!photoRe.test(f.name)) {
+							fieldError("license_photo", "License photo must be an image or PDF.");
+							fail(photoInput);
+						} else if (f.size > MAX) {
+							fieldError("license_photo", "License photo must be 10 MB or smaller.");
+							fail(photoInput);
+						}
 					}
 
 					if (firstInvalid) {
 						formError.classList.remove("hidden");
-						formErrorText.textContent = "Please complete the highlighted required fields.";
+						formErrorText.textContent = "Please fix the highlighted fields.";
 						firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
 					}
 					return firstInvalid === null;

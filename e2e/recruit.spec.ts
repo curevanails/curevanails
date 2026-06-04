@@ -14,11 +14,21 @@ import { expect, type Page, test } from "@playwright/test";
  * route interception so they neither depend on nor pollute the database.
  */
 
+const RESUME_BUFFER = Buffer.from("%PDF-1.4\nCureVa E2E test resume\n%%EOF\n");
+
 const RESUME_FILE = {
 	name: "resume.pdf",
 	mimeType: "application/pdf",
-	buffer: Buffer.from("%PDF-1.4\nCureVa E2E test resume\n%%EOF\n"),
+	buffer: RESUME_BUFFER,
 };
+
+/** A date `days` from now as YYYY-MM-DD (negative = in the past). */
+function offsetDate(days: number): string {
+	return new Date(Date.now() + days * 86_400_000).toISOString().slice(0, 10);
+}
+const FUTURE_START = offsetDate(14);
+const FUTURE_EXPIRY = offsetDate(365);
+const PAST_DATE = offsetDate(-30);
 
 const LICENSE_PHOTO = {
 	name: "license.png",
@@ -80,7 +90,7 @@ async function fillValidApplication(
 	if (want("dopl_license_number"))
 		await page.fill("#dopl_license_number", "1234567-5501");
 	if (want("license_expiration"))
-		await page.fill("#license_expiration", "2027-05-01");
+		await page.fill("#license_expiration", FUTURE_EXPIRY);
 	if (want("work_authorized"))
 		await page.check('input[name="work_authorized"][value="yes"]');
 
@@ -96,7 +106,7 @@ async function fillValidApplication(
 		await page.locator('label:has(input[value="monday"])').click();
 		await page.locator('label:has(input[value="friday"])').click();
 	}
-	if (want("start_date")) await page.fill("#start_date", "2026-07-01");
+	if (want("start_date")) await page.fill("#start_date", FUTURE_START);
 
 	if (want("portfolio_link")) await page.fill("#portfolio_link", "@janedoenails");
 	if (want("license_photo"))
@@ -371,5 +381,216 @@ test.describe("resilience — backend & network failures", () => {
 
 		// Then it completes.
 		await expect(page.locator("#success-panel")).toBeVisible();
+	});
+});
+
+test.describe("validation — field data rules", () => {
+	test("rejects a name containing numbers", async ({ page }) => {
+		await fillValidApplication(page);
+		await page.fill("#full_name", "Jane2 Doe");
+		await submit(page);
+
+		await expect(page.locator("#full_name")).toHaveClass(/field-error/);
+		await expect(page.locator("#success-panel")).toBeHidden();
+	});
+
+	test("rejects a phone number containing letters", async ({ page }) => {
+		await fillValidApplication(page);
+		await page.fill("#phone", "801-CALL-NOW");
+		await submit(page);
+
+		await expect(page.locator("#phone")).toHaveClass(/field-error/);
+		await expect(page.locator("#success-panel")).toBeHidden();
+	});
+
+	test("rejects a phone number that is too short", async ({ page }) => {
+		await fillValidApplication(page);
+		await page.fill("#phone", "12345");
+		await submit(page);
+
+		await expect(page.locator("#phone")).toHaveClass(/field-error/);
+		await expect(page.locator("#success-panel")).toBeHidden();
+	});
+
+	test("rejects a city containing numbers", async ({ page }) => {
+		await fillValidApplication(page);
+		await page.fill("#city", "Provo 84601");
+		await submit(page);
+
+		await expect(page.locator("#city")).toHaveClass(/field-error/);
+		await expect(page.locator("#success-panel")).toBeHidden();
+	});
+
+	test("rejects a malformed DOPL license number", async ({ page }) => {
+		await fillValidApplication(page);
+		await page.fill("#dopl_license_number", "12345");
+		await submit(page);
+
+		await expect(page.locator("#dopl_license_number")).toHaveClass(
+			/field-error/,
+		);
+		await expect(page.locator("#success-panel")).toBeHidden();
+	});
+
+	test("rejects a license expiration date in the past", async ({ page }) => {
+		await fillValidApplication(page);
+		await page.fill("#license_expiration", PAST_DATE);
+		await submit(page);
+
+		await expect(page.locator("#license_expiration")).toHaveClass(
+			/field-error/,
+		);
+		await expect(page.locator("#success-panel")).toBeHidden();
+	});
+
+	test("rejects a start date in the past", async ({ page }) => {
+		await fillValidApplication(page);
+		await page.fill("#start_date", PAST_DATE);
+		await submit(page);
+
+		await expect(page.locator("#start_date")).toHaveClass(/field-error/);
+		await expect(page.locator("#success-panel")).toBeHidden();
+	});
+
+	test("rejects a resume with the wrong file type", async ({ page }) => {
+		await fillValidApplication(page, { skip: ["resume"] });
+		await page.locator("#resume-input").setInputFiles({
+			name: "resume.txt",
+			mimeType: "text/plain",
+			buffer: Buffer.from("not a real resume"),
+		});
+		await submit(page);
+
+		await expect(page.locator("#drop-zone")).toHaveClass(/field-error/);
+		await expect(page.locator('[data-group="resume"] .error-msg')).toBeVisible();
+		await expect(page.locator("#success-panel")).toBeHidden();
+	});
+
+	test("rejects a resume larger than 10 MB", async ({ page }) => {
+		await fillValidApplication(page, { skip: ["resume"] });
+		await page.locator("#resume-input").setInputFiles({
+			name: "huge.pdf",
+			mimeType: "application/pdf",
+			buffer: Buffer.alloc(11 * 1024 * 1024, 0),
+		});
+		await submit(page);
+
+		await expect(page.locator("#drop-zone")).toHaveClass(/field-error/);
+		await expect(page.locator("#success-panel")).toBeHidden();
+	});
+
+	test("rejects an invalid license-photo file type", async ({ page }) => {
+		await fillValidApplication(page, { skip: ["license_photo"] });
+		await page.locator("#license_photo").setInputFiles({
+			name: "notes.txt",
+			mimeType: "text/plain",
+			buffer: Buffer.from("not an image"),
+		});
+		await submit(page);
+
+		await expect(page.locator("#license_photo")).toHaveClass(/field-error/);
+		await expect(page.locator("#success-panel")).toBeHidden();
+	});
+});
+
+/**
+ * Server-side validation, exercised directly against POST /api/recruit with
+ * the API request fixture (no browser, so the client guard is bypassed). This
+ * proves the backend independently rejects bad data.
+ */
+test.describe("API validation (server-side)", () => {
+	function validMultipart(): Record<
+		string,
+		string | { name: string; mimeType: string; buffer: Buffer }
+	> {
+		return {
+			full_name: "Api Jane",
+			phone: "8015550100",
+			email: `e2e+api-${Date.now()}-${Math.random().toString(36).slice(2)}@example.com`,
+			city: "Provo",
+			license_types: "nail_tech",
+			dopl_license_number: "1234567-5501",
+			license_expiration: FUTURE_EXPIRY,
+			work_authorized: "yes",
+			english_proficiency: "fluent",
+			employment_type: "full_time",
+			days_available: "monday",
+			start_date: FUTURE_START,
+			resume: {
+				name: "resume.pdf",
+				mimeType: "application/pdf",
+				buffer: RESUME_BUFFER,
+			},
+		};
+	}
+
+	test("accepts a valid multipart submission", async ({ request }) => {
+		const res = await request.post("/api/recruit", {
+			multipart: validMultipart(),
+		});
+		expect(res.status()).toBe(200);
+		expect((await res.json()).ok).toBe(true);
+	});
+
+	test("rejects an empty submission with field errors", async ({ request }) => {
+		const res = await request.post("/api/recruit", { multipart: {} });
+		expect(res.status()).toBe(400);
+		const body = await res.json();
+		expect(body.ok).toBe(false);
+		expect(Object.keys(body.errors)).toEqual(
+			expect.arrayContaining([
+				"full_name",
+				"phone",
+				"email",
+				"city",
+				"license_types",
+				"dopl_license_number",
+				"license_expiration",
+				"work_authorized",
+				"english_proficiency",
+				"employment_type",
+				"days_available",
+				"start_date",
+				"resume",
+			]),
+		);
+	});
+
+	const badCases: Array<[string, Record<string, string>, string]> = [
+		["a name with numbers", { full_name: "Jane2" }, "full_name"],
+		["a phone with letters", { phone: "801-CALL-NOW" }, "phone"],
+		["a short phone", { phone: "12345" }, "phone"],
+		["a city with numbers", { city: "Provo 84601" }, "city"],
+		["a bad email", { email: "nope" }, "email"],
+		["a malformed DOPL number", { dopl_license_number: "12345" }, "dopl_license_number"],
+		["a past expiration", { license_expiration: PAST_DATE }, "license_expiration"],
+		["a past start date", { start_date: PAST_DATE }, "start_date"],
+		["an unknown english level", { english_proficiency: "wizard" }, "english_proficiency"],
+	];
+
+	for (const [label, override, expectedKey] of badCases) {
+		test(`rejects ${label}`, async ({ request }) => {
+			const res = await request.post("/api/recruit", {
+				multipart: { ...validMultipart(), ...override },
+			});
+			expect(res.status()).toBe(400);
+			const body = await res.json();
+			expect(body.errors).toHaveProperty(expectedKey);
+		});
+	}
+
+	test("rejects a resume with the wrong type", async ({ request }) => {
+		const res = await request.post("/api/recruit", {
+			multipart: {
+				...validMultipart(),
+				resume: {
+					name: "resume.txt",
+					mimeType: "text/plain",
+					buffer: Buffer.from("nope"),
+				},
+			},
+		});
+		expect(res.status()).toBe(400);
+		expect((await res.json()).errors).toHaveProperty("resume");
 	});
 });

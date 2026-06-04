@@ -1,8 +1,14 @@
 ---
 import { env } from "cloudflare:workers";
+import {
+	APPLICATION_STATUSES,
+	STATUS_LABELS,
+	type ApplicationStatus,
+	ensureApplicationsSchema,
+} from "../../utils/recruit-db";
 
 // Server-rendered, never cached — this page shows applicant PII and is gated by
-// the Basic-Auth check in src/middleware.ts.
+// the auth check in src/middleware.ts.
 export const prerender = false;
 
 interface ApplicationRow {
@@ -25,6 +31,8 @@ interface ApplicationRow {
 	resume_filename: string | null;
 	license_photo_key: string | null;
 	portfolio_link: string | null;
+	status: string | null;
+	notes: string | null;
 }
 
 const LABELS: Record<string, string> = {
@@ -52,11 +60,38 @@ const LABELS: Record<string, string> = {
 	sunday: "Sun",
 };
 
+const SKILL_OPTIONS = [
+	"manicure_pedicure",
+	"gel_shellac",
+	"acrylic_full_set",
+	"gel_x_soft_gel",
+	"dip_powder",
+	"nail_art_3d",
+];
+const DAY_OPTIONS = [
+	"monday",
+	"tuesday",
+	"wednesday",
+	"thursday",
+	"friday",
+	"saturday",
+	"sunday",
+];
+
+// Tailwind classes per status (Play CDN ships the full default palette).
+const STATUS_CLASS: Record<ApplicationStatus, string> = {
+	new: "bg-slate-100 text-slate-700 border-slate-300",
+	pending: "bg-amber-100 text-amber-800 border-amber-300",
+	contacted: "bg-indigo-100 text-indigo-800 border-indigo-300",
+	deal: "bg-emerald-100 text-emerald-800 border-emerald-300",
+};
+
 function label(v: string): string {
 	return LABELS[v] ?? v;
 }
 
-function parseList(json: string): string[] {
+function parseList(json: string | null): string[] {
+	if (!json) return [];
 	try {
 		const arr = JSON.parse(json);
 		return Array.isArray(arr) ? arr.map(String) : [];
@@ -69,10 +104,13 @@ function fmtDate(iso: string): string {
 	const d = new Date(iso);
 	return Number.isNaN(d.getTime())
 		? iso
-		: d.toLocaleString("en-US", {
-				dateStyle: "medium",
-				timeStyle: "short",
-			});
+		: d.toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" });
+}
+
+function statusOf(s: string | null): ApplicationStatus {
+	return s && (APPLICATION_STATUSES as readonly string[]).includes(s)
+		? (s as ApplicationStatus)
+		: "new";
 }
 
 const db = env.DB as D1Database;
@@ -80,22 +118,15 @@ let applications: ApplicationRow[] = [];
 let loadError: string | null = null;
 
 try {
+	await ensureApplicationsSchema(db);
 	const result = await db
-		.prepare(
-			"SELECT * FROM job_applications ORDER BY datetime(created_at) DESC",
-		)
+		.prepare("SELECT * FROM job_applications ORDER BY datetime(created_at) DESC")
 		.all<ApplicationRow>();
 	applications = result.results ?? [];
 } catch (err) {
-	// The table is created lazily on first submission; treat "no such table" as
-	// simply "no applications yet" rather than an error.
 	const message = err instanceof Error ? err.message : String(err);
-	if (/no such table/i.test(message)) {
-		applications = [];
-	} else {
-		loadError = message;
-		console.error("admin: failed to load applications", err);
-	}
+	loadError = message;
+	console.error("admin: failed to load applications", err);
 }
 ---
 
@@ -106,7 +137,7 @@ try {
 		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
 		<meta name="robots" content="noindex, nofollow" />
 		<title>Applications | CureVà Admin</title>
-		<script is:inline src="https://cdn.tailwindcss.com"></script>
+		<script is:inline src="https://cdn.tailwindcss.com?plugins=forms"></script>
 		<link
 			href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
 			rel="stylesheet"
@@ -120,6 +151,7 @@ try {
 				font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 				vertical-align: middle;
 			}
+			.row-hidden { display: none !important; }
 		</style>
 		<script is:inline id="tailwind-config">
 			tailwind.config = {
@@ -145,17 +177,17 @@ try {
 	</head>
 	<body class="bg-background text-on-surface font-sans min-h-screen">
 		<header class="bg-primary text-on-primary">
-			<div class="max-w-[1400px] mx-auto px-6 py-6 flex items-center justify-between gap-4">
+			<div class="max-w-[1700px] mx-auto px-6 py-5 flex items-center justify-between gap-4">
 				<div>
 					<h1 class="text-2xl font-bold tracking-tight">CureVà · Recruit Admin</h1>
 					<p class="text-sm opacity-80">Nail technician job applications</p>
 				</div>
 				<div class="flex items-center gap-5">
 					<div class="text-right">
-						<div class="text-3xl font-bold leading-none">{applications.length}</div>
-						<div class="text-xs uppercase tracking-wider opacity-80">
-							application{applications.length === 1 ? "" : "s"}
+						<div class="text-3xl font-bold leading-none">
+							<span id="result-count">{applications.length}</span><span class="text-base font-normal opacity-70"> / {applications.length}</span>
 						</div>
+						<div class="text-xs uppercase tracking-wider opacity-80">shown / total</div>
 					</div>
 					<a
 						href="/admin/logout"
@@ -168,7 +200,7 @@ try {
 			</div>
 		</header>
 
-		<main class="max-w-[1400px] mx-auto px-6 py-8 space-y-6">
+		<main class="max-w-[1700px] mx-auto px-6 py-6 space-y-5">
 			{loadError && (
 				<div class="rounded-lg border border-red-300 bg-red-50 text-red-800 px-4 py-3 text-sm">
 					<strong>Couldn’t load applications:</strong> {loadError}
@@ -183,116 +215,341 @@ try {
 				</div>
 			)}
 
-			{applications.map((app) => (
-				<article class="rounded-xl border border-outline-variant bg-white shadow-sm overflow-hidden">
-					<div class="flex flex-wrap items-start justify-between gap-3 px-6 py-4 bg-surface-container border-b border-outline-variant">
-						<div>
-							<h2 class="text-lg font-bold text-primary">{app.full_name}</h2>
-							<p class="text-sm text-on-surface-variant">{app.city}</p>
-						</div>
-						<div class="text-right text-xs text-on-surface-variant">
-							<div>Received {fmtDate(app.created_at)}</div>
-							<div class="font-mono opacity-60">{app.id.slice(0, 8)}</div>
+			{!loadError && applications.length > 0 && (
+				<>
+					{/* ---- Filter bar ---- */}
+					<div class="rounded-xl border border-outline-variant bg-white p-4 shadow-sm">
+						<div class="flex flex-wrap items-end gap-3">
+							<label class="flex flex-col gap-1 grow min-w-[200px]">
+								<span class="text-xs uppercase tracking-wider text-on-surface-variant">Search</span>
+								<input id="f-search" type="search" placeholder="Name, email, phone, city…" oninput="applyFilters()"
+									class="rounded-lg border border-outline-variant px-3 py-2 text-sm" />
+							</label>
+
+							<label class="flex flex-col gap-1">
+								<span class="text-xs uppercase tracking-wider text-on-surface-variant">Status</span>
+								<select id="f-status" onchange="applyFilters()" class="rounded-lg border border-outline-variant px-3 py-2 text-sm">
+									<option value="">All statuses</option>
+									{APPLICATION_STATUSES.map((s) => <option value={s}>{STATUS_LABELS[s]}</option>)}
+								</select>
+							</label>
+
+							<label class="flex flex-col gap-1">
+								<span class="text-xs uppercase tracking-wider text-on-surface-variant">Employment</span>
+								<select id="f-employment" onchange="applyFilters()" class="rounded-lg border border-outline-variant px-3 py-2 text-sm">
+									<option value="">All</option>
+									<option value="full_time">Full-time</option>
+									<option value="part_time">Part-time</option>
+								</select>
+							</label>
+
+							<label class="flex flex-col gap-1">
+								<span class="text-xs uppercase tracking-wider text-on-surface-variant">License</span>
+								<select id="f-license" onchange="applyFilters()" class="rounded-lg border border-outline-variant px-3 py-2 text-sm">
+									<option value="">All</option>
+									<option value="nail_tech">Nail Technician</option>
+									<option value="cosmetologist_barber">Cosmetologist / Barber</option>
+									<option value="other">Other</option>
+								</select>
+							</label>
+
+							<label class="flex flex-col gap-1">
+								<span class="text-xs uppercase tracking-wider text-on-surface-variant">English</span>
+								<select id="f-english" onchange="applyFilters()" class="rounded-lg border border-outline-variant px-3 py-2 text-sm">
+									<option value="">All</option>
+									<option value="native">Native</option>
+									<option value="fluent">Fluent</option>
+									<option value="conversational">Conversational</option>
+									<option value="limited">Limited</option>
+								</select>
+							</label>
+
+							<label class="flex flex-col gap-1">
+								<span class="text-xs uppercase tracking-wider text-on-surface-variant">Skill</span>
+								<select id="f-skill" onchange="applyFilters()" class="rounded-lg border border-outline-variant px-3 py-2 text-sm">
+									<option value="">All</option>
+									{SKILL_OPTIONS.map((s) => <option value={s}>{label(s)}</option>)}
+								</select>
+							</label>
+
+							<label class="flex flex-col gap-1">
+								<span class="text-xs uppercase tracking-wider text-on-surface-variant">Day</span>
+								<select id="f-day" onchange="applyFilters()" class="rounded-lg border border-outline-variant px-3 py-2 text-sm">
+									<option value="">All</option>
+									{DAY_OPTIONS.map((d) => <option value={d}>{label(d)}</option>)}
+								</select>
+							</label>
+
+							<label class="flex flex-col gap-1">
+								<span class="text-xs uppercase tracking-wider text-on-surface-variant">Work auth</span>
+								<select id="f-auth" onchange="applyFilters()" class="rounded-lg border border-outline-variant px-3 py-2 text-sm">
+									<option value="">All</option>
+									<option value="yes">Authorized</option>
+									<option value="no">Not authorized</option>
+								</select>
+							</label>
+
+							<label class="flex flex-col gap-1">
+								<span class="text-xs uppercase tracking-wider text-on-surface-variant">Received from</span>
+								<input id="f-from" type="date" onchange="applyFilters()" class="rounded-lg border border-outline-variant px-3 py-2 text-sm" />
+							</label>
+
+							<label class="flex flex-col gap-1">
+								<span class="text-xs uppercase tracking-wider text-on-surface-variant">Received to</span>
+								<input id="f-to" type="date" onchange="applyFilters()" class="rounded-lg border border-outline-variant px-3 py-2 text-sm" />
+							</label>
+
+							<button type="button" onclick="resetFilters()"
+								class="rounded-lg border border-outline-variant px-4 py-2 text-sm font-medium hover:bg-surface-container transition">
+								Reset
+							</button>
 						</div>
 					</div>
 
-					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 px-6 py-5 text-sm">
-						<div>
-							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Phone</div>
-							<a class="text-primary font-medium" href={`tel:${app.phone}`}>{app.phone}</a>
-						</div>
-						<div>
-							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Email</div>
-							<a class="text-primary font-medium break-all" href={`mailto:${app.email}`}>{app.email}</a>
-						</div>
-						<div>
-							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Work authorized</div>
-							<div class="font-medium">{app.work_authorized === "yes" ? "Yes" : "No"}</div>
-						</div>
-
-						<div>
-							<div class="text-xs uppercase tracking-wider text-on-surface-variant">License type(s)</div>
-							<div class="font-medium">{parseList(app.license_types).map(label).join(", ") || "—"}</div>
-						</div>
-						<div>
-							<div class="text-xs uppercase tracking-wider text-on-surface-variant">DOPL number</div>
-							<div class="font-medium font-mono">{app.dopl_license_number}</div>
-						</div>
-						<div>
-							<div class="text-xs uppercase tracking-wider text-on-surface-variant">License expires</div>
-							<div class="font-medium">{app.license_expiration}</div>
-						</div>
-
-						<div class="sm:col-span-2 lg:col-span-3">
-							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Skills</div>
-							<div class="flex flex-wrap gap-1.5 mt-1">
-								{parseList(app.skills).map((s) => (
-									<span class="rounded-full bg-primary-container/40 text-primary px-2.5 py-0.5 text-xs font-medium">{label(s)}</span>
-								))}
-								{parseList(app.skills).length === 0 && <span class="text-on-surface-variant">—</span>}
-							</div>
-						</div>
-
-						<div>
-							<div class="text-xs uppercase tracking-wider text-on-surface-variant">English</div>
-							<div class="font-medium">{label(app.english_proficiency)}</div>
-						</div>
-						<div>
-							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Employment</div>
-							<div class="font-medium">{label(app.employment_type)}</div>
-						</div>
-						<div>
-							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Start date</div>
-							<div class="font-medium">{app.start_date}</div>
-						</div>
-
-						<div class="sm:col-span-2 lg:col-span-3">
-							<div class="text-xs uppercase tracking-wider text-on-surface-variant">Days available</div>
-							<div class="flex flex-wrap gap-1.5 mt-1">
-								{parseList(app.days_available).map((d) => (
-									<span class="rounded-full border border-outline-variant px-2.5 py-0.5 text-xs font-medium">{label(d)}</span>
-								))}
-							</div>
+					{/* ---- Table ---- */}
+					<div class="rounded-xl border border-outline-variant bg-white shadow-sm overflow-x-auto">
+						<table class="w-full text-sm border-collapse" id="apps-table">
+							<thead class="bg-surface-container text-on-surface-variant text-xs uppercase tracking-wider">
+								<tr>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">Received</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">Applicant</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">Phone</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">Email</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">License</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">Skills</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">Employ.</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">English</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">Days</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">Start</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">Auth</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">Files</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">Status</th>
+									<th class="text-left font-semibold px-3 py-3 whitespace-nowrap">Notes</th>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-outline-variant/60">
+								{applications.map((app) => {
+									const licenses = parseList(app.license_types);
+									const skills = parseList(app.skills);
+									const days = parseList(app.days_available);
+									const st = statusOf(app.status);
+									const searchBlob = `${app.full_name} ${app.email} ${app.phone} ${app.city}`.toLowerCase();
+									return (
+										<tr
+											class="align-top hover:bg-surface-container/40"
+											data-search={searchBlob}
+											data-status={st}
+											data-employment={app.employment_type}
+											data-license={licenses.join(",")}
+											data-english={app.english_proficiency}
+											data-skills={skills.join(",")}
+											data-days={days.join(",")}
+											data-auth={app.work_authorized}
+											data-date={app.created_at.slice(0, 10)}
+										>
+											<td class="px-3 py-3 whitespace-nowrap text-on-surface-variant">{fmtDate(app.created_at)}</td>
+											<td class="px-3 py-3 whitespace-nowrap">
+												<div class="font-semibold text-primary">{app.full_name}</div>
+												<div class="text-xs text-on-surface-variant">{app.city}</div>
+											</td>
+											<td class="px-3 py-3 whitespace-nowrap">
+												<a class="text-primary font-medium inline-flex items-center gap-1 hover:underline" href={`tel:${app.phone.replace(/[^+\d]/g, "")}`}>
+													<span class="material-symbols-outlined text-sm">call</span>{app.phone}
+												</a>
+											</td>
+											<td class="px-3 py-3 whitespace-nowrap">
+												<a class="text-primary hover:underline" href={`mailto:${app.email}`}>{app.email}</a>
+											</td>
+											<td class="px-3 py-3 whitespace-nowrap">{licenses.map(label).join(", ") || "—"}</td>
+											<td class="px-3 py-3 min-w-[180px]">
+												<div class="flex flex-wrap gap-1">
+													{skills.map((s) => <span class="rounded-full bg-primary-container/40 text-primary px-2 py-0.5 text-xs">{label(s)}</span>)}
+													{skills.length === 0 && <span class="text-on-surface-variant">—</span>}
+												</div>
+											</td>
+											<td class="px-3 py-3 whitespace-nowrap">{label(app.employment_type)}</td>
+											<td class="px-3 py-3 whitespace-nowrap">{label(app.english_proficiency)}</td>
+											<td class="px-3 py-3 whitespace-nowrap text-xs">{days.map(label).join(", ")}</td>
+											<td class="px-3 py-3 whitespace-nowrap">{app.start_date}</td>
+											<td class="px-3 py-3 whitespace-nowrap">
+												{app.work_authorized === "yes"
+													? <span class="text-emerald-700 font-medium">Yes</span>
+													: <span class="text-red-700 font-medium">No</span>}
+											</td>
+											<td class="px-3 py-3 whitespace-nowrap">
+												<div class="flex flex-col gap-1">
+													{app.resume_key && (
+														<a class="text-primary hover:underline inline-flex items-center gap-1" href={`/admin/file?key=${encodeURIComponent(app.resume_key)}`}>
+															<span class="material-symbols-outlined text-sm">description</span>Résumé
+														</a>
+													)}
+													{app.license_photo_key && (
+														<a class="text-primary hover:underline inline-flex items-center gap-1" href={`/admin/file?key=${encodeURIComponent(app.license_photo_key)}`}>
+															<span class="material-symbols-outlined text-sm">badge</span>License
+														</a>
+													)}
+													{app.portfolio_link && (
+														<a class="text-primary hover:underline inline-flex items-center gap-1" href={app.portfolio_link} target="_blank" rel="noopener noreferrer">
+															<span class="material-symbols-outlined text-sm">link</span>Portfolio
+														</a>
+													)}
+													{!app.resume_key && !app.license_photo_key && !app.portfolio_link && <span class="text-on-surface-variant">—</span>}
+												</div>
+											</td>
+											<td class="px-3 py-3 whitespace-nowrap">
+												<select
+													data-id={app.id}
+													onchange="updateStatus(this)"
+													class={`status-select rounded-full border px-3 py-1.5 text-xs font-semibold cursor-pointer ${STATUS_CLASS[st]}`}
+												>
+													{APPLICATION_STATUSES.map((s) => (
+														<option value={s} selected={s === st}>{STATUS_LABELS[s]}</option>
+													))}
+												</select>
+											</td>
+											<td class="px-3 py-3 min-w-[220px]">
+												<textarea
+													data-id={app.id}
+													rows="2"
+													placeholder="Add a note…"
+													onblur="saveNotes(this)"
+													class="w-full rounded-lg border border-outline-variant px-2 py-1.5 text-sm resize-y"
+												>{app.notes ?? ""}</textarea>
+												<div class="text-[11px] text-on-surface-variant/0 transition-colors note-saved">Saved ✓</div>
+											</td>
+										</tr>
+									);
+								})}
+							</tbody>
+						</table>
+						<div id="no-results" class="hidden px-6 py-12 text-center text-on-surface-variant">
+							No applications match the current filters.
 						</div>
 					</div>
-
-					<div class="flex flex-wrap items-center gap-3 px-6 py-4 border-t border-outline-variant bg-surface-container/50">
-						{app.resume_key ? (
-							<a
-								class="inline-flex items-center gap-1.5 rounded-full bg-primary text-on-primary px-4 py-2 text-sm font-medium hover:opacity-90"
-								href={`/admin/file?key=${encodeURIComponent(app.resume_key)}`}
-							>
-								<span class="material-symbols-outlined text-base">description</span>
-								Résumé{app.resume_filename ? ` · ${app.resume_filename}` : ""}
-							</a>
-						) : (
-							<span class="text-sm text-on-surface-variant">No résumé</span>
-						)}
-
-						{app.license_photo_key && (
-							<a
-								class="inline-flex items-center gap-1.5 rounded-full border border-primary text-primary px-4 py-2 text-sm font-medium hover:bg-primary-container/30"
-								href={`/admin/file?key=${encodeURIComponent(app.license_photo_key)}`}
-							>
-								<span class="material-symbols-outlined text-base">badge</span>
-								License photo
-							</a>
-						)}
-
-						{app.portfolio_link && (
-							<a
-								class="inline-flex items-center gap-1.5 rounded-full border border-outline-variant px-4 py-2 text-sm font-medium hover:bg-surface-container"
-								href={app.portfolio_link}
-								target="_blank"
-								rel="noopener noreferrer"
-							>
-								<span class="material-symbols-outlined text-base">link</span>
-								Portfolio
-							</a>
-						)}
-					</div>
-				</article>
-			))}
+				</>
+			)}
 		</main>
+
+		<script is:inline>
+			const STATUS_CLASS = {
+				new: "bg-slate-100 text-slate-700 border-slate-300",
+				pending: "bg-amber-100 text-amber-800 border-amber-300",
+				contacted: "bg-indigo-100 text-indigo-800 border-indigo-300",
+				deal: "bg-emerald-100 text-emerald-800 border-emerald-300",
+			};
+			const ALL_STATUS_CLASSES =
+				"bg-slate-100 text-slate-700 border-slate-300 bg-amber-100 text-amber-800 border-amber-300 bg-indigo-100 text-indigo-800 border-indigo-300 bg-emerald-100 text-emerald-800 border-emerald-300".split(
+					" ",
+				);
+
+			function val(id) {
+				const el = document.getElementById(id);
+				return el ? el.value.trim().toLowerCase() : "";
+			}
+
+			function applyFilters() {
+				const search = val("f-search");
+				const status = val("f-status");
+				const employment = val("f-employment");
+				const license = val("f-license");
+				const english = val("f-english");
+				const skill = val("f-skill");
+				const day = val("f-day");
+				const auth = val("f-auth");
+				const from = val("f-from"); // yyyy-mm-dd
+				const to = val("f-to");
+
+				let shown = 0;
+				document.querySelectorAll("#apps-table tbody tr").forEach((row) => {
+					const d = row.dataset;
+					const inList = (csv, v) => csv.split(",").includes(v);
+					let ok = true;
+					if (search && !d.search.includes(search)) ok = false;
+					if (ok && status && d.status !== status) ok = false;
+					if (ok && employment && d.employment !== employment) ok = false;
+					if (ok && license && !inList(d.license, license)) ok = false;
+					if (ok && english && d.english !== english) ok = false;
+					if (ok && skill && !inList(d.skills, skill)) ok = false;
+					if (ok && day && !inList(d.days, day)) ok = false;
+					if (ok && auth && d.auth !== auth) ok = false;
+					if (ok && from && d.date < from) ok = false;
+					if (ok && to && d.date > to) ok = false;
+
+					row.classList.toggle("row-hidden", !ok);
+					if (ok) shown++;
+				});
+
+				const countEl = document.getElementById("result-count");
+				if (countEl) countEl.textContent = shown;
+				const empty = document.getElementById("no-results");
+				if (empty) empty.classList.toggle("hidden", shown !== 0);
+			}
+
+			function resetFilters() {
+				[
+					"f-search",
+					"f-status",
+					"f-employment",
+					"f-license",
+					"f-english",
+					"f-skill",
+					"f-day",
+					"f-auth",
+					"f-from",
+					"f-to",
+				].forEach((id) => {
+					const el = document.getElementById(id);
+					if (el) el.value = "";
+				});
+				applyFilters();
+			}
+
+			async function updateStatus(sel) {
+				const id = sel.dataset.id;
+				const status = sel.value;
+				// Recolor immediately.
+				ALL_STATUS_CLASSES.forEach((c) => sel.classList.remove(c));
+				(STATUS_CLASS[status] || "").split(" ").forEach((c) => c && sel.classList.add(c));
+				const row = sel.closest("tr");
+				if (row) row.dataset.status = status;
+				try {
+					const res = await fetch("/admin/update", {
+						method: "POST",
+						headers: { "content-type": "application/json" },
+						body: JSON.stringify({ id, status }),
+					});
+					if (!res.ok) throw new Error("save failed");
+				} catch (e) {
+					alert("Could not save status. Please try again.");
+				}
+				applyFilters();
+			}
+
+			let noteTimer;
+			async function saveNotes(area) {
+				const id = area.dataset.id;
+				const notes = area.value;
+				const saved = area.parentElement.querySelector(".note-saved");
+				try {
+					const res = await fetch("/admin/update", {
+						method: "POST",
+						headers: { "content-type": "application/json" },
+						body: JSON.stringify({ id, notes }),
+					});
+					if (!res.ok) throw new Error("save failed");
+					if (saved) {
+						saved.classList.remove("text-on-surface-variant/0");
+						saved.classList.add("text-emerald-600");
+						clearTimeout(noteTimer);
+						noteTimer = setTimeout(() => {
+							saved.classList.add("text-on-surface-variant/0");
+							saved.classList.remove("text-emerald-600");
+						}, 1500);
+					}
+				} catch (e) {
+					alert("Could not save note. Please try again.");
+				}
+			}
+		</script>
 	</body>
 </html>

@@ -1,5 +1,6 @@
 import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
+import { ensureApplicationsSchema } from "../../utils/recruit-db";
 
 // Server-rendered endpoint — never prerender.
 export const prerender = false;
@@ -14,29 +15,6 @@ export const prerender = false;
  * The table is created lazily with `CREATE TABLE IF NOT EXISTS` so the endpoint
  * is self-contained and needs no separate migration step.
  */
-
-const CREATE_TABLE = `
-CREATE TABLE IF NOT EXISTS job_applications (
-  id                  TEXT PRIMARY KEY,
-  created_at          TEXT NOT NULL,
-  full_name           TEXT NOT NULL,
-  phone               TEXT NOT NULL,
-  email               TEXT NOT NULL,
-  city                TEXT NOT NULL,
-  license_types       TEXT NOT NULL,
-  dopl_license_number TEXT NOT NULL,
-  license_expiration  TEXT NOT NULL,
-  work_authorized     TEXT NOT NULL,
-  skills              TEXT NOT NULL,
-  english_proficiency TEXT NOT NULL,
-  employment_type     TEXT NOT NULL,
-  days_available      TEXT NOT NULL,
-  start_date          TEXT NOT NULL,
-  resume_key          TEXT,
-  resume_filename     TEXT,
-  license_photo_key   TEXT,
-  portfolio_link      TEXT
-)`;
 
 const LICENSE_TYPES = new Set(["nail_tech", "cosmetologist_barber", "other"]);
 const SKILLS = new Set([
@@ -58,6 +36,31 @@ const DAYS = new Set([
 	"saturday",
 	"sunday",
 ]);
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+const DOPL_RE = /^\d{6,8}-\d{4}$/;
+const PHONE_ALLOWED_RE = /^[\d\s()+.\-]+$/;
+const RESUME_EXT_RE = /\.(pdf|docx?)$/i;
+const PHOTO_EXT_RE = /\.(png|jpe?g|gif|webp|heic|pdf)$/i;
+const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+
+function letterCount(s: string): number {
+	return (s.match(/\p{L}/gu) ?? []).length;
+}
+function isValidDateStr(s: string): boolean {
+	return /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
+}
+/**
+ * Earliest acceptable "not in the past" date. We use yesterday (UTC) rather
+ * than today so a candidate in a timezone behind UTC isn't wrongly rejected for
+ * picking their local "today" — the client enforces the stricter local-today.
+ */
+function minAcceptableDate(): string {
+	return new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+function digitsOnly(s: string): string {
+	return s.replace(/\D/g, "");
+}
 
 function json(body: unknown, status = 200) {
 	return new Response(JSON.stringify(body), {
@@ -121,26 +124,75 @@ export const POST: APIRoute = async ({ request }) => {
 	const licensePhoto = form.get("license_photo");
 
 	const errors: Record<string, string> = {};
+	const minDate = minAcceptableDate();
+
+	// Personal information
 	if (!fullName) errors.full_name = "Full name is required.";
+	else if (/\d/.test(fullName)) errors.full_name = "Name can't contain numbers.";
+	else if (letterCount(fullName) < 2) errors.full_name = "Please enter your full name.";
+
 	if (!phone) errors.phone = "Phone number is required.";
-	if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email))
-		errors.email = "A valid email address is required.";
+	else if (/[A-Za-z]/.test(phone) || !PHONE_ALLOWED_RE.test(phone))
+		errors.phone = "Phone number can't contain letters.";
+	else if (digitsOnly(phone).length < 10 || digitsOnly(phone).length > 15)
+		errors.phone = "Enter a valid phone number (at least 10 digits).";
+
+	if (!email) errors.email = "Email address is required.";
+	else if (!EMAIL_RE.test(email)) errors.email = "Enter a valid email address.";
+
 	if (!city) errors.city = "City of residence is required.";
+	else if (/\d/.test(city)) errors.city = "City can't contain numbers.";
+
+	// Licensing
 	if (licenseTypes.length === 0)
 		errors.license_types = "Select at least one license type.";
+
 	if (!doplNumber) errors.dopl_license_number = "DOPL license number is required.";
+	else if (!DOPL_RE.test(doplNumber))
+		errors.dopl_license_number = "Use the format 1234567-5501.";
+
 	if (!licenseExpiration)
 		errors.license_expiration = "License expiration date is required.";
+	else if (!isValidDateStr(licenseExpiration))
+		errors.license_expiration = "Enter a valid date.";
+	else if (licenseExpiration < minDate)
+		errors.license_expiration =
+			"License has expired — enter a current expiration date.";
+
 	if (workAuthorized !== "yes" && workAuthorized !== "no")
 		errors.work_authorized = "Please answer the work authorization question.";
+
+	// Skills & communication
 	if (!ENGLISH.has(englishProficiency))
 		errors.english_proficiency = "Select your English proficiency.";
+
+	// Availability
 	if (!EMPLOYMENT.has(employmentType))
 		errors.employment_type = "Select an employment type.";
 	if (daysAvailable.length === 0)
 		errors.days_available = "Select at least one available day.";
+
 	if (!startDate) errors.start_date = "Available start date is required.";
+	else if (!isValidDateStr(startDate)) errors.start_date = "Enter a valid date.";
+	else if (startDate < minDate)
+		errors.start_date = "Start date can't be in the past.";
+
+	// Documents
 	if (!isFile(resume)) errors.resume = "Please attach your resume / CV.";
+	else if (!RESUME_EXT_RE.test(resume.name))
+		errors.resume = "Resume must be a PDF or Word document (.pdf, .doc, .docx).";
+	else if (resume.size > MAX_UPLOAD_BYTES)
+		errors.resume = "Resume must be 10 MB or smaller.";
+
+	if (isFile(licensePhoto)) {
+		if (!PHOTO_EXT_RE.test(licensePhoto.name))
+			errors.license_photo = "License photo must be an image or PDF.";
+		else if (licensePhoto.size > MAX_UPLOAD_BYTES)
+			errors.license_photo = "License photo must be 10 MB or smaller.";
+	}
+
+	if (portfolioLink && portfolioLink.length > 200)
+		errors.portfolio_link = "Portfolio link is too long.";
 
 	if (Object.keys(errors).length > 0) {
 		return json({ ok: false, errors }, 400);
@@ -170,7 +222,7 @@ export const POST: APIRoute = async ({ request }) => {
 
 	// --- Persist to D1 ---
 	try {
-		await db.prepare(CREATE_TABLE).run();
+		await ensureApplicationsSchema(db);
 		await db
 			.prepare(
 				`INSERT INTO job_applications (
