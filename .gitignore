@@ -12,3 +12,9 @@ data.db
 !.env.example
 .dev.vars
 .dev.vars.*
+
+# Playwright E2E
+/test-results
+/playwright-report
+/blob-report
+/playwright/.cache
