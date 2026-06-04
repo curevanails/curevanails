@@ -37,10 +37,52 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
+  e2e:
+    name: E2E (Playwright)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # The Worker boots under Miniflare during `astro preview`; provide a
+      # throwaway local EmDash key (no secrets are committed). The local D1 is
+      # empty so nothing encrypted is ever decrypted with it.
+      - name: Provide a local EmDash key
+        run: echo "EMDASH_ENCRYPTION_KEY=$(openssl rand -hex 32)" > .dev.vars
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # `pnpm test:e2e` builds the Worker and runs it via `astro preview`
+      # (local D1 + R2), then drives the recruit form end to end.
+      - name: Run E2E tests
+        run: pnpm test:e2e
+        env:
+          CI: "true"
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7
+
   deploy:
     name: Deploy to Cloudflare
-    # Only deploy from main, and only after CI passes.
-    needs: ci
+    # Only deploy from main, and only after CI + E2E pass.
+    needs: [ci, e2e]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: production
