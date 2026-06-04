@@ -1,0 +1,28 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	// Standalone Worker: same codebase + same D1/R2 as the main site, but a
+	// different Worker name. The name becomes the subdomain, so this deploys to
+	// https://getready.curevanails-tech.workers.dev
+	"name": "getready",
+	"main": "./src/worker.ts",
+	"compatibility_date": "2026-02-24",
+	"compatibility_flags": ["nodejs_compat"],
+	// GETREADY_STANDALONE makes the app serve the /getready page at the root
+	// (`/`) of this Worker. See src/middleware.ts.
+	"vars": {
+		"GETREADY_STANDALONE": "true",
+	},
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "curevanails",
+			"database_id": "fcc8f06b-3ddf-4cae-953f-b9fce243eed8",
+		},
+	],
+	"r2_buckets": [
+		{
+			"binding": "MEDIA",
+			"bucket_name": "curevanails-media",
+		},
+	],
+}

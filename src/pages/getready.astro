@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html class="scroll-smooth" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<title>CureVà | Beauty Redefined in Stillness</title>
+		<script is:inline src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+		<link
+			href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+		<!-- Tailwind Configuration -->
+		<script is:inline id="tailwind-config">
+			tailwind.config = {
+				darkMode: "class",
+				theme: {
+					extend: {
+						"colors": {
+							"surface-container-high": "#d9ebf1",
+							"on-primary": "#ffffff",
+							"surface-tint": "#3a656e",
+							"surface-container-lowest": "#ffffff",
+							"surface-bright": "#f0fbff",
+							"surface": "#f0fbff",
+							"background": "#f0fbff",
+							"on-secondary": "#ffffff",
+							"surface-dim": "#cbdde3",
+							"on-surface-variant": "#41484a",
+							"on-secondary-fixed": "#211b00",
+							"inverse-surface": "#233337",
+							"primary": "#3a656e",
+							"primary-container": "#a4d0db",
+							"primary-fixed-dim": "#a2ced9",
+							"on-error-container": "#93000a",
+							"surface-container": "#dff1f7",
+							"secondary": "#665f38",
+							"on-tertiary": "#ffffff",
+							"tertiary-fixed-dim": "#9ed2b5",
+							"on-error": "#ffffff",
+							"on-tertiary-container": "#2c5d46",
+							"error": "#ba1a1a",
+							"on-surface": "#0d1e22",
+							"surface-container-highest": "#d3e6eb",
+							"on-secondary-fixed-variant": "#4e4722",
+							"primary-fixed": "#bdeaf5",
+							"secondary-fixed": "#eee3b2",
+							"on-tertiary-fixed-variant": "#1e4f3a",
+							"tertiary-container": "#a0d4b7",
+							"on-primary-container": "#2f5a64",
+							"tertiary-fixed": "#baeed0",
+							"outline": "#71787a",
+							"inverse-primary": "#a2ced9",
+							"outline-variant": "#c0c8ca",
+							"on-background": "#0d1e22",
+							"on-secondary-container": "#6b633c",
+							"tertiary": "#376850",
+							"on-primary-fixed-variant": "#204d56",
+							"on-tertiary-fixed": "#002113",
+							"secondary-container": "#ece0af",
+							"surface-container-low": "#e4f7fd",
+							"error-container": "#ffdad6",
+							"surface-variant": "#d3e6eb",
+							"inverse-on-surface": "#e2f4fa",
+							"on-primary-fixed": "#001f25",
+							"secondary-fixed-dim": "#d2c798"
+						},
+						"borderRadius": {
+							"DEFAULT": "1rem",
+							"lg": "2rem",
+							"xl": "3rem",
+							"full": "9999px"
+						},
+						"spacing": {
+							"container-max": "1200px",
+							"margin-mobile": "20px",
+							"gutter": "24px",
+							"section-padding": "80px",
+							"base": "8px",
+							"margin-desktop": "64px"
+						},
+						"fontFamily": {
+							"label-md": ["DM Sans"],
+							"body-md": ["DM Sans"],
+							"headline-md": ["DM Sans"],
+							"display-lg": ["DM Sans"],
+							"label-sm": ["DM Sans"],
+							"body-lg": ["DM Sans"],
+							"headline-lg": ["DM Sans"],
+							"display-lg-mobile": ["DM Sans"]
+						},
+						"fontSize": {
+							"label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+							"body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+							"headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "500"}],
+							"display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+							"label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+							"body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+							"headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "500"}],
+							"display-lg-mobile": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+						}
+					},
+				},
+			}
+		</script>
+		<style is:inline>
+			.material-symbols-outlined {
+				font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+			}
+			.blob-bg {
+				position: absolute;
+				z-index: -1;
+				filter: blur(80px);
+				opacity: 0.4;
+				border-radius: 50%;
+			}
+			.glass-nav {
+				backdrop-filter: blur(12px);
+				-webkit-backdrop-filter: blur(12px);
+			}
+		</style>
+	</head>
+	<body
+		class="bg-background text-on-background selection:bg-primary-container selection:text-on-primary-container overflow-x-hidden"
+	>
+		<!-- 1. Sticky Nav -->
+		<header
+			class="docked full-width top-0 sticky z-50 bg-surface/80 glass-nav shadow-[0_20px_40px_rgba(164,208,219,0.1)]"
+		>
+			<nav
+				class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto"
+			>
+				<a
+					class="font-display-lg text-display-lg-mobile md:text-display-lg text-primary tracking-tight"
+					href="#">CureVà</a
+				>
+				<!-- Desktop Links -->
+				<div class="hidden md:flex items-center gap-8">
+					<a
+						class="font-label-md text-label-md text-on-surface-variant hover:text-primary hover:scale-[1.02] transition-all duration-300"
+						href="#about">About</a
+					>
+					<a
+						class="font-label-md text-label-md text-on-surface-variant hover:text-primary hover:scale-[1.02] transition-all duration-300"
+						href="#services">Services</a
+					>
+					<a
+						class="font-label-md text-label-md text-on-surface-variant hover:text-primary hover:scale-[1.02] transition-all duration-300"
+						href="#membership">Membership</a
+					>
+					<a
+						class="font-label-md text-label-md text-on-surface-variant hover:text-primary hover:scale-[1.02] transition-all duration-300"
+						href="#careers">Careers</a
+					>
+				</div>
+				<!-- Actions -->
+				<div class="flex items-center gap-4">
+					<button
+						class="hidden sm:block font-label-md text-label-md text-primary hover:text-primary-container transition-colors"
+						>Sign in</button
+					>
+					<button
+						class="px-6 py-2.5 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-300"
+						>Join the waitlist</button
+					>
+				</div>
+			</nav>
+		</header>
+		<main>
+			<!-- 2. Hero Section -->
+			<section
+				class="relative pt-section-padding pb-section-padding px-margin-mobile md:px-margin-desktop overflow-hidden"
+			>
+				<!-- Background Blobs -->
+				<div class="blob-bg bg-[#A4D0DB] w-[400px] h-[400px] -top-20 -left-20"></div>
+				<div class="blob-bg bg-[#FCF0BE] w-[300px] h-[300px] top-1/2 -right-10"></div>
+				<div class="blob-bg bg-[#A5D9BC] w-[500px] h-[500px] -bottom-40 left-1/3"></div>
+				<div
+					class="max-w-container-max mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 items-center"
+				>
+					<div class="text-center md:text-left z-10">
+						<h1
+							class="font-display-lg text-display-lg-mobile md:text-display-lg text-on-surface mb-6 leading-[1.1]"
+						>
+							Beauty, redefined in stillness.
+						</h1>
+						<p
+							class="font-body-lg text-body-lg text-on-surface-variant mb-8 max-w-[500px] mx-auto md:mx-0"
+						>
+							Premium nail &amp; beauty lounge. Zero Gravity experience. Opening September 2026.
+						</p>
+						<form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto md:mx-0">
+							<input
+								class="flex-1 px-6 py-4 rounded-xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary-container text-on-surface font-body-md"
+								placeholder="Enter your email"
+								required
+								type="email"
+							/>
+							<button
+								class="px-8 py-4 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-300"
+								type="submit"
+							>
+								Join the waitlist
+							</button>
+						</form>
+						<p class="mt-4 font-label-sm text-label-sm text-outline-variant">
+							Be the first to know when we open.
+						</p>
+					</div>
+					<div class="relative flex justify-center items-center">
+						<img
+							alt="Zero Gravity Chair"
+							class="w-full max-w-lg object-contain drop-shadow-2xl hover:scale-[1.03] transition-transform duration-700 ease-out"
+							data-alt="A futuristic 3D clay-style illustration of a Zero Gravity spa chair with soft matte textures. The chair is depicted in a calming light teal and cream palette, floating slightly in a minimalist void. Soft, ambient high-key lighting casts gentle shadows, creating an airy and premium feel consistent with a luxury wellness brand. The aesthetic is clean, modern, and deeply optimistic, emphasizing comfort and technological sophistication."
+							src="https://lh3.googleusercontent.com/aida-public/AB6AXuDrYp8hJ69T5WzcrvfjZCzFHGfY6celpAgPCJlS1e6oNs669u7MRX6hlLF2XGJwGnpl5XsROl4I4zeoTX7jPYOnjh6yQ0gU-Yi28HcflgOII8mw8A6EyEGKPIX2eLg9vP_GD5Sm5Z7D5Chou6Dmkm9jlhVfHb38_eHVdY6baJw8ef2gvwOBD7Gc5MVF7VL1pGUi3p39CLwVdFGj4gLnj5lcJYQsjcLa4WtF0Psrd3jeWHvgaKCSQKApp7FALqF0t9-Jsm6WUTc8WqjF"
+						/>
+					</div>
+				</div>
+			</section>
+			<!-- 3. Logo Bar -->
+			<section class="py-12 px-margin-mobile md:px-margin-desktop bg-surface-container-low/30">
+				<div class="max-w-container-max mx-auto">
+					<p
+						class="text-center font-label-sm text-label-sm uppercase tracking-widest text-outline mb-10"
+					>
+						Featured In
+					</p>
+					<div class="flex flex-wrap justify-center gap-12 md:gap-24 opacity-40 grayscale">
+						<span class="font-display-lg text-display-lg-mobile md:text-headline-lg font-bold">VOGUE</span>
+						<span class="font-display-lg text-display-lg-mobile md:text-headline-lg font-bold">Elle</span>
+						<span class="font-display-lg text-display-lg-mobile md:text-headline-lg font-bold">Bazaar</span>
+						<span class="font-display-lg text-display-lg-mobile md:text-headline-lg font-bold">InStyle</span>
+						<span class="font-display-lg text-display-lg-mobile md:text-headline-lg font-bold">Allure</span>
+						<span class="font-display-lg text-display-lg-mobile md:text-headline-lg font-bold">GLAMOUR</span>
+					</div>
+				</div>
+			</section>
+			<!-- 4. Feature Grid -->
+			<section class="py-section-padding px-margin-mobile md:px-margin-desktop bg-surface">
+				<div class="max-w-container-max mx-auto">
+					<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+						<!-- Feature 1 -->
+						<div
+							class="p-10 rounded-lg bg-surface-container-low shadow-[0_20px_40px_rgba(164,208,219,0.08)] text-center hover:translate-y-[-8px] transition-transform duration-300"
+						>
+							<div
+								class="w-16 h-16 bg-primary-container/30 rounded-2xl flex items-center justify-center mx-auto mb-6"
+							>
+								<span class="material-symbols-outlined text-primary text-3xl" data-icon="airline_seat_recline_extra"
+									>airline_seat_recline_extra</span
+								>
+							</div>
+							<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Zero Gravity Comfort</h3>
+							<p class="font-body-md text-body-md text-on-surface-variant">
+								Experience weightlessness as you receive premium care. Our specialized chairs align your
+								heart with your feet for optimal relaxation.
+							</p>
+						</div>
+						<!-- Feature 2 -->
+						<div
+							class="p-10 rounded-lg bg-surface-container-low shadow-[0_20px_40px_rgba(164,208,219,0.08)] text-center hover:translate-y-[-8px] transition-transform duration-300"
+						>
+							<div
+								class="w-16 h-16 bg-[#A5D9BC]/30 rounded-2xl flex items-center justify-center mx-auto mb-6"
+							>
+								<span class="material-symbols-outlined text-[#376850] text-3xl" data-icon="maternity">salinity</span>
+							</div>
+							<h3 class="font-headline-md text-headline-md text-on-surface mb-4">Pregnancy-Safe Formulas</h3>
+							<p class="font-body-md text-body-md text-on-surface-variant">
+								Gentle, non-toxic products curated specifically for expectant mothers. Safety without
+								compromising on aesthetic quality.
+							</p>
+						</div>
+						<!-- Feature 3 -->
+						<div
+							class="p-10 rounded-lg bg-surface-container-low shadow-[0_20px_40px_rgba(164,208,219,0.08)] text-center hover:translate-y-[-8px] transition-transform duration-300"
+						>
+							<div
+								class="w-16 h-16 bg-[#FCF0BE]/30 rounded-2xl flex items-center justify-center mx-auto mb-6"
+							>
+								<span class="material-symbols-outlined text-[#665f38] text-3xl" data-icon="diversity_3">diversity_3</span>
+							</div>
+							<h3 class="font-headline-md text-headline-md text-on-surface mb-4">For Everyone, Every Gender</h3>
+							<p class="font-body-md text-body-md text-on-surface-variant">
+								An inclusive lounge designed for every body. Wellness has no gender, and our spaces
+								reflect that universal openness.
+							</p>
+						</div>
+					</div>
+				</div>
+			</section>
+			<!-- 5. Interior Preview -->
+			<section class="py-section-padding px-margin-mobile md:px-margin-desktop overflow-hidden">
+				<div class="max-w-container-max mx-auto bg-[#A5D9BC]/20 rounded-xl p-8 md:p-16 relative">
+					<div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+						<div class="order-2 lg:order-1 relative group">
+							<img
+								alt="CureVà Lounge Interior"
+								class="rounded-lg shadow-2xl w-full object-cover aspect-video lg:aspect-auto"
+								data-alt="A wide-angle professional photograph of a premium, minimalist nail and beauty lounge interior. The space features five high-end Zero Gravity chairs arranged with ample personal space, organic wooden textures, and soft linen fabrics. Natural sunlight streams through large windows, highlighting a curated product wall and private treatment rooms in the background. The color palette is composed of soft sages, creams, and light teals, creating an atmosphere of profound serenity and approachable luxury."
+								src="https://lh3.googleusercontent.com/aida-public/AB6AXuAoYPVXO4DE2i0Xraq4XXR0IkBZmzgZvwuR9UJadsVqiqyrOwXZji7W7j9i5rC4EnpD-DWgYZKaYlfkG7aPU8IB5ZNcN4cwOjc5w19Bo3Ehl0n97ayJHj6-eUw7JzN5omLWsilEerDTViV2z8KVQ6kv6HmcPgzI_jzikIzmNHSpa11hMMIJwwKoBdG-IFpfhP8RSMUYDRbE4mPOB3ZlsFwpD967t9FEwNEadZmZYMD2KaEwNHOO-8AQCNZ7MpQTHZrKABi_Jrxm9xG9"
+							/>
+							<!-- Hotspots/Annotations -->
+							<div
+								class="absolute top-[20%] left-[30%] bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-md flex items-center gap-2 group-hover:scale-110 transition-transform duration-300"
+							>
+								<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+								<span class="font-label-sm text-label-sm text-primary">5 Zero Gravity Chairs</span>
+							</div>
+							<div
+								class="absolute bottom-[40%] right-[15%] bg-white/90 backdrop-blur-sm px-3 py-1.5 rounded-full shadow-md flex items-center gap-2 group-hover:scale-110 transition-transform duration-300"
+							>
+								<span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+								<span class="font-label-sm text-label-sm text-primary">Private Rooms</span>
+							</div>
+						</div>
+						<div class="order-1 lg:order-2">
+							<h2
+								class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-6"
+							>
+								A Sanctuary Designed for Stillness
+							</h2>
+							<p class="font-body-lg text-body-lg text-on-surface-variant mb-8">
+								Every corner of CureVà is meticulously crafted to lower your cortisol levels. From the
+								tactile warmth of natural wood to the expansive sense of private space, we provide a
+								beauty ritual that feels like a retreat.
+							</p>
+							<ul class="space-y-4">
+								<li class="flex items-center gap-3">
+									<span class="material-symbols-outlined text-primary" data-icon="check_circle">check_circle</span>
+									<span class="font-body-md text-body-md text-on-surface">Curated soundscapes for auditory peace</span>
+								</li>
+								<li class="flex items-center gap-3">
+									<span class="material-symbols-outlined text-primary" data-icon="check_circle">check_circle</span>
+									<span class="font-body-md text-body-md text-on-surface">Private enclosures for enhanced intimacy</span>
+								</li>
+								<li class="flex items-center gap-3">
+									<span class="material-symbols-outlined text-primary" data-icon="check_circle">check_circle</span>
+									<span class="font-body-md text-body-md text-on-surface">Artisanal refreshment bar</span>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</section>
+			<!-- 6. Testimonials -->
+			<section class="py-section-padding px-margin-mobile md:px-margin-desktop bg-[#FCF0BE]/30">
+				<div class="max-w-container-max mx-auto text-center">
+					<h2
+						class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-16"
+					>
+						Words from our Founding Clients
+					</h2>
+					<div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+						<div class="bg-white p-8 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+							<img
+								alt="Client 1"
+								class="w-16 h-16 rounded-full mx-auto mb-4 object-cover"
+								data-alt="A portrait of a serene, glowing woman in her 30s with natural skin and a gentle smile, set against a soft bokeh background of a luxury spa. She has a minimalist, clean aesthetic with subtle gold jewelry. The lighting is high-key and flattering, reflecting the brand's premium and gentle care philosophy. The overall mood is one of fresh vitality and profound trust."
+								src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhnqJgBoP39hXVSu-N_OKJaWonPiAG9-ZKAJrEKmONkOdlxKrHXhqgESI-Zd3vcgIoIz7ykl5Ap9fpaKrI1LXorzgy1u0KiQDIB7VLfAwV_WV0wjfIYuz3xLmzVzkAJghlVeiDzNitYkYmtZHsrFK9t24HnwuLxH4w5MILuI0czquSiDBRG3DmnQNxK_7R4AMkgChDUxLCygUTrSvsnP_EGQ0Pcxu8k4FB5L_lGmgGbE9DpbIHlg6dM5UDacAaQDcR2Ni0mbwUvobU"
+							/>
+							<p class="font-body-md text-body-md italic text-on-surface-variant mb-6">
+								"Finally, a beauty space that understands the need for true quiet. The Zero Gravity
+								concept changed my entire perspective on spa days."
+							</p>
+							<p class="font-label-md text-label-md font-bold">Elena R.</p>
+							<p class="font-label-sm text-label-sm text-outline">Wellness Consultant</p>
+						</div>
+						<div class="bg-white p-8 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+							<img
+								alt="Client 2"
+								class="w-16 h-16 rounded-full mx-auto mb-4 object-cover"
+								data-alt="A portrait of a stylish, modern man in his early 40s with a well-groomed short beard and relaxed expression. He is wearing a high-quality linen shirt in a soft neutral tone. The background is a brightly lit, minimalist space with hints of green plants. The photograph captures a sense of sophisticated inclusivity and effortless well-being."
+								src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2x9Z26BdmcY4LPXrn0sXMaWrlnr3_FDZh5n0fIe3ojiBp3Ku6Q977h2Ab1UzE45CjunXzII_dIv-8IyAwPla3TFyMqwW7uN-7s8XkunUYKQHRm0W8lGcECRRX53TTDCqbYk8hQDtvJ8R-yO8VOKxQpxAF3laBfii-OWbUnyH_SKifPKFBap3ca-fKMD5BGakBRcRsDn9x6iICrklm8nIhXyVLQCOaG-WfxKPLKEt0yj76QR-y6Q0vdxKmkQb-C4GSNexhNpTGuOad"
+							/>
+							<p class="font-body-md text-body-md italic text-on-surface-variant mb-6">
+								"I appreciate the gender-neutral approach. It's rare to find a place that feels this
+								welcoming and premium for everyone."
+							</p>
+							<p class="font-label-md text-label-md font-bold">Marcus T.</p>
+							<p class="font-label-sm text-label-sm text-outline">Creative Director</p>
+						</div>
+						<div class="bg-white p-8 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+							<img
+								alt="Client 3"
+								class="w-16 h-16 rounded-full mx-auto mb-4 object-cover"
+								data-alt="A close-up portrait of a woman in her late 20s with a peaceful expression, her hands gently cradling her baby bump. She is dressed in soft, organic cotton fabrics. The lighting is warm and golden, creating a halo effect. The image communicates safety, gentleness, and the pregnancy-safe values of the brand in a high-end, artistic manner."
+								src="https://lh3.googleusercontent.com/aida-public/AB6AXuB3AKeQ51kG0EoC3auMQq__4GMhe9zMTLzbS0KuVAKpdbR-2pHxMpnFOwEtGJMXgJmtYIxM62-x97oKJJva2qU3uUKmRQ-ug13XetUpw2bpmpOaWPIeyFuA5036Uf03vN629Tgc-N8RYAB8UaEbsT4CA08AO8tZ8bKGBMsqJIHwcIgQVZm6VyFBNQLsw1CTXcWVb1gNbZyC6UxK93olEJrcSVVI3oAXGLMHKF9qJzJScYm9xEIPTvzAYuFwR-qmo7gBTpmryeYK_vXA"
+							/>
+							<p class="font-body-md text-body-md italic text-on-surface-variant mb-6">
+								"Finding pregnancy-safe treatments that actually feel luxurious was so hard until I found
+								CureVà. My go-to sanctuary now."
+							</p>
+							<p class="font-label-md text-label-md font-bold">Sarah L.</p>
+							<p class="font-label-sm text-label-sm text-outline">Yoga Instructor</p>
+						</div>
+					</div>
+				</div>
+			</section>
+			<!-- 7. Early-Bird Membership -->
+			<section class="py-section-padding px-margin-mobile md:px-margin-desktop bg-surface" id="membership">
+				<div class="max-w-container-max mx-auto text-center">
+					<h2
+						class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface mb-4"
+					>
+						Founding Memberships
+					</h2>
+					<p class="font-body-lg text-body-lg text-on-surface-variant mb-12">
+						Lock in founding-member pricing before our September 2026 launch.
+					</p>
+					<div class="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
+						<!-- Tier 1 -->
+						<div class="bg-surface-container p-8 rounded-lg border border-outline-variant/30 flex flex-col">
+							<h3 class="font-headline-md text-headline-md mb-2">Essential</h3>
+							<p class="text-3xl font-bold mb-6 text-primary">
+								$120<span class="text-sm font-normal text-on-surface-variant">/mo</span>
+							</p>
+							<ul class="space-y-4 mb-8 flex-1">
+								<li class="flex items-center gap-3 text-on-surface-variant">
+									<span class="material-symbols-outlined text-primary text-sm" data-icon="done">done</span> 1 Signature Treatment
+								</li>
+								<li class="flex items-center gap-3 text-on-surface-variant">
+									<span class="material-symbols-outlined text-primary text-sm" data-icon="done">done</span> 10% Off Additional Services
+								</li>
+								<li class="flex items-center gap-3 text-on-surface-variant">
+									<span class="material-symbols-outlined text-primary text-sm" data-icon="done">done</span> Early Booking Access
+								</li>
+							</ul>
+							<button
+								class="w-full py-3 rounded-full border-2 border-primary text-primary font-label-md hover:bg-primary/5 transition-colors"
+								>Select Essential</button
+							>
+						</div>
+						<!-- Tier 2 (Highlighted) -->
+						<div class="bg-primary-container p-8 rounded-lg shadow-xl scale-105 relative flex flex-col">
+							<div
+								class="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary text-on-primary px-4 py-1 rounded-full text-xs font-bold uppercase tracking-widest"
+							>
+								Most Popular
+							</div>
+							<h3 class="font-headline-md text-headline-md mb-2 text-on-primary-container">Signature</h3>
+							<p class="text-3xl font-bold mb-6 text-on-primary-container">
+								$240<span class="text-sm font-normal opacity-70">/mo</span>
+							</p>
+							<ul class="space-y-4 mb-8 flex-1">
+								<li class="flex items-center gap-3 text-on-primary-container">
+									<span class="material-symbols-outlined text-primary-container bg-primary rounded-full text-sm p-0.5" data-icon="done">done</span> 3 Signature Treatments
+								</li>
+								<li class="flex items-center gap-3 text-on-primary-container">
+									<span class="material-symbols-outlined text-primary-container bg-primary rounded-full text-sm p-0.5" data-icon="done">done</span> 20% Off Additional Services
+								</li>
+								<li class="flex items-center gap-3 text-on-primary-container">
+									<span class="material-symbols-outlined text-primary-container bg-primary rounded-full text-sm p-0.5" data-icon="done">done</span> Priority Concierge Support
+								</li>
+								<li class="flex items-center gap-3 text-on-primary-container">
+									<span class="material-symbols-outlined text-primary-container bg-primary rounded-full text-sm p-0.5" data-icon="done">done</span> Complimentary Monthly Guest Pass
+								</li>
+							</ul>
+							<button
+								class="w-full py-4 rounded-full bg-primary text-on-primary font-label-md shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
+								>Select Signature</button
+							>
+						</div>
+						<!-- Tier 3 -->
+						<div class="bg-surface-container p-8 rounded-lg border border-outline-variant/30 flex flex-col">
+							<h3 class="font-headline-md text-headline-md mb-2">Founders' Circle</h3>
+							<p class="text-3xl font-bold mb-6 text-primary">
+								$450<span class="text-sm font-normal text-on-surface-variant">/mo</span>
+							</p>
+							<ul class="space-y-4 mb-8 flex-1">
+								<li class="flex items-center gap-3 text-on-surface-variant">
+									<span class="material-symbols-outlined text-primary text-sm" data-icon="done">done</span> Unlimited Treatments
+								</li>
+								<li class="flex items-center gap-3 text-on-surface-variant">
+									<span class="material-symbols-outlined text-primary text-sm" data-icon="done">done</span> Exclusive VIP Private Room
+								</li>
+								<li class="flex items-center gap-3 text-on-surface-variant">
+									<span class="material-symbols-outlined text-primary text-sm" data-icon="done">done</span> Founder-Only Event Access
+								</li>
+								<li class="flex items-center gap-3 text-on-surface-variant">
+									<span class="material-symbols-outlined text-primary text-sm" data-icon="done">done</span> Lifetime Locked Pricing
+								</li>
+							</ul>
+							<button
+								class="w-full py-3 rounded-full border-2 border-primary text-primary font-label-md hover:bg-primary/5 transition-colors"
+								>Apply for Founders</button
+							>
+						</div>
+					</div>
+				</div>
+			</section>
+			<!-- 8. FAQ Section -->
+			<section class="py-section-padding px-margin-mobile md:px-margin-desktop bg-surface-container-low">
+				<div class="max-w-3xl mx-auto">
+					<h2
+						class="font-headline-lg text-headline-lg-mobile md:text-headline-lg text-center text-on-surface mb-12"
+					>
+						Common Inquiries
+					</h2>
+					<div class="space-y-4">
+						<!-- FAQ 1 -->
+						<div class="faq-item group">
+							<button
+								class="flex justify-between items-center w-full p-6 bg-white rounded-lg hover:bg-white/90 transition-colors"
+								onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.arrow').classList.toggle('rotate-180')"
+							>
+								<span class="font-headline-md text-label-md md:text-headline-md text-left">When is the official opening?</span>
+								<span class="material-symbols-outlined arrow transition-transform duration-300" data-icon="expand_more">expand_more</span>
+							</button>
+							<div class="hidden p-6 bg-white/50 rounded-b-lg -mt-2">
+								<p class="font-body-md text-body-md text-on-surface-variant">
+									We are scheduled for our grand opening in September 2026. Waitlist members will receive
+									invitations for soft-launch previews in August.
+								</p>
+							</div>
+						</div>
+						<!-- FAQ 2 -->
+						<div class="faq-item group">
+							<button
+								class="flex justify-between items-center w-full p-6 bg-white rounded-lg hover:bg-white/90 transition-colors"
+								onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.arrow').classList.toggle('rotate-180')"
+							>
+								<span class="font-headline-md text-label-md md:text-headline-md text-left">What services will be offered?</span>
+								<span class="material-symbols-outlined arrow transition-transform duration-300" data-icon="expand_more">expand_more</span>
+							</button>
+							<div class="hidden p-6 bg-white/50 rounded-b-lg -mt-2">
+								<p class="font-body-md text-body-md text-on-surface-variant">
+									Our initial menu includes Zero Gravity Manicures and Pedicures, advanced skin
+									treatments, and botanical facial rituals.
+								</p>
+							</div>
+						</div>
+						<!-- FAQ 3 -->
+						<div class="faq-item group">
+							<button
+								class="flex justify-between items-center w-full p-6 bg-white rounded-lg hover:bg-white/90 transition-colors"
+								onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.arrow').classList.toggle('rotate-180')"
+							>
+								<span class="font-headline-md text-label-md md:text-headline-md text-left">Is it safe for pregnancy?</span>
+								<span class="material-symbols-outlined arrow transition-transform duration-300" data-icon="expand_more">expand_more</span>
+							</button>
+							<div class="hidden p-6 bg-white/50 rounded-b-lg -mt-2">
+								<p class="font-body-md text-body-md text-on-surface-variant">
+									Yes, our pregnancy-safe protocols are at the core of our brand. We use only non-toxic,
+									fumes-free, and endocrine-disruptor-free products.
+								</p>
+							</div>
+						</div>
+						<!-- FAQ 4 -->
+						<div class="faq-item group">
+							<button
+								class="flex justify-between items-center w-full p-6 bg-white rounded-lg hover:bg-white/90 transition-colors"
+								onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.arrow').classList.toggle('rotate-180')"
+							>
+								<span class="font-headline-md text-label-md md:text-headline-md text-left">Is the lounge gender-inclusive?</span>
+								<span class="material-symbols-outlined arrow transition-transform duration-300" data-icon="expand_more">expand_more</span>
+							</button>
+							<div class="hidden p-6 bg-white/50 rounded-b-lg -mt-2">
+								<p class="font-body-md text-body-md text-on-surface-variant">
+									Absolutely. CureVà is designed as a neutral sanctuary. Our aesthetics and services are
+									tailored for every individual, regardless of gender identity.
+								</p>
+							</div>
+						</div>
+						<!-- FAQ 5 -->
+						<div class="faq-item group">
+							<button
+								class="flex justify-between items-center w-full p-6 bg-white rounded-lg hover:bg-white/90 transition-colors"
+								onclick="this.nextElementSibling.classList.toggle('hidden'); this.querySelector('.arrow').classList.toggle('rotate-180')"
+							>
+								<span class="font-headline-md text-label-md md:text-headline-md text-left">Are you currently hiring?</span>
+								<span class="material-symbols-outlined arrow transition-transform duration-300" data-icon="expand_more">expand_more</span>
+							</button>
+							<div class="hidden p-6 bg-white/50 rounded-b-lg -mt-2">
+								<p class="font-body-md text-body-md text-on-surface-variant">
+									We are always looking for exceptional talent. Please visit our Careers section to view
+									upcoming openings for specialized technicians and lounge hosts.
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</section>
+			<!-- 9. Final CTA -->
+			<section class="py-section-padding px-margin-mobile md:px-margin-desktop">
+				<div class="max-w-container-max mx-auto rounded-lg overflow-hidden relative">
+					<div class="absolute inset-0 bg-gradient-to-br from-[#A4D0DB] via-[#FCF0BE] to-[#A5D9BC] opacity-80"></div>
+					<div class="relative z-10 py-20 px-8 text-center backdrop-blur-sm">
+						<h2 class="font-display-lg text-display-lg-mobile md:text-display-lg text-primary mb-6">Be first in the chair.</h2>
+						<p class="font-body-lg text-body-lg text-on-primary-container mb-10 max-w-xl mx-auto">
+							Join 1,200+ individuals waiting for the CureVà experience. Priority booking opens soon.
+						</p>
+						<form class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+							<input
+								class="flex-1 px-6 py-4 rounded-xl bg-white/90 border-none focus:ring-2 focus:ring-primary text-on-surface font-body-md shadow-sm"
+								placeholder="Your best email"
+								required
+								type="email"
+							/>
+							<button
+								class="px-8 py-4 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
+								type="submit"
+							>
+								Secure your spot
+							</button>
+						</form>
+					</div>
+				</div>
+			</section>
+		</main>
+		<!-- 10. Footer -->
+		<footer class="bg-surface-container-low dark:bg-surface-container-lowest rounded-t-lg">
+			<div
+				class="grid grid-cols-1 md:grid-cols-4 gap-gutter px-margin-mobile md:px-margin-desktop py-section-padding max-w-container-max mx-auto"
+			>
+				<div class="col-span-1 md:col-span-1">
+					<a
+						class="font-display-lg-mobile text-display-lg-mobile text-primary dark:text-primary-fixed mb-6 block"
+						href="#">CureVà</a
+					>
+					<p class="font-body-md text-body-md text-on-surface-variant max-w-xs">
+						Redefining the beauty landscape through stillness, inclusivity, and safety.
+					</p>
+				</div>
+				<div>
+					<h4 class="font-headline-md text-label-md font-bold mb-6 text-primary">Explore</h4>
+					<ul class="space-y-4">
+						<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Brand Story</a></li>
+						<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Our Services</a></li>
+						<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Careers</a></li>
+						<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Contact</a></li>
+					</ul>
+				</div>
+				<div>
+					<h4 class="font-headline-md text-label-md font-bold mb-6 text-primary">Connect</h4>
+					<ul class="space-y-4">
+						<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Instagram</a></li>
+						<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">TikTok</a></li>
+						<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">LinkedIn</a></li>
+						<li><a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Pinterest</a></li>
+					</ul>
+				</div>
+				<div>
+					<h4 class="font-headline-md text-label-md font-bold mb-6 text-primary">Stay Updated</h4>
+					<p class="font-label-sm text-label-sm text-on-surface-variant mb-4">
+						Sign up for our monthly ritual newsletter.
+					</p>
+					<div class="relative focus-within:ring-2 focus-within:ring-primary rounded-xl overflow-hidden">
+						<input
+							class="w-full px-4 py-3 bg-surface-container border-none text-on-surface font-body-md focus:outline-none"
+							placeholder="Email address"
+							type="email"
+						/>
+						<button
+							class="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-primary hover:text-primary-container transition-colors"
+						>
+							<span class="material-symbols-outlined" data-icon="arrow_forward">arrow_forward</span>
+						</button>
+					</div>
+				</div>
+			</div>
+			<div
+				class="px-margin-mobile md:px-margin-desktop py-8 border-t border-outline-variant/10 max-w-container-max mx-auto flex flex-col md:flex-row justify-between items-center gap-4"
+			>
+				<p class="font-label-sm text-label-sm text-on-surface-variant">© 2024 CureVà Beauty Lounge. All rights reserved.</p>
+				<div class="flex gap-6">
+					<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary" href="#">Privacy Policy</a>
+					<a class="font-label-sm text-label-sm text-on-surface-variant hover:text-primary" href="#">Terms of Service</a>
+				</div>
+			</div>
+		</footer>
+		<script is:inline>
+			// Smooth reveal animations on scroll
+			const observerOptions = {
+				threshold: 0.1
+			};
+
+			const observer = new IntersectionObserver((entries) => {
+				entries.forEach(entry => {
+					if (entry.isIntersecting) {
+						entry.target.classList.add('opacity-100', 'translate-y-0');
+						entry.target.classList.remove('opacity-0', 'translate-y-10');
+					}
+				});
+			}, observerOptions);
+
+			document.querySelectorAll('section').forEach(section => {
+				section.classList.add('transition-all', 'duration-1000', 'opacity-0', 'translate-y-10');
+				observer.observe(section);
+			});
+		</script>
+1	</body>
+</html>

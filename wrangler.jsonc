@@ -1,0 +1,37 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "curevanails",
+	"main": "./src/worker.ts",
+	"compatibility_date": "2026-02-24",
+	"compatibility_flags": ["nodejs_compat"],
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "curevanails",
+			"database_id": "fcc8f06b-3ddf-4cae-953f-b9fce243eed8",
+		},
+	],
+	"r2_buckets": [
+		{
+			"binding": "MEDIA",
+			"bucket_name": "curevanails-media",
+		},
+	],
+	// Session storage for the Astro Cloudflare adapter. Binds the existing
+	// `curevanails-session` namespace explicitly so wrangler doesn't try to
+	// auto-create one (which collides on the duplicate name).
+	"kv_namespaces": [
+		{
+			"binding": "SESSION",
+			"id": "e43a37563faa4521865018e6b08461bf",
+		},
+	],
+	// Worker Loader for plugin sandboxing — requires the paid Workers plan.
+	// Disabled for the free plan. Re-enable (and restore the sandboxed plugin
+	// wiring in astro.config.mjs) after upgrading to Workers Paid.
+	// "worker_loaders": [
+	// 	{
+	// 		"binding": "LOADER",
+	// 	},
+	// ],
+}

@@ -1,0 +1,825 @@
+---
+// CureVà — beauty-lounge landing page.
+// Self-contained marketing page: it intentionally does NOT use the blog
+// Base layout (different header/footer, fonts, and design system). The visual
+// system comes from the Tailwind Play CDN with the inline config below.
+const heroInterior =
+	"https://lh3.googleusercontent.com/aida-public/AB6AXuBXo-BymgZgSwSCQfMKv66--KZw6WbiRk-qS1xy0CRE-z9MfkHR6r2E40WMF26dMgRaPiI0rUPqJJbJ2mOAUq4WryuVhM3dH3XTFTYwbkZpxsm4X28q1SxnlbeZ3hDsJRpQX--96hliuXxRuFQDq69kFHkNLyhPwJDV6IoqhNBFqFs0Zw1ieHd_ne_4WrPnQbow_fwUzeDckvtYwOxs_TKYlnFEmql1VNKsOhMjhrahXBrlLatizhVS73UpDUdlsnrPrTXss334a9lc";
+---
+
+<!doctype html>
+<html class="scroll-smooth" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<title>CureVà | A New Kind of Beauty Lounge</title>
+		<link href="https://fonts.googleapis.com" rel="preconnect" />
+		<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+		<link
+			href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+		<script is:inline src="https://cdn.tailwindcss.com?plugins=forms,container-queries"
+		></script>
+		<script is:inline id="tailwind-config">
+			tailwind.config = {
+				darkMode: "class",
+				theme: {
+					extend: {
+						colors: {
+							"surface-container-high": "#d9ebf1",
+							"on-primary": "#ffffff",
+							"surface-tint": "#3a656e",
+							"surface-container-lowest": "#ffffff",
+							"surface-bright": "#f0fbff",
+							surface: "#f0fbff",
+							background: "#f0fbff",
+							"on-secondary": "#ffffff",
+							"surface-dim": "#cbdde3",
+							"on-surface-variant": "#41484a",
+							"on-secondary-fixed": "#211b00",
+							"inverse-surface": "#233337",
+							primary: "#3a656e",
+							"primary-container": "#a4d0db",
+							"primary-fixed-dim": "#a2ced9",
+							"on-error-container": "#93000a",
+							"surface-container": "#dff1f7",
+							secondary: "#665f38",
+							"on-tertiary": "#ffffff",
+							"tertiary-fixed-dim": "#9ed2b5",
+							"on-error": "#ffffff",
+							"on-tertiary-container": "#2c5d46",
+							error: "#ba1a1a",
+							"on-surface": "#0d1e22",
+							"surface-container-highest": "#d3e6eb",
+							"on-secondary-fixed-variant": "#4e4722",
+							"primary-fixed": "#bdeaf5",
+							"secondary-fixed": "#eee3b2",
+							"on-tertiary-fixed-variant": "#1e4f3a",
+							"tertiary-container": "#a0d4b7",
+							"on-primary-container": "#2f5a64",
+							"tertiary-fixed": "#baeed0",
+							outline: "#71787a",
+							"inverse-primary": "#a2ced9",
+							"outline-variant": "#c0c8ca",
+							"on-background": "#0d1e22",
+							"on-secondary-container": "#6b633c",
+							tertiary: "#376850",
+							"on-primary-fixed-variant": "#204d56",
+							"on-tertiary-fixed": "#002113",
+							"secondary-container": "#ece0af",
+							"surface-container-low": "#e4f7fd",
+							"error-container": "#ffdad6",
+							"surface-variant": "#d3e6eb",
+							"inverse-on-surface": "#e2f4fa",
+							"on-primary-fixed": "#001f25",
+							"secondary-fixed-dim": "#d2c798",
+						},
+						borderRadius: {
+							DEFAULT: "1rem",
+							lg: "2rem",
+							xl: "3rem",
+							full: "9999px",
+						},
+						spacing: {
+							"container-max": "1200px",
+							"margin-mobile": "20px",
+							gutter: "24px",
+							"section-padding": "80px",
+							base: "8px",
+							"margin-desktop": "64px",
+						},
+						fontFamily: {
+							"label-md": ["DM Sans"],
+							"body-md": ["DM Sans"],
+							"headline-md": ["DM Sans"],
+							"display-lg": ["DM Sans"],
+							"label-sm": ["DM Sans"],
+							"body-lg": ["DM Sans"],
+							"headline-lg": ["DM Sans"],
+							"display-lg-mobile": ["DM Sans"],
+						},
+						fontSize: {
+							"label-md": ["14px", { lineHeight: "20px", letterSpacing: "0.01em", fontWeight: "500" }],
+							"body-md": ["16px", { lineHeight: "24px", fontWeight: "400" }],
+							"headline-md": ["24px", { lineHeight: "32px", fontWeight: "500" }],
+							"display-lg": ["48px", { lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "700" }],
+							"label-sm": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "700" }],
+							"body-lg": ["18px", { lineHeight: "28px", fontWeight: "400" }],
+							"headline-lg": ["32px", { lineHeight: "40px", fontWeight: "500" }],
+							"display-lg-mobile": ["36px", { lineHeight: "44px", letterSpacing: "-0.02em", fontWeight: "700" }],
+						},
+					},
+				},
+			};
+		</script>
+		<style is:global>
+			.material-symbols-outlined {
+				font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+			}
+			.blob-bg {
+				background: radial-gradient(
+					circle at 50% 50%,
+					rgba(164, 208, 219, 0.4) 0%,
+					rgba(247, 251, 252, 0) 70%
+				);
+			}
+		</style>
+
+		<!-- Mangomint online booking widget -->
+		<script is:inline>
+			window.Mangomint = window.Mangomint || {};
+			window.Mangomint.CompanyId = 463532;
+		</script>
+		<script is:inline src="https://booking.mangomint.com/app.js" async></script>
+	</head>
+	<body class="bg-background text-on-background font-body-md overflow-x-hidden">
+		<!-- TopNavBar -->
+		<header
+			class="bg-surface/80 dark:bg-surface-dim/80 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-[0_20px_40px_rgba(164,208,219,0.1)] transition-all duration-300"
+		>
+			<div
+				class="flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 max-w-container-max mx-auto"
+			>
+				<div class="flex items-center gap-2">
+					<span
+						class="font-display-lg text-display-lg-mobile md:text-display-lg text-primary dark:text-primary-fixed tracking-tight"
+						>CureVà</span
+					>
+				</div>
+				<nav class="hidden md:flex gap-8">
+					<a
+						class="text-on-surface-variant dark:text-outline-variant font-label-md text-label-md hover:scale-[1.02] hover:text-primary transition-all duration-300"
+						href="#">About</a
+					>
+					<a
+						class="text-on-surface-variant dark:text-outline-variant font-label-md text-label-md hover:scale-[1.02] hover:text-primary transition-all duration-300"
+						href="#">Services</a
+					>
+					<a
+						class="text-on-surface-variant dark:text-outline-variant font-label-md text-label-md hover:scale-[1.02] hover:text-primary transition-all duration-300"
+						href="#">Membership</a
+					>
+					<a
+						class="text-on-surface-variant dark:text-outline-variant font-label-md text-label-md hover:scale-[1.02] hover:text-primary transition-all duration-300"
+						href="#">Careers</a
+					>
+				</nav>
+				<div class="flex items-center gap-4">
+					<button
+						class="hidden md:block text-primary dark:text-primary-fixed-dim font-label-md text-label-md hover:scale-[1.02] transition-all"
+						>Sign in</button
+					>
+					<a
+						href="https://booking.mangomint.com/463532"
+						class="bg-primary-container text-on-primary-container px-6 py-2.5 rounded-full font-label-md text-label-md shadow-md hover:scale-[1.02] active:scale-95 transition-all"
+						>Book now</a
+					>
+				</div>
+			</div>
+		</header>
+		<main>
+			<!-- Hero Section -->
+			<section
+				class="relative overflow-hidden px-margin-mobile md:px-margin-desktop pt-12 md:pt-24 pb-section-padding max-w-container-max mx-auto flex flex-col md:flex-row items-center gap-12"
+			>
+				<div class="flex-1 text-center md:text-left z-10">
+					<h1
+						class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-background mb-6 leading-tight"
+					>
+						A new kind of nail &amp; beauty lounge.
+					</h1>
+					<p
+						class="font-body-lg text-body-lg text-on-surface-variant mb-10 max-w-lg mx-auto md:mx-0"
+					>
+						Experience the future of wellness with our pregnancy-safe rituals and
+						medical-grade standards in a space designed for total weightlessness.
+					</p>
+					<div
+						class="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start"
+					>
+						<a
+							href="https://booking.mangomint.com/463532"
+							class="bg-primary-container text-on-primary-container px-8 py-4 rounded-full font-label-md text-label-md shadow-lg hover:scale-[1.02] active:scale-95 transition-all w-full sm:w-auto inline-flex items-center justify-center"
+							>Book your visit</a
+						>
+						<button
+							class="border-2 border-primary-container text-primary px-8 py-4 rounded-full font-label-md text-label-md flex items-center justify-center gap-2 hover:bg-primary-container/10 transition-all w-full sm:w-auto"
+						>
+							<span class="material-symbols-outlined" data-icon="play_circle"
+								>play_circle</span
+							>
+							Take the tour
+						</button>
+					</div>
+				</div>
+				<div class="flex-1 relative w-full aspect-square md:aspect-auto">
+					<div class="absolute inset-0 blob-bg -z-10 animate-pulse duration-[5000ms]"></div>
+					<img
+						class="w-full h-auto drop-shadow-2xl rounded-xl object-contain"
+						data-alt="A serene, abstract digital illustration featuring a high-tech Zero Gravity reclining chair rendered in soft matte clay textures. The scene is accented by delicate, floating organic leaves and botanical shapes in pastel blues and greens. The lighting is ethereal and high-key, creating an airy minimalist feel that communicates advanced medical wellness and pregnancy-safe luxury. The composition is spacious with a clean, light-mode aesthetic."
+						src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJHAatf0yVxdsp60tbmzyRq2_kgm8SlwmwJshZGXqwhUFmtoGmYdu0_WS-Dxib3qrhvzf10meZJhwO_ed_0FAiQVLL5i4JWJbAX-VAGaffn_ws8RHKm2phci8QR9oi_tYyCbtsY3BoJuIrHM5HhPL6l6mSIHvMsHL0S6FW8tJNy4HX_2yDc6SWANQ-Ww6owt9_S_Ge_RTGMjEW3B5Mm55AyON3FVdM3bkBSUuabwtv6qBdNLstwxk39aWcn09PYJ7lLZV5aYb3rNKS"
+					/>
+				</div>
+			</section>
+			<!-- Stats Strip -->
+			<section class="bg-tertiary-container/30 py-12">
+				<div
+					class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop flex flex-wrap justify-center md:justify-between gap-8 text-center"
+				>
+					<div class="flex flex-col items-center">
+						<span class="font-headline-lg text-headline-lg text-primary">5</span>
+						<span
+							class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider"
+							>Zero Gravity Chairs</span
+						>
+					</div>
+					<div class="flex flex-col items-center">
+						<span class="material-symbols-outlined text-primary text-4xl mb-1" data-icon="maternity"
+							>salinity</span
+						>
+						<span
+							class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider"
+							>100% Pregnancy-Safe</span
+						>
+					</div>
+					<div class="flex flex-col items-center">
+						<span class="material-symbols-outlined text-primary text-4xl mb-1" data-icon="group"
+							>group</span
+						>
+						<span
+							class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider"
+							>All Genders Welcome</span
+						>
+					</div>
+					<div class="flex flex-col items-center">
+						<span class="material-symbols-outlined text-primary text-4xl mb-1" data-icon="meeting_room"
+							>meeting_room</span
+						>
+						<span
+							class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider"
+							>Private Suites</span
+						>
+					</div>
+				</div>
+			</section>
+			<!-- What We Do -->
+			<section
+				class="py-section-padding px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto"
+			>
+				<div class="text-center mb-16">
+					<h2 class="font-headline-lg text-headline-lg text-on-background">
+						Curated for your wellbeing.
+					</h2>
+				</div>
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+					<!-- Nails Card -->
+					<div
+						class="bg-[#FCF0BE]/30 p-8 rounded-lg flex flex-col items-center text-center hover:scale-[1.02] transition-transform duration-300"
+					>
+						<img
+							class="w-full aspect-[4/3] object-cover rounded-lg mb-8 shadow-sm"
+							data-alt="A close-up photograph of minimalist, clean nail art on natural hands, styled with soft lighting. The aesthetic uses organic linen textures and a warm, inviting cream palette. High-end spa atmosphere with focus on meticulous, gentle care and non-toxic materials."
+							src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8S70PaaTa-s8szX5G6hjJD__iB9OJhDc8FefaKK7j-hIXkdKXbauM_HQHXxLbWI7yr9fFDPk3y7h01S6yGxwJ2ExoDtUjwCO5h2fsx83JPEpGYpnWGwvRH6kccjP3ZkA65kIFgchNQpVZ6mKl5NN5xxbqK7jRpIROQwYsSmqehkwBXJQ0o-jjxTY_XaMDntIV6aEDXF0hEPQu0z2L5bi3uLfk63IH2Bept3aLixCvNIRDzxwz7Hx_AS4qmJPbo11foMeZDUYdrnJZ"
+						/>
+						<h3 class="font-headline-md text-headline-md mb-4 text-on-background">Nails</h3>
+						<p class="font-body-md text-body-md text-on-surface-variant mb-6">
+							Medical-grade sterilization meets artisanal design in our signature
+							manicure experiences.
+						</p>
+						<button class="text-primary font-label-md flex items-center gap-1 hover:gap-2 transition-all"
+							>Explore Services <span class="material-symbols-outlined" data-icon="chevron_right"
+								>chevron_right</span
+							></button
+						>
+					</div>
+					<!-- Face & Lash Card -->
+					<div
+						class="bg-[#A5D9BC]/20 p-8 rounded-lg flex flex-col items-center text-center hover:scale-[1.02] transition-transform duration-300"
+					>
+						<img
+							class="w-full aspect-[4/3] object-cover rounded-lg mb-8 shadow-sm"
+							data-alt="A portrait of a serene individual receiving a gentle facial treatment in a brightly lit, high-key spa setting. Soft focus on natural skin and subtle lash enhancements. The background features light wood and botanical elements, emphasizing a clean and organic wellness brand."
+							src="https://lh3.googleusercontent.com/aida-public/AB6AXuDI9Lelv4beAJDE70Z9_Nmb8W7gw36tL-I56QWxTAsx5SfBhkxlpVS2dxnnZVS8l-BOtl0DKcPmJGTTjDJNPfOOFU_TLXSPju2fk_466LpKJGzh4CU3koCNFK25lVuoUyHpz4o3mCQ5G-9v6kHiwnmWjHXr2_t8gf54GwAAuDSQWeXm93Gkse1fJGypgDWi610gS98jCWVbRm5hsKKR7yeruZq2CmYxEj3XH14UJHM9xdU43aAgJFJ71ex_78_m473m6FjrroCSV4fH"
+						/>
+						<h3 class="font-headline-md text-headline-md mb-4 text-on-background">Face &amp; Lash</h3>
+						<p class="font-body-md text-body-md text-on-surface-variant mb-6">
+							Elevate your natural gaze with pregnancy-safe serums and expert
+							technician application.
+						</p>
+						<button class="text-primary font-label-md flex items-center gap-1 hover:gap-2 transition-all"
+							>Explore Services <span class="material-symbols-outlined" data-icon="chevron_right"
+								>chevron_right</span
+							></button
+						>
+					</div>
+					<!-- Ritual Card -->
+					<div
+						class="bg-primary-container/20 p-8 rounded-lg flex flex-col items-center text-center hover:scale-[1.02] transition-transform duration-300"
+					>
+						<img
+							class="w-full aspect-[4/3] object-cover rounded-lg mb-8 shadow-sm"
+							data-alt="An interior shot of a luxurious private suite featuring a zero gravity chair, minimalist furniture, and soft ambient lighting. The atmosphere is quiet and meditative, with tonal layers of whites and soft blues. The image highlights the airy minimalism and ergonomic focus of the lounge."
+							src="https://lh3.googleusercontent.com/aida-public/AB6AXuAPO0rqH4t-E-815qX8SAE_ITqrV2Jva4X-x5LtZW6bOrXbB3CLTuLQWxZ56nqX54eFjBPdB4x2GCJene9sXlY78uIHATPRjQxNvkIwg0NuWnQDATqt7S36mEWPpPjQzLs9qqb1DUxDUJAVjmfXiHVsltoSlh9hid0_cUtpvVVV4grtrP2jQXZ3X4dgwBh08ixLy7v6xyRc1On7Ke2ObPWUI7ybWypCD7cLeyQWMnvUVAN164yjETi_NJBRx4tyhI0YgjQS-Uhttd58"
+						/>
+						<h3 class="font-headline-md text-headline-md mb-4 text-on-background">
+							The Zero Gravity Ritual
+						</h3>
+						<p class="font-body-md text-body-md text-on-surface-variant mb-6">
+							Our flagship experience. Weightless relaxation while multiple
+							technicians pamper you simultaneously.
+						</p>
+						<button class="text-primary font-label-md flex items-center gap-1 hover:gap-2 transition-all"
+							>Discover the Ritual <span class="material-symbols-outlined" data-icon="chevron_right"
+								>chevron_right</span
+							></button
+						>
+					</div>
+				</div>
+			</section>
+			<!-- Persona Tabs -->
+			<section class="bg-surface-container-low py-section-padding">
+				<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
+					<div class="text-center mb-12">
+						<h2 class="font-headline-lg text-headline-lg text-on-background mb-4">
+							Designed for your life.
+						</h2>
+						<div class="flex flex-wrap justify-center gap-2 md:gap-4 mt-8">
+							<button
+								class="tab-btn bg-primary text-on-primary px-6 py-2 rounded-full font-label-md transition-all"
+								id="tab-pro"
+								onclick="switchTab('pro')">Busy Professional</button
+							>
+							<button
+								class="tab-btn bg-surface-container text-on-surface-variant px-6 py-2 rounded-full font-label-md hover:bg-primary-container/50 transition-all"
+								id="tab-mom"
+								onclick="switchTab('mom')">Mom-to-Be</button
+							>
+							<button
+								class="tab-btn bg-surface-container text-on-surface-variant px-6 py-2 rounded-full font-label-md hover:bg-primary-container/50 transition-all"
+								id="tab-couple"
+								onclick="switchTab('couple')">Couples</button
+							>
+							<button
+								class="tab-btn bg-surface-container text-on-surface-variant px-6 py-2 rounded-full font-label-md hover:bg-primary-container/50 transition-all"
+								id="tab-groom"
+								onclick="switchTab('groom')">Men's Grooming</button
+							>
+						</div>
+					</div>
+					<div
+						class="bg-white p-6 md:p-12 rounded-lg shadow-xl flex flex-col md:flex-row gap-12 items-center min-h-[400px] transition-all duration-300"
+						id="tab-content"
+					>
+						<div class="flex-1 w-full h-[300px] md:h-[400px] rounded-lg overflow-hidden relative">
+							<img
+								class="w-full h-full object-cover"
+								data-alt="A modern, high-end spa interior optimized for work-life balance, featuring private desks and integrated power for professionals. High-key natural lighting, soft blue accents, and pristine architectural lines. The environment is calm and productive."
+								id="tab-image"
+								src={heroInterior}
+							/>
+						</div>
+						<div class="flex-1">
+							<h3 class="font-headline-lg text-headline-lg text-primary mb-6" id="tab-title">
+								Efficiency meets elegance.
+							</h3>
+							<ul class="space-y-6" id="tab-list">
+								<li class="flex items-start gap-4">
+									<span
+										class="material-symbols-outlined text-primary-container"
+										data-icon="check_circle"
+										data-weight="fill"
+										style="font-variation-settings: 'FILL' 1;">check_circle</span
+									>
+									<div>
+										<p class="font-label-md text-on-background">Simultaneous Care</p>
+										<p class="font-body-md text-on-surface-variant">
+											Manicure, pedicure, and facial completed in under 60 minutes.
+										</p>
+									</div>
+								</li>
+								<li class="flex items-start gap-4">
+									<span
+										class="material-symbols-outlined text-primary-container"
+										data-icon="check_circle"
+										data-weight="fill"
+										style="font-variation-settings: 'FILL' 1;">check_circle</span
+									>
+									<div>
+										<p class="font-label-md text-on-background">Silent Zones</p>
+										<p class="font-body-md text-on-surface-variant">
+											Dedicated quiet suites with high-speed Wi-Fi and laptop stands.
+										</p>
+									</div>
+								</li>
+								<li class="flex items-start gap-4">
+									<span
+										class="material-symbols-outlined text-primary-container"
+										data-icon="check_circle"
+										data-weight="fill"
+										style="font-variation-settings: 'FILL' 1;">check_circle</span
+									>
+									<div>
+										<p class="font-label-md text-on-background">Executive Booking</p>
+										<p class="font-body-md text-on-surface-variant">
+											Priority scheduling for members and corporate partners.
+										</p>
+									</div>
+								</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</section>
+			<!-- Customer Story -->
+			<section
+				class="py-section-padding px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto"
+			>
+				<div class="bg-[#FCF0BE]/20 rounded-lg overflow-hidden flex flex-col md:flex-row shadow-sm">
+					<div class="flex-1 p-10 md:p-20 flex flex-col justify-center">
+						<span
+							class="material-symbols-outlined text-primary-container text-6xl mb-6 opacity-50"
+							data-icon="format_quote">format_quote</span
+						>
+						<blockquote
+							class="font-display-lg-mobile text-display-lg-mobile text-on-background mb-8 leading-tight italic"
+						>
+							"CureVà is the only place where I truly felt I could breathe during my
+							third trimester. The zero gravity ritual is life-changing."
+						</blockquote>
+						<div class="flex items-center gap-4 mb-8">
+							<div>
+								<p class="font-label-md text-label-md text-on-background">Elena Richardson</p>
+								<p class="font-body-md text-body-md text-on-surface-variant">Member since 2024</p>
+							</div>
+						</div>
+						<a class="text-primary font-label-md flex items-center gap-2 group" href="#"
+							>Read her story <span
+								class="material-symbols-outlined group-hover:translate-x-1 transition-transform"
+								data-icon="arrow_forward">arrow_forward</span
+							></a
+						>
+					</div>
+					<div class="flex-1 min-h-[400px]">
+						<img
+							class="w-full h-full object-cover"
+							data-alt="A warm, candid lifestyle photograph of a radiant pregnant woman relaxing in a soft, sunlit living space. The lighting is golden and soft, capturing a mood of serene happiness and wellness. The aesthetic is clean and premium, consistent with a high-end wellness brand."
+							src="https://lh3.googleusercontent.com/aida-public/AB6AXuAxJiY72wN8WuKIbWTXMZrl_tNIApCfFLbqJMh73Az7kFOdLBhINt3FFFHwoKzcgeWi7OelzbkiU9CuSgB_zrkOAO0N3lGi-1URd_Kjnr1bhWy03udL8xvCnnmhjJ35EXmB3GPq2Z_gE5ygIImHxTFvtirPN8pzitn0Fd-papoZlrarUm8z50q0b066wjXg37dH_aUgHsKGVVokEQ-SCv5wh8ZNV3poJhshWMnYrdqRzQoyiqxekzygt4919amxMd7lRyoPAnuyh4xD"
+						/>
+					</div>
+				</div>
+			</section>
+			<!-- From the Journal -->
+			<section
+				class="py-section-padding px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto"
+			>
+				<div class="flex justify-between items-end mb-12">
+					<h2 class="font-headline-lg text-headline-lg text-on-background">From the Journal</h2>
+					<a class="text-primary font-label-md border-b border-primary pb-1" href="#"
+						>View all articles</a
+					>
+				</div>
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+					<article class="group cursor-pointer">
+						<div class="overflow-hidden rounded-lg mb-6 shadow-md">
+							<img
+								class="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-500"
+								data-alt="A minimalist and artful composition of clean beauty products on a stone surface. The lighting is soft and natural, emphasizing the organic ingredients and sustainable packaging. Soft pastel tones dominate the frame, aligning with a premium wellness aesthetic."
+								src="https://lh3.googleusercontent.com/aida-public/AB6AXuBCTDlbr0Nk0wb8n8El7PrV-q0DyWX-46CyzufeBFkxzeMcFZSxmZnMKz_7uPOBYe7kvVV19jAabkwpQ4YCuj2zv2fCK9lPCohEnAR1oX8mtSAIxvFrhWCLcn1xbg2HKL0zqaxmlvY2iRrgZBkf4dH_Wx4JEVfZgrFF7qECiTY1V_K-7lk9czpqU-9pOgFWbr_pp54m4j5oe7Gl6H5E8IwXY15jZ96Pg5s-jt-ufoGpmvHv_dc1piW2EttjJ2mWvIxfnEY154uAvnVy"
+							/>
+						</div>
+						<span
+							class="bg-[#FCF0BE] text-on-secondary-fixed-variant px-3 py-1 rounded-full text-label-sm font-label-sm mb-4 inline-block"
+							>Wellness</span
+						>
+						<h4
+							class="font-headline-md text-headline-md text-on-background mb-2 group-hover:text-primary transition-colors"
+						>
+							The Science of Pregnancy-Safe Beauty
+						</h4>
+						<p class="font-body-md text-on-surface-variant">Oct 12, 2026</p>
+					</article>
+					<article class="group cursor-pointer">
+						<div class="overflow-hidden rounded-lg mb-6 shadow-md">
+							<img
+								class="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-500"
+								data-alt="An artistic high-key photograph showing water ripples and natural light patterns, symbolizing freshness and vitality. The scene incorporates soft teal and white tones, creating a sense of deep hydration and purity for skin-focused content."
+								src="https://lh3.googleusercontent.com/aida-public/AB6AXuBNbVaGuUz-ErbcbiGaqwOsKrroHqn19ir5pIWGBX2OXTQbq2eNgwwbq64vEfjj-MW220qYB-Qu8iVWxlxJXPthlTCwwMeg00jSPS0qn_Oe4RkM-IWbwdqpMSbD9BVTI3T-EiG2DKmuFwYI1LIZog5JHqfqfHSbDnCrJXf-reUOGs_JLtlSvsT-EdJUP_65rrPctmSF2tmPs8BmwabLpO3ma8-ZVTmUtkVUCr3lu0BfV4BQwi1mgWVCWBGwCT9hQtt-GtdQurasEgse"
+							/>
+						</div>
+						<span
+							class="bg-[#FCF0BE] text-on-secondary-fixed-variant px-3 py-1 rounded-full text-label-sm font-label-sm mb-4 inline-block"
+							>Skin Rituals</span
+						>
+						<h4
+							class="font-headline-md text-headline-md text-on-background mb-2 group-hover:text-primary transition-colors"
+						>
+							Decoding Medical-Grade Spa Standards
+						</h4>
+						<p class="font-body-md text-on-surface-variant">Sept 28, 2026</p>
+					</article>
+					<article class="group cursor-pointer">
+						<div class="overflow-hidden rounded-lg mb-6 shadow-md">
+							<img
+								class="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-500"
+								data-alt="A peaceful macro shot of soft linen fabric and a sprig of dried lavender. The aesthetic is extremely minimalist and tactile, using a light neutral color palette to convey comfort, safety, and a gender-neutral sense of relaxation."
+								src="https://lh3.googleusercontent.com/aida-public/AB6AXuAA_pTTZJjEtqMiDXWYt1JEyX2ZJbOGI16l2ptaLnYflA8SYFiw4jDq4KCcn6TCLhiYB9Shya4OEeonU1r_YkXQjbsUbJHPbrJsnC5py0QOCE9uKbLMFFmZoNIQ7spCZNZOU6-xf94L4YpE703AuSQqllxw-sgf8Sv9nrJhSNKE3j9QedDpR_vdsnWJVPw6HberHspnbquDLXnfbEoL6y8_4luLYCOt0ApoEIl6jRO4iPdquHTuPwAq_QdjRWDyK9KRXvWpV6HmwVJB"
+							/>
+						</div>
+						<span
+							class="bg-[#FCF0BE] text-on-secondary-fixed-variant px-3 py-1 rounded-full text-label-sm font-label-sm mb-4 inline-block"
+							>Lifestyle</span
+						>
+						<h4
+							class="font-headline-md text-headline-md text-on-background mb-2 group-hover:text-primary transition-colors"
+						>
+							Finding Stillness in the City
+						</h4>
+						<p class="font-body-md text-on-surface-variant">Sept 15, 2026</p>
+					</article>
+				</div>
+			</section>
+			<!-- Partner Grid -->
+			<section class="py-16 bg-white border-y border-surface-container">
+				<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop text-center">
+					<p
+						class="font-label-sm text-label-sm text-outline uppercase tracking-[0.2em] mb-12"
+					>
+						Proudly partnering with clean pioneers
+					</p>
+					<div
+						class="grid grid-cols-2 md:grid-cols-6 gap-12 opacity-40 grayscale hover:grayscale-0 transition-all duration-700"
+					>
+						<div class="flex items-center justify-center font-bold text-xl text-primary">AETHER</div>
+						<div class="flex items-center justify-center font-bold text-xl text-primary">BIO-SOFT</div>
+						<div class="flex items-center justify-center font-bold text-xl text-primary">LUMIÈRE</div>
+						<div class="flex items-center justify-center font-bold text-xl text-primary">PURE-V</div>
+						<div class="flex items-center justify-center font-bold text-xl text-primary">FLORA</div>
+						<div class="flex items-center justify-center font-bold text-xl text-primary">NOX</div>
+						<div class="flex items-center justify-center font-bold text-xl text-primary">ELEMNT</div>
+						<div class="flex items-center justify-center font-bold text-xl text-primary">VITAL</div>
+						<div class="flex items-center justify-center font-bold text-xl text-primary">ORA</div>
+						<div class="flex items-center justify-center font-bold text-xl text-primary">KIND</div>
+						<div class="flex items-center justify-center font-bold text-xl text-primary">GLO</div>
+						<div class="flex items-center justify-center font-bold text-xl text-primary">ROOTS</div>
+					</div>
+				</div>
+			</section>
+			<!-- CTA Cards -->
+			<section
+				class="py-section-padding px-margin-mobile md:px-margin-desktop max-w-container-max mx-auto grid grid-cols-1 md:grid-cols-2 gap-gutter"
+			>
+				<div
+					class="bg-primary-container p-12 rounded-lg text-on-primary-container relative overflow-hidden group"
+				>
+					<div class="z-10 relative">
+						<h3 class="font-headline-lg text-headline-lg mb-4">Join the journal.</h3>
+						<p class="font-body-md mb-8 max-w-xs">
+							Get early access to bookings and seasonal skin guides delivered to your
+							inbox.
+						</p>
+						<div class="flex gap-2">
+							<input
+								class="bg-white/80 border-none rounded-full px-6 py-3 w-full focus:ring-2 focus:ring-primary"
+								placeholder="Email address"
+								type="email"
+							/>
+							<button
+								class="bg-primary text-on-primary px-6 py-3 rounded-full font-label-md hover:shadow-lg transition-all"
+								>Join</button
+							>
+						</div>
+					</div>
+					<span
+						class="material-symbols-outlined absolute -bottom-10 -right-10 text-[200px] opacity-10 rotate-12"
+						data-icon="mail">mail</span
+					>
+				</div>
+				<div
+					class="bg-tertiary-container p-12 rounded-lg text-on-tertiary-container relative overflow-hidden group"
+				>
+					<div class="z-10 relative">
+						<h3 class="font-headline-lg text-headline-lg mb-4">We're hiring.</h3>
+						<p class="font-body-md mb-8 max-w-xs">
+							Join a team redefined by care. We're looking for expert technicians and
+							hosts.
+						</p>
+						<button
+							class="bg-primary text-on-primary px-8 py-3 rounded-full font-label-md hover:shadow-lg transition-all"
+							>View Openings</button
+						>
+					</div>
+					<span
+						class="material-symbols-outlined absolute -bottom-10 -right-10 text-[200px] opacity-10 -rotate-12"
+						data-icon="work">work</span
+					>
+				</div>
+			</section>
+		</main>
+		<!-- Footer -->
+		<footer class="bg-surface-container-low dark:bg-surface-container-lowest rounded-t-lg">
+			<div
+				class="grid grid-cols-1 md:grid-cols-4 gap-gutter px-margin-mobile md:px-margin-desktop py-section-padding max-w-container-max mx-auto"
+			>
+				<div class="md:col-span-1">
+					<span
+						class="font-display-lg-mobile text-display-lg-mobile text-primary dark:text-primary-fixed mb-6 block"
+						>CureVà</span
+					>
+					<p class="font-body-md text-on-surface-variant max-w-xs">
+						A new kind of beauty lounge. Built on safety, inclusion, and the ritual of
+						stillness.
+					</p>
+				</div>
+				<div>
+					<h4 class="font-label-md text-on-background mb-6 uppercase tracking-widest">Brand</h4>
+					<ul class="space-y-4">
+						<li>
+							<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md" href="#"
+								>Our Story</a
+							>
+						</li>
+						<li>
+							<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md" href="#"
+								>Privacy Policy</a
+							>
+						</li>
+						<li>
+							<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md" href="#"
+								>Newsletter Signup</a
+							>
+						</li>
+					</ul>
+				</div>
+				<div>
+					<h4 class="font-label-md text-on-background mb-6 uppercase tracking-widest">Services</h4>
+					<ul class="space-y-4">
+						<li>
+							<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md" href="#"
+								>Nails</a
+							>
+						</li>
+						<li>
+							<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md" href="#"
+								>Face &amp; Lash</a
+							>
+						</li>
+						<li>
+							<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md" href="#"
+								>Zero Gravity Ritual</a
+							>
+						</li>
+						<li>
+							<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md" href="#"
+								>Gift Card</a
+							>
+						</li>
+					</ul>
+				</div>
+				<div>
+					<h4 class="font-label-md text-on-background mb-6 uppercase tracking-widest">Connect</h4>
+					<ul class="space-y-4">
+						<li>
+							<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md" href="#"
+								>Careers</a
+							>
+						</li>
+						<li>
+							<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md" href="#"
+								>Contact</a
+							>
+						</li>
+						<li>
+							<a class="text-on-surface-variant hover:text-primary transition-colors font-body-md" href="#"
+								>Instagram</a
+							>
+						</li>
+					</ul>
+				</div>
+			</div>
+			<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pb-12">
+				<p class="font-label-sm text-label-sm text-outline-variant">
+					© 2024 CureVà Beauty Lounge. All rights reserved.
+				</p>
+			</div>
+		</footer>
+		<script is:inline>
+			const tabs = {
+				pro: {
+					title: "Efficiency meets elegance.",
+					image:
+						"https://lh3.googleusercontent.com/aida-public/AB6AXuBXo-BymgZgSwSCQfMKv66--KZw6WbiRk-qS1xy0CRE-z9MfkHR6r2E40WMF26dMgRaPiI0rUPqJJbJ2mOAUq4WryuVhM3dH3XTFTYwbkZpxsm4X28q1SxnlbeZ3hDsJRpQX--96hliuXxRuFQDq69kFHkNLyhPwJDV6IoqhNBFqFs0Zw1ieHd_ne_4WrPnQbow_fwUzeDckvtYwOxs_TKYlnFEmql1VNKsOhMjhrahXBrlLatizhVS73UpDUdlsnrPrTXss334a9lc",
+					alt: "A modern, high-end spa interior optimized for work-life balance, featuring private desks and integrated power for professionals. High-key natural lighting, soft blue accents, and pristine architectural lines. The environment is calm and productive.",
+					list: [
+						{ label: "Simultaneous Care", body: "Manicure, pedicure, and facial completed in under 60 minutes." },
+						{ label: "Silent Zones", body: "Dedicated quiet suites with high-speed Wi-Fi and laptop stands." },
+						{ label: "Executive Booking", body: "Priority scheduling for members and corporate partners." },
+					],
+				},
+				mom: {
+					title: "Safety without compromise.",
+					image:
+						"https://lh3.googleusercontent.com/aida-public/AB6AXuBXo-BymgZgSwSCQfMKv66--KZw6WbiRk-qS1xy0CRE-z9MfkHR6r2E40WMF26dMgRaPiI0rUPqJJbJ2mOAUq4WryuVhM3dH3XTFTYwbkZpxsm4X28q1SxnlbeZ3hDsJRpQX--96hliuXxRuFQDq69kFHkNLyhPwJDV6IoqhNBFqFs0Zw1ieHd_ne_4WrPnQbow_fwUzeDckvtYwOxs_TKYlnFEmql1VNKsOhMjhrahXBrlLatizhVS73UpDUdlsnrPrTXss334a9lc",
+					alt: "A soft and welcoming spa interior designed for expectant mothers, featuring gentle ergonomic support, organic fabrics, and warm, diffused lighting. The space is calming and focuses on prenatal wellness.",
+					list: [
+						{ label: "100% Non-Toxic", body: "Medical-grade sterilization and pregnancy-safe polish formulas." },
+						{ label: "Zero-G Comfort", body: "Chairs specifically designed to alleviate lower back and leg pressure." },
+						{ label: "Scent-Free Options", body: "Dedicated mornings for scent-sensitive individuals." },
+					],
+				},
+				couple: {
+					title: "Shared moments of zen.",
+					image:
+						"https://lh3.googleusercontent.com/aida-public/AB6AXuBXo-BymgZgSwSCQfMKv66--KZw6WbiRk-qS1xy0CRE-z9MfkHR6r2E40WMF26dMgRaPiI0rUPqJJbJ2mOAUq4WryuVhM3dH3XTFTYwbkZpxsm4X28q1SxnlbeZ3hDsJRpQX--96hliuXxRuFQDq69kFHkNLyhPwJDV6IoqhNBFqFs0Zw1ieHd_ne_4WrPnQbow_fwUzeDckvtYwOxs_TKYlnFEmql1VNKsOhMjhrahXBrlLatizhVS73UpDUdlsnrPrTXss334a9lc",
+					alt: "A private, luxurious dual-treatment suite in a high-end beauty lounge. The setting is intimate and serene, using soft lighting and premium natural materials like linen and light wood.",
+					list: [
+						{ label: "Private Dual Suites", body: "Relax together in sound-insulated private ritual rooms." },
+						{ label: "Refreshment Pairings", body: "Curated tea and botanical water pairings during your visit." },
+						{ label: "Shared Rituals", body: "Synchronized treatments to ensure you finish together." },
+					],
+				},
+				groom: {
+					title: "Modern grooming, redefined.",
+					image:
+						"https://lh3.googleusercontent.com/aida-public/AB6AXuBXo-BymgZgSwSCQfMKv66--KZw6WbiRk-qS1xy0CRE-z9MfkHR6r2E40WMF26dMgRaPiI0rUPqJJbJ2mOAUq4WryuVhM3dH3XTFTYwbkZpxsm4X28q1SxnlbeZ3hDsJRpQX--96hliuXxRuFQDq69kFHkNLyhPwJDV6IoqhNBFqFs0Zw1ieHd_ne_4WrPnQbow_fwUzeDckvtYwOxs_TKYlnFEmql1VNKsOhMjhrahXBrlLatizhVS73UpDUdlsnrPrTXss334a9lc",
+					alt: "A sophisticated and gender-neutral grooming lounge with minimalist design. Darker wood tones mixed with the signature blue, featuring clean lines and a professional, welcoming atmosphere.",
+					list: [
+						{ label: "Buff & Shine", body: "High-quality, natural-finish hand and foot maintenance." },
+						{ label: "Deep Hydration", body: "Face and scalp treatments focused on revitalizing skin health." },
+						{ label: "Minimalist Aesthetic", body: "A welcoming, gender-neutral space that focuses on wellness over vanity." },
+					],
+				},
+			};
+
+			function switchTab(id) {
+				const data = tabs[id];
+				const content = document.getElementById("tab-content");
+				const btns = document.querySelectorAll(".tab-btn");
+
+				// Update Active State
+				btns.forEach((btn) => {
+					btn.classList.remove("bg-primary", "text-on-primary");
+					btn.classList.add("bg-surface-container", "text-on-surface-variant");
+				});
+				const activeBtn = document.getElementById(`tab-${id}`);
+				activeBtn.classList.add("bg-primary", "text-on-primary");
+				activeBtn.classList.remove("bg-surface-container", "text-on-surface-variant");
+
+				// Fade out
+				content.style.opacity = "0";
+				content.style.transform = "translateY(10px)";
+
+				setTimeout(() => {
+					// Update Content
+					document.getElementById("tab-image").src = data.image;
+					document.getElementById("tab-image").dataset.alt = data.alt;
+					document.getElementById("tab-title").textContent = data.title;
+
+					const list = document.getElementById("tab-list");
+					list.innerHTML = data.list
+						.map(
+							(item) => `
+						<li class="flex items-start gap-4">
+							<span class="material-symbols-outlined text-primary-container" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+							<div>
+								<p class="font-label-md text-on-background">${item.label}</p>
+								<p class="font-body-md text-on-surface-variant">${item.body}</p>
+							</div>
+						</li>
+					`
+						)
+						.join("");
+
+					// Fade in
+					content.style.opacity = "1";
+					content.style.transform = "translateY(0)";
+				}, 300);
+			}
+
+			// Add smooth appearance on load
+			document.addEventListener("DOMContentLoaded", () => {
+				document.body.style.opacity = "0";
+				document.body.style.transition = "opacity 0.8s ease-out";
+				setTimeout(() => {
+					document.body.style.opacity = "1";
+				}, 50);
+			});
+
+			// Sticky Nav Shadow Logic
+			window.addEventListener("scroll", () => {
+				const header = document.querySelector("header");
+				if (window.scrollY > 50) {
+					header.classList.add("py-2");
+					header.classList.remove("py-4");
+				} else {
+					header.classList.add("py-4");
+					header.classList.remove("py-2");
+				}
+			});
+		</script>
+	</body>
+</html>
