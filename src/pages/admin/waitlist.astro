@@ -1,0 +1,426 @@
+---
+import { env } from "cloudflare:workers";
+import {
+	WAITLIST_STATUSES,
+	WAITLIST_STATUS_LABELS,
+	type WaitlistStatus,
+	ensureWaitlistSchema,
+} from "../../utils/waitlist-db";
+
+// Server-rendered, never cached — shows PII (emails, phones) and is gated by
+// the auth check in src/middleware.ts.
+export const prerender = false;
+
+interface WaitlistRow {
+	id: string;
+	created_at: string;
+	email: string;
+	phone: string;
+	source: string;
+	status: string | null;
+	discount_code: string | null;
+	claimed_at: string | null;
+	notes: string | null;
+}
+
+// Tailwind classes per status (Play CDN ships the full default palette).
+const STATUS_CLASS: Record<WaitlistStatus, string> = {
+	waiting: "bg-slate-100 text-slate-700 border-slate-300",
+	invited: "bg-indigo-100 text-indigo-800 border-indigo-300",
+	redeemed: "bg-emerald-100 text-emerald-800 border-emerald-300",
+};
+
+function fmtDate(iso: string): string {
+	const d = new Date(iso);
+	return Number.isNaN(d.getTime())
+		? iso
+		: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+function fmtTime(iso: string): string {
+	const d = new Date(iso);
+	return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+}
+function statusOf(s: string | null): WaitlistStatus {
+	return s && (WAITLIST_STATUSES as readonly string[]).includes(s)
+		? (s as WaitlistStatus)
+		: "waiting";
+}
+
+const db = env.DB as D1Database;
+let entries: WaitlistRow[] = [];
+let loadError: string | null = null;
+
+try {
+	await ensureWaitlistSchema(db);
+	const result = await db
+		.prepare("SELECT * FROM waitlist ORDER BY datetime(created_at) DESC")
+		.all<WaitlistRow>();
+	entries = result.results ?? [];
+} catch (err) {
+	loadError = err instanceof Error ? err.message : String(err);
+	console.error("admin: failed to load waitlist", err);
+}
+
+const counts = {
+	all: entries.length,
+	waiting: entries.filter((e) => statusOf(e.status) === "waiting").length,
+	invited: entries.filter((e) => statusOf(e.status) === "invited").length,
+	redeemed: entries.filter((e) => statusOf(e.status) === "redeemed").length,
+};
+
+const STAT_CARDS: { key: string; label: string; ring: string; dot: string; count: number }[] = [
+	{ key: "", label: "All signups", ring: "data-[active=true]:ring-primary", dot: "bg-primary", count: counts.all },
+	{ key: "waiting", label: "Waiting", ring: "data-[active=true]:ring-slate-400", dot: "bg-slate-400", count: counts.waiting },
+	{ key: "invited", label: "Invited", ring: "data-[active=true]:ring-indigo-400", dot: "bg-indigo-500", count: counts.invited },
+	{ key: "redeemed", label: "Redeemed", ring: "data-[active=true]:ring-emerald-400", dot: "bg-emerald-500", count: counts.redeemed },
+];
+---
+
+<!DOCTYPE html>
+<html class="light" lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
+		<meta name="robots" content="noindex, nofollow" />
+		<title>Waitlist · CureVà Admin</title>
+		<script is:inline src="https://cdn.tailwindcss.com?plugins=forms"></script>
+		<link
+			href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+			rel="stylesheet"
+		/>
+		<link
+			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+			rel="stylesheet"
+		/>
+		<style is:inline>
+			.material-symbols-outlined {
+				font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+				vertical-align: middle;
+			}
+			.row-hidden { display: none !important; }
+			body { background: #f4f8fb; }
+			.detail-row > td { background: #f8fafc; }
+			tbody.wl-group:hover .wl-main > td { background: #f8fbfd; }
+			.chev { transition: transform .18s ease; }
+			tbody.open .chev { transform: rotate(180deg); }
+		</style>
+		<script is:inline id="tailwind-config">
+			tailwind.config = {
+				theme: {
+					extend: {
+						colors: {
+							primary: "#3a656e",
+							"primary-dark": "#2f545c",
+							"primary-container": "#a4d0db",
+						},
+						fontFamily: { sans: ["DM Sans", "sans-serif"] },
+					},
+				},
+			};
+		</script>
+	</head>
+	<body class="font-sans text-slate-800 min-h-screen">
+		<!-- Top bar -->
+		<header class="sticky top-0 z-30 bg-white/90 backdrop-blur border-b border-slate-200">
+			<div class="max-w-[1400px] mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
+				<div class="flex items-center gap-3">
+					<div class="w-9 h-9 rounded-xl bg-primary text-white grid place-items-center font-bold">C</div>
+					<div>
+						<h1 class="text-base font-bold tracking-tight leading-none">CureVà Admin</h1>
+						<p class="text-xs text-slate-500 mt-0.5">Recruit &amp; waitlist</p>
+					</div>
+				</div>
+				<nav class="hidden sm:flex items-center gap-1 rounded-full bg-slate-100 p-1">
+					<a href="/admin" class="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition">
+						<span class="material-symbols-outlined text-base">badge</span>Recruit
+					</a>
+					<a href="/admin/waitlist" aria-current="page" class="inline-flex items-center gap-1.5 rounded-full bg-white px-3.5 py-1.5 text-sm font-semibold text-slate-900 shadow-sm">
+						<span class="material-symbols-outlined text-base">group</span>Waitlist
+					</a>
+				</nav>
+				<a
+					href="/admin/logout"
+					class="inline-flex items-center gap-1.5 rounded-full border border-slate-200 px-3.5 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition"
+				>
+					<span class="material-symbols-outlined text-base">logout</span>
+					Sign out
+				</a>
+			</div>
+		</header>
+
+		<main class="max-w-[1400px] mx-auto px-6 py-6 space-y-5">
+			{loadError && (
+				<div class="rounded-xl border border-red-200 bg-red-50 text-red-800 px-4 py-3 text-sm">
+					<strong>Couldn’t load the waitlist:</strong> {loadError}
+				</div>
+			)}
+
+			{!loadError && (
+				<>
+					{/* ---- Stat cards (click to filter) ---- */}
+					<div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+						{STAT_CARDS.map((c) => (
+							<button
+								type="button"
+								class={`stat-card group text-left rounded-2xl border border-slate-200 bg-white px-4 py-3.5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all ring-2 ring-transparent ${c.ring}`}
+								data-status={c.key}
+								data-active={c.key === "" ? "true" : "false"}
+							>
+								<div class="flex items-center gap-2">
+									<span class={`w-2 h-2 rounded-full ${c.dot}`}></span>
+									<span class="text-xs font-medium uppercase tracking-wide text-slate-500">{c.label}</span>
+								</div>
+								<div class="mt-1.5 text-2xl font-bold text-slate-900" data-count-for={c.key}>{c.count}</div>
+							</button>
+						))}
+					</div>
+
+					{entries.length === 0 ? (
+						<div class="rounded-2xl border border-slate-200 bg-white px-6 py-20 text-center text-slate-500 shadow-sm">
+							<span class="material-symbols-outlined text-5xl text-primary mb-2 block">notifications_active</span>
+							<p class="text-lg font-semibold text-slate-700">No waitlist signups yet</p>
+							<p class="text-sm">Submissions from the <code class="px-1 rounded bg-slate-100">getready</code> waitlist form will appear here.</p>
+						</div>
+					) : (
+						<div class="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+							{/* ---- Toolbar ---- */}
+							<div class="border-b border-slate-100 p-4">
+								<div class="flex flex-wrap items-center gap-3">
+									<div class="relative grow min-w-[220px]">
+										<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">search</span>
+										<input id="f-search" type="search" placeholder="Search email, phone, source…" oninput="applyFilters()"
+											class="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 py-2.5 text-sm focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 transition" />
+									</div>
+									<button type="button" onclick="resetFilters()"
+										class="rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500 hover:text-slate-900 transition">
+										Reset
+									</button>
+									<div class="ml-auto text-sm text-slate-500">
+										<span id="result-count" class="font-semibold text-slate-800">{entries.length}</span> of {entries.length}
+									</div>
+								</div>
+							</div>
+
+							{/* ---- Table ---- */}
+							<div class="overflow-x-auto">
+								<table class="w-full text-sm" id="wl-table">
+									<thead>
+										<tr class="text-left text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-100">
+											<th class="font-semibold px-5 py-3">Contact</th>
+											<th class="font-semibold px-5 py-3">Source</th>
+											<th class="font-semibold px-5 py-3 whitespace-nowrap">Joined</th>
+											<th class="font-semibold px-5 py-3">Status</th>
+											<th class="font-semibold px-5 py-3 w-10"></th>
+										</tr>
+									</thead>
+									{entries.map((e) => {
+										const st = statusOf(e.status);
+										const searchBlob = `${e.email} ${e.phone} ${e.source}`.toLowerCase();
+										return (
+											<tbody
+												class="wl-group border-b border-slate-100 last:border-0"
+												data-search={searchBlob}
+												data-status={st}
+												data-date={e.created_at.slice(0, 10)}
+											>
+												<tr class="wl-main cursor-pointer" onclick="toggleDetail(this)">
+													<td class="px-5 py-3.5 align-middle whitespace-nowrap">
+														<a class="font-semibold text-slate-900 hover:text-primary inline-flex items-center gap-1.5" href={`mailto:${e.email}`} onclick="event.stopPropagation()">
+															<span class="material-symbols-outlined text-base text-slate-400">mail</span>{e.email}
+														</a>
+														<a class="block text-xs text-slate-500 hover:text-primary mt-0.5" href={`tel:${e.phone.replace(/[^+\d]/g, "")}`} onclick="event.stopPropagation()">{e.phone}</a>
+													</td>
+													<td class="px-5 py-3.5 align-middle">
+														<span class="rounded-md bg-slate-100 text-slate-600 px-2 py-0.5 text-xs">{e.source || "—"}</span>
+													</td>
+													<td class="px-5 py-3.5 align-middle whitespace-nowrap">
+														<div class="text-slate-700">{fmtDate(e.created_at)}</div>
+														<div class="text-xs text-slate-400">{fmtTime(e.created_at)}</div>
+													</td>
+													<td class="px-5 py-3.5 align-middle" onclick="event.stopPropagation()">
+														<select
+															data-id={e.id}
+															onchange="updateStatus(this)"
+															class={`status-select rounded-full border px-3 py-1.5 text-xs font-semibold cursor-pointer focus:outline-none ${STATUS_CLASS[st]}`}
+														>
+															{WAITLIST_STATUSES.map((s) => (
+																<option value={s} selected={s === st}>{WAITLIST_STATUS_LABELS[s]}</option>
+															))}
+														</select>
+													</td>
+													<td class="px-5 py-3.5 align-middle text-right">
+														<span class="material-symbols-outlined chev text-slate-400">expand_more</span>
+													</td>
+												</tr>
+
+												{/* ---- Expandable detail ---- */}
+												<tr class="detail-row hidden">
+													<td colspan="5" class="px-5 pb-5 pt-1">
+														<div class="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4">
+															<div>
+																<div class="text-[11px] uppercase tracking-wider text-slate-400">Discount code</div>
+																<div class="font-medium font-mono text-[13px]">{e.discount_code ?? <span class="text-slate-400 font-sans">Not issued</span>}</div>
+															</div>
+															<div>
+																<div class="text-[11px] uppercase tracking-wider text-slate-400">Claimed</div>
+																<div class="font-medium">{e.claimed_at ? fmtDate(e.claimed_at) : <span class="text-slate-400">—</span>}</div>
+															</div>
+															<div class="col-span-2 md:col-span-2">
+																<div class="text-[11px] uppercase tracking-wider text-slate-400 mb-1.5">Notes</div>
+																<div class="relative">
+																	<textarea
+																		data-id={e.id}
+																		rows="2"
+																		placeholder="Add a note…"
+																		oninput="autoGrow(this)"
+																		onblur="saveNotes(this)"
+																		class="note-area w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm resize-none overflow-hidden focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 transition"
+																	>{e.notes ?? ""}</textarea>
+																	<span class="note-saved absolute right-2 bottom-2 text-[11px] text-emerald-600 opacity-0 transition-opacity">Saved ✓</span>
+																</div>
+															</div>
+														</div>
+													</td>
+												</tr>
+											</tbody>
+										);
+									})}
+								</table>
+								<div id="no-results" class="hidden px-6 py-14 text-center text-slate-400">
+									No signups match the current filters.
+								</div>
+							</div>
+						</div>
+					)}
+				</>
+			)}
+		</main>
+
+		<script is:inline>
+			const STATUS_CLASS = {
+				waiting: "bg-slate-100 text-slate-700 border-slate-300",
+				invited: "bg-indigo-100 text-indigo-800 border-indigo-300",
+				redeemed: "bg-emerald-100 text-emerald-800 border-emerald-300",
+			};
+			const ALL_STATUS_CLASSES =
+				"bg-slate-100 text-slate-700 border-slate-300 bg-indigo-100 text-indigo-800 border-indigo-300 bg-emerald-100 text-emerald-800 border-emerald-300".split(" ");
+
+			let activeStatus = "";
+
+			function val(id) {
+				const el = document.getElementById(id);
+				return el ? el.value.trim().toLowerCase() : "";
+			}
+
+			function applyFilters() {
+				const search = val("f-search");
+				let shown = 0;
+				document.querySelectorAll("#wl-table tbody.wl-group").forEach((g) => {
+					const d = g.dataset;
+					let ok = true;
+					if (search && !d.search.includes(search)) ok = false;
+					if (ok && activeStatus && d.status !== activeStatus) ok = false;
+					g.classList.toggle("row-hidden", !ok);
+					if (ok) shown++;
+				});
+				const countEl = document.getElementById("result-count");
+				if (countEl) countEl.textContent = shown;
+				const empty = document.getElementById("no-results");
+				if (empty) empty.classList.toggle("hidden", shown !== 0);
+			}
+
+			function setStatusFilter(key, cardEl) {
+				activeStatus = key;
+				document.querySelectorAll(".stat-card").forEach((c) =>
+					c.setAttribute("data-active", c === cardEl ? "true" : "false"),
+				);
+				applyFilters();
+			}
+
+			function autoGrow(el) {
+				el.style.height = "auto";
+				el.style.height = el.scrollHeight + "px";
+			}
+
+			function toggleDetail(rowEl) {
+				const group = rowEl.closest("tbody");
+				const detail = group.querySelector(".detail-row");
+				if (!detail) return;
+				const open = detail.classList.toggle("hidden");
+				group.classList.toggle("open", !open);
+				if (!open) {
+					const area = detail.querySelector(".note-area");
+					if (area) autoGrow(area);
+				}
+			}
+
+			function recomputeCounts() {
+				const c = { "": 0, waiting: 0, invited: 0, redeemed: 0 };
+				document.querySelectorAll("#wl-table tbody.wl-group").forEach((g) => {
+					c[""]++;
+					if (c[g.dataset.status] !== undefined) c[g.dataset.status]++;
+				});
+				document.querySelectorAll("[data-count-for]").forEach((el) => {
+					const k = el.getAttribute("data-count-for");
+					if (c[k] !== undefined) el.textContent = c[k];
+				});
+			}
+
+			function resetFilters() {
+				const s = document.getElementById("f-search");
+				if (s) s.value = "";
+				const firstCard = document.querySelector('.stat-card[data-status=""]');
+				setStatusFilter("", firstCard);
+			}
+
+			async function updateStatus(sel) {
+				const id = sel.dataset.id;
+				const status = sel.value;
+				ALL_STATUS_CLASSES.forEach((c) => sel.classList.remove(c));
+				(STATUS_CLASS[status] || "").split(" ").forEach((c) => c && sel.classList.add(c));
+				const group = sel.closest("tbody");
+				if (group) group.dataset.status = status;
+				try {
+					const res = await fetch("/admin/update", {
+						method: "POST",
+						headers: { "content-type": "application/json" },
+						body: JSON.stringify({ entity: "waitlist", id, status }),
+					});
+					if (!res.ok) throw new Error("save failed");
+				} catch (e) {
+					alert("Could not save status. Please try again.");
+				}
+				recomputeCounts();
+				applyFilters();
+			}
+
+			let noteTimer;
+			async function saveNotes(area) {
+				const id = area.dataset.id;
+				const notes = area.value;
+				const saved = area.parentElement.querySelector(".note-saved");
+				try {
+					const res = await fetch("/admin/update", {
+						method: "POST",
+						headers: { "content-type": "application/json" },
+						body: JSON.stringify({ entity: "waitlist", id, notes }),
+					});
+					if (!res.ok) throw new Error("save failed");
+					if (saved) {
+						saved.style.opacity = "1";
+						clearTimeout(noteTimer);
+						noteTimer = setTimeout(() => (saved.style.opacity = "0"), 1500);
+					}
+				} catch (e) {
+					alert("Could not save note. Please try again.");
+				}
+			}
+
+			document.querySelectorAll(".stat-card").forEach((card) => {
+				card.addEventListener("click", () => setStatusFilter(card.dataset.status, card));
+			});
+
+			recomputeCounts();
+		</script>
+	</body>
+</html>

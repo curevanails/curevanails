@@ -4,6 +4,10 @@ import {
 	ensureApplicationsSchema,
 	isApplicationStatus,
 } from "../../utils/recruit-db";
+import {
+	ensureWaitlistSchema,
+	isWaitlistStatus,
+} from "../../utils/waitlist-db";
 
 // Server-rendered endpoint — never prerender. Gated by the admin auth in
 // src/middleware.ts (it lives under /admin).
@@ -17,13 +21,22 @@ function json(body: unknown, status = 200) {
 }
 
 /**
- * Updates the recruiter-managed fields on an application:
- *   POST /admin/update   { "id": "...", "status"?: "...", "notes"?: "..." }
+ * Updates the staff-managed fields (status, notes) on either a recruit
+ * application or a waitlist entry, selected by the optional `entity` field:
+ *
+ *   POST /admin/update
+ *     { "id": "...", "status"?: "...", "notes"?: "..." }                  // application (default)
+ *     { "entity": "waitlist", "id": "...", "status"?: "...", "notes"?: "..." }
  */
 export const POST: APIRoute = async ({ request }) => {
 	const db = env.DB as D1Database;
 
-	let body: { id?: unknown; status?: unknown; notes?: unknown };
+	let body: {
+		entity?: unknown;
+		id?: unknown;
+		status?: unknown;
+		notes?: unknown;
+	};
 	try {
 		body = await request.json();
 	} catch {
@@ -35,15 +48,20 @@ export const POST: APIRoute = async ({ request }) => {
 		return json({ ok: false, error: "id is required." }, 400);
 	}
 
-	await ensureApplicationsSchema(db);
+	const isWaitlist = body.entity === "waitlist";
+	const table = isWaitlist ? "waitlist" : "job_applications";
+	const validStatus = isWaitlist ? isWaitlistStatus : isApplicationStatus;
+
+	if (isWaitlist) await ensureWaitlistSchema(db);
+	else await ensureApplicationsSchema(db);
 
 	try {
 		if (body.status !== undefined) {
-			if (!isApplicationStatus(body.status)) {
+			if (!validStatus(body.status)) {
 				return json({ ok: false, error: "Invalid status." }, 400);
 			}
 			await db
-				.prepare("UPDATE job_applications SET status = ? WHERE id = ?")
+				.prepare(`UPDATE ${table} SET status = ? WHERE id = ?`)
 				.bind(body.status, id)
 				.run();
 		}
@@ -52,7 +70,7 @@ export const POST: APIRoute = async ({ request }) => {
 			const notes =
 				typeof body.notes === "string" ? body.notes.slice(0, 4000) : "";
 			await db
-				.prepare("UPDATE job_applications SET notes = ? WHERE id = ?")
+				.prepare(`UPDATE ${table} SET notes = ? WHERE id = ?`)
 				.bind(notes.length > 0 ? notes : null, id)
 				.run();
 		}
