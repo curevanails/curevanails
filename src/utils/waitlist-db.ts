@@ -11,6 +11,13 @@
  * nothing to add now and save an `ALTER TABLE` later.
  */
 
+import { nanoid } from "nanoid";
+
+/** A new unsubscribe token (URL-safe, unguessable) for a subscriber. */
+export function newUnsubscribeToken(): string {
+	return nanoid(32);
+}
+
 export const WAITLIST_STATUSES = ["waiting", "invited", "redeemed"] as const;
 
 export type WaitlistStatus = (typeof WAITLIST_STATUSES)[number];
@@ -33,7 +40,9 @@ CREATE TABLE IF NOT EXISTS waitlist (
   status        TEXT NOT NULL DEFAULT 'waiting',
   discount_code TEXT,
   claimed_at    TEXT,
-  notes         TEXT
+  notes         TEXT,
+  unsubscribe_token TEXT,
+  email_status  TEXT NOT NULL DEFAULT 'active'
 )`;
 
 const CREATE_EMAIL_INDEX = `
@@ -64,8 +73,27 @@ export async function ensureWaitlistSchema(db: D1Database): Promise<void> {
 	if (!columns.has("notes")) {
 		await db.prepare("ALTER TABLE waitlist ADD COLUMN notes TEXT").run();
 	}
+	if (!columns.has("unsubscribe_token")) {
+		await db.prepare("ALTER TABLE waitlist ADD COLUMN unsubscribe_token TEXT").run();
+	}
+	if (!columns.has("email_status")) {
+		await db
+			.prepare("ALTER TABLE waitlist ADD COLUMN email_status TEXT NOT NULL DEFAULT 'active'")
+			.run();
+	}
 
 	await db.prepare(CREATE_EMAIL_INDEX).run();
+
+	// Back-fill unsubscribe tokens for any rows created before the column existed.
+	const missing = await db
+		.prepare("SELECT id FROM waitlist WHERE unsubscribe_token IS NULL OR unsubscribe_token = ''")
+		.all<{ id: string }>();
+	for (const row of missing.results ?? []) {
+		await db
+			.prepare("UPDATE waitlist SET unsubscribe_token = ? WHERE id = ?")
+			.bind(newUnsubscribeToken(), row.id)
+			.run();
+	}
 }
 
 export function isWaitlistStatus(v: unknown): v is WaitlistStatus {

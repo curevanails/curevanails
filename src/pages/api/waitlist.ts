@@ -2,9 +2,11 @@ import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import {
 	ensureWaitlistSchema,
+	newUnsubscribeToken,
 	normalizeEmail,
 	normalizePhone,
 } from "../../utils/waitlist-db";
+import { rateLimit } from "../../utils/rate-limit";
 
 // Server-rendered endpoint — never prerender.
 export const prerender = false;
@@ -67,6 +69,17 @@ async function readFields(
 export const POST: APIRoute = async ({ request }) => {
 	const db = env.DB as D1Database;
 
+	// Rate-limit the public form by client IP (5 signups / 10 min / IP).
+	const ip = request.headers.get("CF-Connecting-IP") ?? "unknown";
+	const kv = (env as unknown as { SESSION?: KVNamespace }).SESSION;
+	const limit = await rateLimit(kv, `waitlist:${ip}`, 5, 600);
+	if (!limit.ok) {
+		return json(
+			{ ok: false, error: "Too many signups from this network. Please try again later." },
+			429,
+		);
+	}
+
 	let email: string;
 	let phone: string;
 	let source: string;
@@ -121,8 +134,8 @@ export const POST: APIRoute = async ({ request }) => {
 
 		await db
 			.prepare(
-				`INSERT INTO waitlist (id, created_at, email, phone, email_norm, phone_norm, source)
-				 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+				`INSERT INTO waitlist (id, created_at, email, phone, email_norm, phone_norm, source, unsubscribe_token)
+				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 			)
 			.bind(
 				crypto.randomUUID(),
@@ -132,6 +145,7 @@ export const POST: APIRoute = async ({ request }) => {
 				emailNorm,
 				phoneNorm,
 				cleanSource,
+				newUnsubscribeToken(),
 			)
 			.run();
 

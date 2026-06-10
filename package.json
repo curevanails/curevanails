@@ -21,13 +21,17 @@
   "dependencies": {
     "@astrojs/cloudflare": "^13.5.3",
     "@astrojs/react": "^5.0.0",
+    "@aws-sdk/client-sesv2": "^3.1064.0",
     "@emdash-cms/cloudflare": "^0.16.1",
     "@emdash-cms/plugin-forms": "^0.2.3",
     "@emdash-cms/plugin-webhook-notifier": "^0.2.0",
     "astro": "^6.3.0",
     "emdash": "^0.16.1",
+    "handlebars": "^4.7.9",
+    "nanoid": "^5.1.11",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@astrojs/check": "^0.9.7",
