@@ -166,9 +166,9 @@
 						class="hidden sm:block font-label-md text-label-md text-primary hover:text-primary-container transition-colors"
 						>Sign in</button
 					>
-					<button
+					<a
 						class="px-6 py-2.5 rounded-full bg-primary-container text-on-primary-container font-label-md text-label-md shadow-lg hover:scale-[1.02] active:scale-95 transition-all duration-300"
-						>Join the waitlist</button
+						href="#waitlist">Join the waitlist</a
 					>
 				</div>
 			</nav>
@@ -196,21 +196,52 @@
 						>
 							Premium nail &amp; beauty lounge. Zero Gravity experience. Opening September 2026.
 						</p>
-						<form class="flex flex-col sm:flex-row gap-3 max-w-md mx-auto md:mx-0">
+						<form
+							class="flex flex-col gap-3 max-w-md mx-auto md:mx-0"
+							data-waitlist-form
+							data-source="getready-hero"
+							novalidate
+						>
 							<input
-								class="flex-1 px-6 py-4 rounded-xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary-container text-on-surface font-body-md"
+								class="w-full px-6 py-4 rounded-xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary-container text-on-surface font-body-md"
+								name="email"
 								placeholder="Enter your email"
-								required
 								type="email"
+								autocomplete="email"
+								data-waitlist-field="email"
+							/>
+							<input
+								class="w-full px-6 py-4 rounded-xl bg-surface-container-low border-none focus:ring-2 focus:ring-primary-container text-on-surface font-body-md"
+								name="phone"
+								placeholder="Phone number"
+								type="tel"
+								autocomplete="tel"
+								data-waitlist-field="phone"
 							/>
 							<button
-								class="px-8 py-4 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-300"
+								class="px-8 py-4 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-xl hover:scale-[1.02] active:scale-95 transition-all duration-300 disabled:opacity-60 disabled:cursor-not-allowed"
 								type="submit"
 							>
 								Join the waitlist
 							</button>
+							<p
+								class="font-label-sm text-label-sm text-error hidden"
+								data-waitlist-error
+								role="alert"
+							>
+							</p>
 						</form>
-						<p class="mt-4 font-label-sm text-label-sm text-outline-variant">
+						<div
+							class="mt-4 hidden items-center gap-2 font-body-md text-body-md text-primary"
+							data-waitlist-success
+						>
+							<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span>
+							<span data-waitlist-success-text>You're on the list! We'll be in touch.</span>
+						</div>
+						<p
+							class="mt-4 font-label-sm text-label-sm text-outline-variant"
+							data-waitlist-tagline
+						>
 							Be the first to know when we open.
 						</p>
 					</div>
@@ -639,7 +670,7 @@
 				</div>
 			</section>
 			<!-- 9. Final CTA -->
-			<section class="py-section-padding px-margin-mobile md:px-margin-desktop">
+			<section class="py-section-padding px-margin-mobile md:px-margin-desktop" id="waitlist">
 				<div class="max-w-container-max mx-auto rounded-lg overflow-hidden relative">
 					<div class="absolute inset-0 bg-gradient-to-br from-[#A4D0DB] via-[#FCF0BE] to-[#A5D9BC] opacity-80"></div>
 					<div class="relative z-10 py-20 px-8 text-center backdrop-blur-sm">
@@ -647,20 +678,50 @@
 						<p class="font-body-lg text-body-lg text-on-primary-container mb-10 max-w-xl mx-auto">
 							Join 1,200+ individuals waiting for the CureVà experience. Priority booking opens soon.
 						</p>
-						<form class="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
-							<input
-								class="flex-1 px-6 py-4 rounded-xl bg-white/90 border-none focus:ring-2 focus:ring-primary text-on-surface font-body-md shadow-sm"
-								placeholder="Your best email"
-								required
-								type="email"
-							/>
+						<form
+							class="flex flex-col gap-3 max-w-lg mx-auto"
+							data-waitlist-form
+							data-source="getready-cta"
+							novalidate
+						>
+							<div class="flex flex-col sm:flex-row gap-3">
+								<input
+									class="flex-1 px-6 py-4 rounded-xl bg-white/90 border-none focus:ring-2 focus:ring-primary text-on-surface font-body-md shadow-sm"
+									name="email"
+									placeholder="Your best email"
+									type="email"
+									autocomplete="email"
+									data-waitlist-field="email"
+								/>
+								<input
+									class="flex-1 px-6 py-4 rounded-xl bg-white/90 border-none focus:ring-2 focus:ring-primary text-on-surface font-body-md shadow-sm"
+									name="phone"
+									placeholder="Phone number"
+									type="tel"
+									autocomplete="tel"
+									data-waitlist-field="phone"
+								/>
+							</div>
 							<button
-								class="px-8 py-4 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
+								class="px-8 py-4 rounded-full bg-primary text-on-primary font-label-md text-label-md shadow-lg hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
 								type="submit"
 							>
 								Secure your spot
 							</button>
+							<p
+								class="font-label-sm text-label-sm text-error hidden"
+								data-waitlist-error
+								role="alert"
+							>
+							</p>
 						</form>
+						<div
+							class="mt-6 hidden items-center justify-center gap-2 font-body-lg text-body-lg text-primary"
+							data-waitlist-success
+						>
+							<span class="material-symbols-outlined" data-icon="check_circle">check_circle</span>
+							<span data-waitlist-success-text>You're on the list! We'll be in touch.</span>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -745,6 +806,129 @@
 				section.classList.add('transition-all', 'duration-1000', 'opacity-0', 'translate-y-10');
 				observer.observe(section);
 			});
+		</script>
+		<!-- Waitlist capture: POST email + phone to /api/waitlist -->
+		<script is:inline>
+			(function () {
+				var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+				var PHONE_ALLOWED_RE = /^[\d\s()+.\-]+$/;
+
+				function digits(s) {
+					return (s || '').replace(/\D/g, '');
+				}
+
+				// Mirrors the server-side rules in src/pages/api/waitlist.ts.
+				function validate(email, phone) {
+					var errors = {};
+					if (!email) errors.email = 'Email address is required.';
+					else if (!EMAIL_RE.test(email)) errors.email = 'Enter a valid email address.';
+
+					if (!phone) errors.phone = 'Phone number is required.';
+					else if (/[A-Za-z]/.test(phone) || !PHONE_ALLOWED_RE.test(phone))
+						errors.phone = "Phone number can't contain letters.";
+					else if (digits(phone).length < 10 || digits(phone).length > 15)
+						errors.phone = 'Enter a valid phone number (at least 10 digits).';
+					return errors;
+				}
+
+				function markField(form, name, invalid) {
+					var field = form.querySelector('[data-waitlist-field="' + name + '"]');
+					if (!field) return;
+					if (invalid) field.classList.add('ring-2', 'ring-error');
+					else field.classList.remove('ring-2', 'ring-error');
+				}
+
+				function showError(form, msg) {
+					var box = form.querySelector('[data-waitlist-error]');
+					if (!box) return;
+					box.textContent = msg || '';
+					box.classList.toggle('hidden', !msg);
+				}
+
+				function showSuccess(form, alreadyJoined) {
+					var wrapper = form.parentElement;
+					var success = wrapper.querySelector('[data-waitlist-success]');
+					var tagline = wrapper.querySelector('[data-waitlist-tagline]');
+					form.classList.add('hidden');
+					if (tagline) tagline.classList.add('hidden');
+					if (success) {
+						var text = success.querySelector('[data-waitlist-success-text]');
+						if (text)
+							text.textContent = alreadyJoined
+								? "You're already on the list — we'll be in touch."
+								: "You're on the list! We'll be in touch.";
+						success.classList.remove('hidden');
+						success.classList.add('flex');
+					}
+				}
+
+				function wire(form) {
+					form.addEventListener('submit', function (e) {
+						e.preventDefault();
+						var emailEl = form.querySelector('[data-waitlist-field="email"]');
+						var phoneEl = form.querySelector('[data-waitlist-field="phone"]');
+						var email = emailEl ? emailEl.value.trim() : '';
+						var phone = phoneEl ? phoneEl.value.trim() : '';
+
+						var errors = validate(email, phone);
+						markField(form, 'email', !!errors.email);
+						markField(form, 'phone', !!errors.phone);
+						if (errors.email || errors.phone) {
+							showError(form, errors.email || errors.phone);
+							return;
+						}
+						showError(form, '');
+
+						var btn = form.querySelector('button[type="submit"]');
+						var label = btn ? btn.textContent : '';
+						if (btn) {
+							btn.disabled = true;
+							btn.textContent = 'Joining…';
+						}
+
+						fetch('/api/waitlist', {
+							method: 'POST',
+							headers: { 'content-type': 'application/json' },
+							body: JSON.stringify({
+								email: email,
+								phone: phone,
+								source: form.getAttribute('data-source') || 'getready',
+							}),
+						})
+							.then(function (res) {
+								return res.json().then(function (data) {
+									return { ok: res.ok, data: data };
+								});
+							})
+							.then(function (r) {
+								if (r.ok && r.data && r.data.ok) {
+									showSuccess(form, !!r.data.alreadyJoined);
+									return;
+								}
+								if (r.data && r.data.errors) {
+									markField(form, 'email', !!r.data.errors.email);
+									markField(form, 'phone', !!r.data.errors.phone);
+									showError(form, r.data.errors.email || r.data.errors.phone);
+								} else {
+									showError(form, (r.data && r.data.error) || 'Something went wrong. Please try again.');
+								}
+								if (btn) {
+									btn.disabled = false;
+									btn.textContent = label;
+								}
+							})
+							.catch(function () {
+								showError(form, 'Network error. Please try again.');
+								if (btn) {
+									btn.disabled = false;
+									btn.textContent = label;
+								}
+							});
+					});
+				}
+
+				document.querySelectorAll('[data-waitlist-form]').forEach(wire);
+			})();
 		</script>
 1	</body>
 </html>
