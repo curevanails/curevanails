@@ -63,7 +63,7 @@ if (Astro.request.method === "POST") {
 		<title>Sign in | CureVà Admin</title>
 		<script is:inline src="https://cdn.tailwindcss.com"></script>
 		<link
-			href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap"
 			rel="stylesheet"
 		/>
 		<link
@@ -75,9 +75,10 @@ if (Astro.request.method === "POST") {
 				font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 				vertical-align: middle;
 			}
-			input:focus {
-				box-shadow: 0 0 0 2px rgba(164, 208, 219, 0.4) !important;
-				border-color: #3a656e !important;
+			/* TailAdmin dotted-grid backdrop for the brand panel */
+			.ta-grid {
+				background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+				background-size: 22px 22px;
 			}
 		</style>
 		<script is:inline id="tailwind-config">
@@ -85,74 +86,131 @@ if (Astro.request.method === "POST") {
 				theme: {
 					extend: {
 						colors: {
-							primary: "#3a656e",
-							"primary-container": "#a4d0db",
-							background: "#f0fbff",
-							"surface-container": "#dff1f7",
-							"on-surface": "#0d1e22",
-							"on-surface-variant": "#41484a",
-							"on-primary": "#ffffff",
-							"outline-variant": "#c0c8ca",
+							brand: {
+								25: "#f2f7ff",
+								50: "#ecf3ff",
+								100: "#dde9ff",
+								200: "#c2d6ff",
+								300: "#9cb9ff",
+								400: "#7592ff",
+								500: "#465fff",
+								600: "#3641f5",
+								700: "#2a31d8",
+								800: "#252dae",
+								900: "#262e89",
+								950: "#161950",
+							},
 						},
-						fontFamily: { sans: ["DM Sans", "sans-serif"] },
+						fontFamily: { sans: ["Outfit", "sans-serif"] },
+						boxShadow: {
+							"theme-xs": "0 1px 2px 0 rgba(16,24,40,0.05)",
+						},
 					},
 				},
 			};
 		</script>
 	</head>
-	<body class="bg-background text-on-surface font-sans min-h-screen flex items-center justify-center px-4">
-		<main class="w-full max-w-sm">
-			<div class="bg-white rounded-2xl shadow-[0_20px_40px_0_rgba(164,208,219,0.25)] border border-outline-variant/60 overflow-hidden">
-				<div class="bg-primary text-on-primary px-8 py-7 text-center">
-					<div class="w-12 h-12 rounded-full bg-on-primary/15 flex items-center justify-center mx-auto mb-3">
-						<span class="material-symbols-outlined text-2xl">lock</span>
-					</div>
-					<h1 class="text-xl font-bold tracking-tight">CureVà Admin</h1>
-					<p class="text-sm opacity-80">Recruit dashboard sign-in</p>
-				</div>
-
-				<form method="POST" class="px-8 py-7 space-y-5" novalidate>
-					{error && (
-						<div class="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 text-red-800 px-3 py-2.5 text-sm">
-							<span class="material-symbols-outlined text-base">error</span>
-							Incorrect username or password.
+	<body class="bg-white font-sans text-gray-800 antialiased">
+		<div class="relative flex min-h-screen w-full flex-col justify-center sm:p-0 lg:flex-row">
+			<!-- Form column -->
+			<div class="flex w-full flex-1 flex-col px-4 py-10 sm:px-6 lg:w-1/2">
+				<div class="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
+					<div class="mb-8">
+						<div class="mb-6 flex items-center gap-3">
+							<div class="grid h-11 w-11 place-items-center rounded-xl bg-brand-500 text-lg font-bold text-white">C</div>
+							<div>
+								<p class="text-base font-semibold text-gray-800 leading-none">CureVà Admin</p>
+								<p class="mt-1 text-sm text-gray-500">Recruit dashboard</p>
+							</div>
 						</div>
-					)}
+						<h1 class="mb-2 text-2xl font-semibold text-gray-800 sm:text-3xl">Sign in</h1>
+						<p class="text-sm text-gray-500">Enter your username and password to access the dashboard.</p>
+					</div>
 
-					<label class="block">
-						<span class="text-xs uppercase tracking-wider text-on-surface-variant font-medium">Username</span>
-						<input
-							name="username"
-							type="text"
-							autocomplete="username"
-							value="admin"
-							required
-							class="mt-1.5 w-full rounded-lg border border-outline-variant bg-background px-3.5 py-2.5 text-sm outline-none transition"
-						/>
-					</label>
+					<form method="POST" class="space-y-5" novalidate>
+						{error && (
+							<div class="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+								<span class="material-symbols-outlined text-base">error</span>
+								Incorrect username or password.
+							</div>
+						)}
 
-					<label class="block">
-						<span class="text-xs uppercase tracking-wider text-on-surface-variant font-medium">Password</span>
-						<input
-							name="password"
-							type="password"
-							autocomplete="current-password"
-							required
-							autofocus
-							class="mt-1.5 w-full rounded-lg border border-outline-variant bg-background px-3.5 py-2.5 text-sm outline-none transition"
-						/>
-					</label>
+						<div>
+							<label class="mb-1.5 block text-sm font-medium text-gray-700">
+								Username <span class="text-brand-500">*</span>
+							</label>
+							<input
+								name="username"
+								type="text"
+								autocomplete="username"
+								value="admin"
+								required
+								placeholder="admin"
+								class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 shadow-theme-xs transition placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
+							/>
+						</div>
 
-					<button
-						type="submit"
-						class="w-full rounded-full bg-primary text-on-primary py-3 text-sm font-semibold hover:opacity-90 active:scale-[0.99] transition flex items-center justify-center gap-2"
-					>
-						<span class="material-symbols-outlined text-base">login</span>
-						Sign in
-					</button>
-				</form>
+						<div>
+							<label class="mb-1.5 block text-sm font-medium text-gray-700">
+								Password <span class="text-brand-500">*</span>
+							</label>
+							<div class="relative">
+								<input
+									id="password"
+									name="password"
+									type="password"
+									autocomplete="current-password"
+									required
+									autofocus
+									placeholder="Enter your password"
+									class="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 pr-11 text-sm text-gray-800 shadow-theme-xs transition placeholder:text-gray-400 focus:border-brand-300 focus:outline-none focus:ring-3 focus:ring-brand-500/10"
+								/>
+								<button
+									type="button"
+									id="toggle-pw"
+									aria-label="Toggle password visibility"
+									class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600"
+								>
+									<span class="material-symbols-outlined text-xl">visibility</span>
+								</button>
+							</div>
+						</div>
+
+						<button
+							type="submit"
+							class="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white shadow-theme-xs transition hover:bg-brand-600 active:scale-[0.99]"
+						>
+							<span class="material-symbols-outlined text-base">login</span>
+							Sign in
+						</button>
+					</form>
+
+					<p class="mt-8 text-center text-xs text-gray-400">CureVà Beauty Lounge · Staff only</p>
+				</div>
 			</div>
-			<p class="text-center text-xs text-on-surface-variant/70 mt-5">CureVà Beauty Lounge · Staff only</p>
-		</main>
+
+			<!-- Brand panel -->
+			<div class="relative hidden w-full items-center justify-center bg-brand-950 lg:flex lg:w-1/2">
+				<div class="ta-grid absolute inset-0"></div>
+				<div class="relative z-10 flex max-w-sm flex-col items-center text-center">
+					<div class="mb-6 grid h-20 w-20 place-items-center rounded-2xl bg-white/10 text-4xl font-bold text-white backdrop-blur">C</div>
+					<p class="text-2xl font-semibold text-white">CureVà Beauty Lounge</p>
+					<p class="mt-3 text-sm leading-relaxed text-white/60">
+						Review nail-technician applications, manage your hiring pipeline, and reach out to candidates — all in one place.
+					</p>
+				</div>
+			</div>
+		</div>
+
+		<script is:inline>
+			document.getElementById("toggle-pw")?.addEventListener("click", () => {
+				const input = document.getElementById("password");
+				const icon = document.querySelector("#toggle-pw .material-symbols-outlined");
+				if (!input) return;
+				const hidden = input.type === "password";
+				input.type = hidden ? "text" : "password";
+				if (icon) icon.textContent = hidden ? "visibility_off" : "visibility";
+			});
+		</script>
 	</body>
 </html>
