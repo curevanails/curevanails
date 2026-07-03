@@ -1,0 +1,535 @@
+---
+// CureVà Waiting-List landing page — "Enhance What's Already Beautiful."
+// The warm "Gallacher Collective" holding page: sticky nav, hero, a walnut
+// waiting-list band (the form is wired to POST /api/waitlist), the CureVà
+// Difference (three numbered cards), a careers band, and the walnut footer.
+// Served at /waitlist.
+//
+// Like coming-soon.astro / early-access.astro it deliberately does NOT use
+// Base.astro: it renders its own <html>/<head>, inlines the curva.css warm
+// design system + a page-scoped landing layer, and inlines its interactions.
+// The blog/CMS routes keep their own theme.
+export const prerender = false;
+
+const IMG = "https://lh3.googleusercontent.com/aida-public/";
+// Placeholder interior / material photos (shared with the sibling warm pages).
+// Swap for real assets when available; they map to the prompt's asset names:
+const INTERIOR_IMG =
+	IMG +
+	"AB6AXuAA_pTTZJjEtqMiDXWYt1JEyX2ZJbOGI16l2ptaLnYflA8SYFiw4jDq4KCcn6TCLhiYB9Shya4OEeonU1r_YkXQjbsUbJHPbrJsnC5py0QOCE9uKbLMFFmZoNIQ7spCZNZOU6-xf94L4YpE703AuSQqllxw-sgf8Sv9nrJhSNKE3j9QedDpR_vdsnWJVPw6HberHspnbquDLXnfbEoL6y8_4luLYCOt0ApoEIl6jRO4iPdquHTuPwAq_QdjRWDyK9KRXvWpV6HmwVJB"; // interior-calm — hero + difference 01
+const GREENERY_IMG =
+	IMG +
+	"AB6AXuBJHAatf0yVxdsp60tbmzyRq2_kgm8SlwmwJshZGXqwhUFmtoGmYdu0_WS-Dxib3qrhvzf10meZJhwO_ed_0FAiQVLL5i4JWJbAX-VAGaffn_ws8RHKm2phci8QR9oi_tYyCbtsY3BoJuIrHM5HhPL6l6mSIHvMsHL0S6FW8tJNy4HX_2yDc6SWANQ-Ww6owt9_S_Ge_RTGMjEW3B5Mm55AyON3FVdM3bkBSUuabwtv6qBdNLstwxk39aWcn09PYJ7lLZV5aYb3rNKS"; // greenery — waitlist band + difference 03
+const PLASTER_IMG =
+	IMG +
+	"AB6AXuBCTDlbr0Nk0wb8n8El7PrV-q0DyWX-46CyzufeBFkxzeMcFZSxmZnMKz_7uPOBYe7kvVV19jAabkwpQ4YCuj2zv2fCK9lPCohEnAR1oX8mtSAIxvFrhWCLcn1xbg2HKL0zqaxmlvY2iRrgZBkf4dH_Wx4JEVfZgrFF7qECiTY1V_K-7lk9czpqU-9pOgFWbr_pp54m4j5oe7Gl6H5E8IwXY15jZ96Pg5s-jt-ufoGpmvHv_dc1piW2EttjJ2mWvIxfnEY154uAvnVy"; // tex-plaster — difference 02
+const CASHWRAP_IMG =
+	IMG +
+	"AB6AXuAxJiY72wN8WuKIbWTXMZrl_tNIApCfFLbqJMh73Az7kFOdLBhINt3FFFHwoKzcgeWi7OelzbkiU9CuSgB_zrkOAO0N3lGi-1URd_Kjnr1bhWy03udL8xvCnnmhjJ35EXmB3GPq2Z_gE5ygIImHxTFvtirPN8pzitn0Fd-papoZlrarUm8z50q0b066wjXg37dH_aUgHsKGVVokEQ-SCv5wh8ZNV3poJhshWMnYrdqRzQoyiqxekzygt4919amxMd7lRyoPAnuyh4xD"; // vision-cashwrap — careers band
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CureVà — Enhance What's Already Beautiful</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+	rel="stylesheet"
+	href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap"
+/>
+
+<style is:inline>
+/* ============================================================
+   CureVà — shared design system (WARM INTERIOR MOOD)
+   Mood: The Gallacher Collective vision — plaster · travertine
+   walnut · oak · linen · greenery.
+   ============================================================ */
+:root{
+  --primary:#C8A97B;        /* oak — dominant warm tint */
+  --primary-700:#B08E5E;    /* deep oak — hover */
+  --primary-100:#F0E7D6;    /* oak wash */
+  --accent:#EAD9AE;         /* warm straw / cream */
+  --accent-700:#D9C089;
+  --accent-100:#F6EFDC;
+  --neutral:#B7BE97;        /* soft sage */
+  --neutral-700:#7C8060;
+  --neutral-100:#E7EBD6;
+
+  --walnut:#5B4632;         /* walnut — strong CTAs, footer */
+  --walnut-700:#4a3826;
+  --plaster:#EFE9DE;
+  --sage-deep:#5E6247;
+
+  --ink:#2B2419;            /* warm near-black text */
+  --muted:#7C7160;          /* muted warm grey-brown */
+  --line:#E1D8C8;           /* warm hairline */
+
+  --bg:#F6F1E8;             /* oat page bg */
+  --bg-tint:#EFE9DE;        /* plaster */
+
+  --r-lg:22px;
+  --r-md:16px;
+  --r-sm:12px;
+  --r-pill:999px;
+
+  --sh-sm:0 6px 20px -12px rgba(43,36,25,.26);
+  --sh-md:0 18px 40px -18px rgba(43,36,25,.30);
+  --sh-lg:0 40px 90px -34px rgba(43,36,25,.40);
+
+  --maxw:1200px;
+  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  --sans:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'DM Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  margin:0;font-family:var(--sans);color:var(--ink);background:var(--bg);
+  font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+}
+img{max-width:100%;display:block;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;}
+::selection{background:#C8A97B;color:#fff;}
+
+h1,h2,h3,h4{margin:0;font-family:var(--serif);line-height:1.08;letter-spacing:-.01em;font-weight:500;text-wrap:balance;}
+h1{font-size:clamp(44px,5.4vw,80px);font-weight:400;}
+h2{font-size:clamp(32px,3.6vw,50px);font-weight:400;}
+h3{font-size:25px;font-weight:500;}
+.serif-i{font-style:italic;}
+p{margin:0;text-wrap:pretty;}
+.muted{color:var(--muted);}
+
+/* Layout */
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 40px;}
+.section{padding:100px 0;}
+.section.tight{padding:66px 0;}
+.eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:var(--mono);font-size:12.5px;font-weight:500;letter-spacing:.2em;text-transform:uppercase;color:var(--sage-deep);}
+.eyebrow::before{content:"";width:22px;height:1px;border-radius:2px;background:var(--sage-deep);opacity:.7;}
+.center{text-align:center;}
+.center .eyebrow::before{display:none;}
+.lede{font-size:19px;color:#5f5646;max-width:60ch;}
+.center .lede{margin-left:auto;margin-right:auto;}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:var(--r-pill);padding:14px 28px;font-size:15.5px;font-weight:600;border:1.5px solid transparent;transition:transform .18s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, color .2s ease;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--walnut);color:#F6F1E8;box-shadow:var(--sh-sm);}
+.btn-primary:hover{background:var(--walnut-700);box-shadow:var(--sh-md);}
+.btn-outline{background:transparent;color:var(--ink);border-color:#CBBFA9;}
+.btn-outline:hover{border-color:var(--walnut);background:#00000006;}
+.btn-ghost{background:var(--bg);color:var(--ink);border-color:var(--line);}
+.btn-ghost:hover{border-color:var(--walnut);}
+.btn-sm{padding:10px 18px;font-size:14.5px;}
+.btn-lg{padding:17px 34px;font-size:16.5px;}
+.btn .play{width:22px;height:22px;border-radius:50%;background:var(--walnut);display:inline-flex;align-items:center;justify-content:center;}
+.btn .play::after{content:"";border-left:7px solid var(--accent);border-top:5px solid transparent;border-bottom:5px solid transparent;margin-left:2px;}
+
+/* Pills / badges */
+.badge{display:inline-flex;align-items:center;gap:7px;padding:7px 14px;border-radius:var(--r-pill);font-size:13px;font-weight:600;letter-spacing:.02em;background:var(--accent);color:var(--ink);white-space:nowrap;}
+.badge.blue{background:var(--primary);}
+.badge.mint{background:var(--neutral);}
+.badge.soft{background:#fff;border:1px solid var(--line);color:var(--muted);}
+
+/* Nav */
+.nav{position:sticky;top:0;z-index:50;background:rgba(246,241,232,.84);backdrop-filter:saturate(130%) blur(12px);border-bottom:1px solid var(--line);}
+.nav-inner{display:flex;align-items:center;gap:32px;height:76px;}
+.brand{display:flex;align-items:center;gap:12px;font-family:var(--serif);font-weight:500;font-size:24px;letter-spacing:.01em;}
+.brand .mark{width:30px;height:30px;border-radius:50% 50% 50% 7px;background:radial-gradient(120% 120% at 35% 25%, var(--primary) 0%, var(--walnut) 100%);box-shadow:inset 0 0 0 3px rgba(255,255,255,.35);transform:rotate(-8deg);}
+.nav-links{display:flex;gap:28px;margin-left:14px;}
+.nav-links a{font-size:15px;font-weight:500;color:var(--ink);opacity:.78;transition:opacity .15s;white-space:nowrap;}
+.nav-links a:hover{opacity:1;}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:18px;}
+.nav-signin{font-size:15px;font-weight:600;white-space:nowrap;}
+
+/* Cards */
+.card{background:#fff;border:1px solid var(--line);border-radius:var(--r-lg);padding:30px;box-shadow:var(--sh-sm);transition:transform .2s ease, box-shadow .2s ease;}
+.card.hover:hover{transform:translateY(-4px);box-shadow:var(--sh-md);}
+
+/* Grid helpers */
+.grid{display:grid;gap:26px;}
+.g3{grid-template-columns:repeat(3,1fr);}
+.g2{grid-template-columns:repeat(2,1fr);}
+.g4{grid-template-columns:repeat(4,1fr);}
+
+/* Placeholder media */
+.ph{position:relative;overflow:hidden;border-radius:var(--r-md);background:repeating-linear-gradient(135deg, rgba(43,36,25,.05) 0 12px, rgba(43,36,25,0) 12px 24px),var(--neutral-100);display:flex;align-items:center;justify-content:center;min-height:160px;color:var(--muted);}
+.ph .tag{font-family:var(--mono);font-size:12px;letter-spacing:.02em;background:rgba(246,241,232,.86);padding:7px 12px;border-radius:var(--r-pill);border:1px solid rgba(43,36,25,.09);color:#6a5f4d;}
+
+/* Blobs */
+.blobs{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none;}
+.blob{position:absolute;border-radius:50%;filter:blur(64px);opacity:.4;}
+.blob.b1{width:520px;height:520px;background:var(--primary);}
+.blob.b2{width:440px;height:440px;background:var(--neutral);}
+.blob.b3{width:380px;height:380px;background:var(--accent);}
+
+/* Forms */
+.input{flex:1;min-width:0;border:1.5px solid var(--line);background:#fff;border-radius:var(--r-pill);padding:14px 20px;font-size:16px;color:var(--ink);transition:border-color .15s, box-shadow .15s;}
+.input::placeholder{color:#a99e88;}
+.input:focus{outline:none;border-color:var(--walnut);box-shadow:0 0 0 4px rgba(91,70,50,.1);}
+.input.err{border-color:#C4795E;box-shadow:0 0 0 4px rgba(176,122,91,.14);}
+.form-note{font-size:13.5px;color:var(--muted);margin-top:10px;}
+.form-msg{font-size:14.5px;font-weight:600;margin-top:12px;min-height:1.2em;}
+.form-msg.ok{color:var(--sage-deep);}
+.form-msg.bad{color:#B0664C;}
+
+/* Footer */
+.footer{background:var(--walnut);color:#e6dccb;padding:76px 0 38px;}
+.footer .brand{color:#f4ede0;}
+.footer .brand .mark{box-shadow:inset 0 0 0 3px rgba(255,255,255,.2);}
+.footer .muted{color:#cabb9f;}
+.foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:40px;}
+.foot-col h4{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.16em;color:#c3b299;margin-bottom:16px;font-weight:500;}
+.foot-col a{display:block;font-size:15px;color:#d8ccb7;padding:5px 0;opacity:.85;transition:opacity .15s,color .15s;}
+.foot-col a:hover{opacity:1;color:#fff;}
+.foot-bottom{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:54px;padding-top:26px;border-top:1px solid rgba(255,255,255,.14);font-size:14px;color:#bcac93;}
+.socials{display:flex;gap:10px;}
+.soc{width:40px;height:40px;border-radius:50%;border:1px solid rgba(255,255,255,.2);background:transparent;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+.soc:hover{background:var(--primary);border-color:var(--primary);transform:translateY(-2px);}
+.soc svg{width:18px;height:18px;}
+
+@media (max-width:1040px){
+  .g3,.g4{grid-template-columns:repeat(2,1fr);}
+  .foot-grid{grid-template-columns:1fr 1fr;}
+}
+@media (max-width:720px){
+  .wrap{padding:0 22px;}
+  .g2,.g3,.g4{grid-template-columns:1fr;}
+  .nav-links{display:none;}
+}
+</style>
+
+<style is:inline>
+  /* alias: shared curva tokens define --bg (oat); local rules use --oat */
+  :root{--oat:#F6F1E8;}
+  /* ---- Landing-specific layout (warm mood) ---- */
+
+  /* Hero: text left, tall framed interior right */
+  .lp-hero{position:relative;overflow:hidden;padding:64px 0 90px;}
+  .lp-hero .blobs .blob{opacity:.30;}
+  .lp-hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.05fr .95fr;gap:60px;align-items:center;}
+  .lp-hero h1{font-size:clamp(42px,4.6vw,66px);line-height:1.1;margin:22px 0 0;}
+  .lp-hero h1 .serif-i{color:var(--sage-deep);}
+  .lp-hero .open-line{font-family:var(--serif);font-size:clamp(20px,2vw,27px);color:#5f5646;margin-top:22px;font-style:italic;}
+  .lp-hero .sub{font-size:18px;color:#5f5646;max-width:44ch;margin-top:18px;line-height:1.6;}
+  .lp-hero-cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:32px;}
+
+  .lp-shot{position:relative;height:560px;border-radius:26px;overflow:hidden;box-shadow:var(--sh-lg);background:var(--plaster) center/cover;}
+  .lp-shot::after{content:"";position:absolute;inset:0;background:linear-gradient(200deg,transparent 55%,rgba(43,36,25,.30));}
+  .lp-shot .stamp{position:absolute;left:24px;bottom:24px;z-index:1;display:flex;align-items:center;gap:11px;background:rgba(246,241,232,.92);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:16px;padding:12px 16px;box-shadow:var(--sh-md);}
+  .lp-shot .stamp .d{width:9px;height:9px;border-radius:50%;background:var(--neutral-700);}
+  .lp-shot .stamp b{font-size:14px;font-weight:600;}
+  .lp-shot .stamp span{font-size:13px;color:var(--muted);white-space:nowrap;}
+  .lp-shot .stamp div{white-space:nowrap;}
+
+  /* Waiting list — strong focal band */
+  .wl{position:relative;overflow:hidden;border-radius:32px;background:var(--walnut);color:#f1e7d7;display:grid;grid-template-columns:1.1fr .9fr;box-shadow:var(--sh-lg);}
+  .wl-body{padding:60px;}
+  .wl-body .eyebrow{color:#cdbfa0;}
+  .wl-body .eyebrow::before{background:#cdbfa0;}
+  .wl h2{color:#f6efe2;margin:16px 0 14px;}
+  .wl .intro{color:#e0d3bd;font-size:18px;max-width:44ch;line-height:1.55;}
+  .wl-benes{list-style:none;padding:0;margin:26px 0 0;display:flex;flex-direction:column;gap:14px;}
+  .wl-benes li{display:flex;gap:13px;align-items:flex-start;font-size:16.5px;color:#f0e6d5;}
+  .wl-benes li .ck{flex:none;width:24px;height:24px;border-radius:50%;background:rgba(199,169,123,.24);display:flex;align-items:center;justify-content:center;margin-top:1px;}
+  .wl-benes li .ck svg{width:14px;height:14px;}
+  .wl-media{position:relative;background:var(--sage-deep) center/cover;display:flex;align-items:center;justify-content:center;padding:40px;}
+  .wl-media::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--walnut) 0%,rgba(91,70,50,.2) 40%,transparent);}
+
+  /* form card floating on the media side */
+  .wl-form-wrap{position:relative;z-index:1;width:min(360px,100%);background:var(--oat);border-radius:22px;padding:30px;box-shadow:var(--sh-lg);border:1px solid var(--line);}
+  .wl-form-wrap h3{font-size:22px;margin-bottom:6px;}
+  .wl-form-wrap p{font-size:14px;color:var(--muted);margin-bottom:18px;}
+  .wl-form-wrap .input{width:100%;border-radius:14px;margin-bottom:12px;}
+  .wl-form-wrap .btn{width:100%;}
+  .wl-form-wrap .form-msg{margin-top:10px;}
+  .wl-count{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);font-family:var(--mono);font-size:12px;letter-spacing:.03em;color:var(--muted);line-height:1.5;}
+  .wl-count b{color:var(--sage-deep);}
+
+  /* Difference — numbered editorial cards */
+  .diff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;}
+  .diff{position:relative;display:flex;flex-direction:column;padding:0;overflow:hidden;}
+  .diff .diff-top{height:170px;position:relative;display:flex;align-items:flex-end;padding:20px;}
+  .diff .diff-ico{width:58px;height:58px;border-radius:16px;background:var(--oat);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;box-shadow:var(--sh-sm);}
+  .diff .diff-ico svg{width:28px;height:28px;}
+  .diff .diff-in{padding:28px 30px 32px;}
+  .diff .num{font-family:var(--mono);font-size:12px;letter-spacing:.16em;color:var(--sage-deep);}
+  .diff h3{font-size:23px;line-height:1.16;margin:10px 0 12px;min-height:2.32em;}
+  .diff p{color:#5f5646;font-size:15.5px;}
+
+  /* Careers band */
+  .careers{position:relative;overflow:hidden;border-radius:30px;min-height:360px;display:flex;align-items:center;background:var(--walnut) center/cover;box-shadow:var(--sh-lg);}
+  .careers::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(43,36,25,.82) 0%,rgba(43,36,25,.5) 50%,rgba(43,36,25,.25));}
+  .careers-body{position:relative;z-index:1;padding:56px;max-width:560px;color:#f1e7d7;}
+  .careers-body h2{color:#f6efe2;}
+  .careers-body p{color:#e0d3bd;font-size:17px;margin:14px 0 26px;max-width:42ch;}
+  .careers-body .btnrow{display:flex;gap:14px;flex-wrap:wrap;}
+
+  @media (max-width:900px){
+    .lp-hero-grid{grid-template-columns:1fr;gap:36px;}
+    .lp-shot{height:400px;}
+    .wl{grid-template-columns:1fr;}
+    .wl-media{min-height:340px;}
+    .diff-grid{grid-template-columns:1fr;}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== NAV ===================== -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/waitlist"><span class="mark"></span>CureVà</a>
+    <nav class="nav-links">
+      <a href="#difference">The Difference</a>
+      <a href="#waitlist">Waiting List</a>
+      <a href="/recruit">Careers</a>
+    </nav>
+    <div class="nav-right">
+      <a class="nav-signin" href="/early-access">Preview site</a>
+      <a class="btn btn-primary btn-sm" href="#waitlist">Reserve my spot</a>
+    </div>
+  </div>
+</header>
+
+<!-- ===================== HERO ===================== -->
+<section class="lp-hero">
+  <div class="blobs">
+    <span class="blob b1" style="top:-130px;left:-70px;"></span>
+    <span class="blob b3" style="bottom:-150px;left:30%;"></span>
+    <span class="blob b2" style="top:80px;right:-60px;"></span>
+  </div>
+  <div class="wrap lp-hero-grid">
+    <div>
+      <span class="badge mint">Opening December 2026 · Legacy Village</span>
+      <h1>Enhance What's <span class="serif-i">Already Beautiful.</span></h1>
+      <p class="open-line">Opening December 2026 at Legacy Village.</p>
+      <p class="sub">A private, gender-inclusive nail &amp; beauty lounge built around stillness — and the signature Zero-Gravity experience.</p>
+      <div class="lp-hero-cta">
+        <a class="btn btn-primary btn-lg" href="#waitlist">Join the waiting list</a>
+        <a class="btn btn-outline btn-lg" href="#difference">The CureVà difference</a>
+      </div>
+    </div>
+    <div>
+      <div class="lp-shot" style={`background-image:url('${INTERIOR_IMG}');`}>
+        <div class="stamp"><span class="d"></span><div><b>CureVà</b> <span>· Legacy Village</span></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== WAITING LIST ===================== -->
+<section class="section" id="waitlist" style="padding-top:0;">
+  <div class="wrap">
+    <div class="wl">
+      <div class="wl-body">
+        <span class="eyebrow">Join the Waiting List</span>
+        <h2>Be first through the door</h2>
+        <p class="intro">Be among the first to experience CureVà. The first 100 subscribers will receive:</p>
+        <ul class="wl-benes">
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#EAD9AE" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Priority booking before appointments open to the public</li>
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#EAD9AE" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Founding Member benefits</li>
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#EAD9AE" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Preferred pricing on memberships and services</li>
+          <li><span class="ck"><svg viewBox="0 0 24 24" fill="none" stroke="#EAD9AE" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></span>Access to our pre-opening booking event</li>
+        </ul>
+      </div>
+      <div class="wl-media" style={`background-image:url('${GREENERY_IMG}');`}>
+        <form class="wl-form-wrap js-waitlist" novalidate>
+          <h3>Reserve your spot</h3>
+          <p>Founding-member access, before anyone else.</p>
+          <input class="input" type="email" name="email" placeholder="Enter your email address" aria-label="Email address" autocomplete="email" />
+          <input class="input" type="tel" name="phone" placeholder="Phone number" aria-label="Phone number" autocomplete="tel" />
+          <button class="btn btn-primary" type="submit">Reserve My Spot</button>
+          <p class="form-msg js-msg" role="status"></p>
+          <div class="wl-count">Only the first <b>100</b> subscribers get founding perks</div>
+        </form>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== THE DIFFERENCE ===================== -->
+<section class="section" id="difference" style="padding-top:0;">
+  <div class="wrap">
+    <div class="center" style="margin-bottom:46px;">
+      <span class="eyebrow">Why CureVà</span>
+      <h2 style="margin-top:16px;">The CureVà Difference</h2>
+    </div>
+    <div class="diff-grid">
+      <div class="card hover diff">
+        <div class="diff-top tex" style={`background:url('${INTERIOR_IMG}') center/cover;`}>
+          <div class="diff-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#5B4632" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a4 4 0 0 1 4-4h2l3-5"></path><path d="M4 14h8l4 5"></path><path d="M16 19h4"></path><path d="M5 14v5"></path></svg></div>
+        </div>
+        <div class="diff-in">
+          <span class="num">01</span>
+          <h3>Zero-Gravity Comfort</h3>
+          <p>Leave the traditional salon chair behind. Relax in an ergonomic zero-gravity chair designed to support your body while you enjoy your service.</p>
+        </div>
+      </div>
+      <div class="card hover diff">
+        <div class="diff-top tex" style={`background:url('${PLASTER_IMG}') center/cover;`}>
+          <div class="diff-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#5B4632" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c4 1.5 6 4 6 8 0 5-3 8-6 10-3-2-6-5-6-10 0-4 2-6.5 6-8Z"></path><line x1="4" y1="20" x2="20" y2="4"></line></svg></div>
+        </div>
+        <div class="diff-in">
+          <span class="num">02</span>
+          <h3>Waterless by Design</h3>
+          <p>No shared soaking basins. Our waterless approach is cleaner, more hygienic, and better for long-term nail health.</p>
+        </div>
+      </div>
+      <div class="card hover diff">
+        <div class="diff-top tex" style={`background:url('${GREENERY_IMG}') center/cover;`}>
+          <div class="diff-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#5B4632" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg></div>
+        </div>
+        <div class="diff-in">
+          <span class="num">03</span>
+          <h3>Beauty That Fits Your Schedule</h3>
+          <p>Enjoy multiple services during the same appointment — from nail care and facials to lash lifts and more — so you can make the most of your time.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== CAREERS ===================== -->
+<section class="section" style="padding-top:0;">
+  <div class="wrap">
+    <div class="careers" style={`background-image:url('${CASHWRAP_IMG}');`}>
+      <div class="careers-body">
+        <span class="eyebrow" style="color:#cdbfa0;">Careers at CureVà</span>
+        <h2 style="margin-top:16px;">Why Grow With Us?</h2>
+        <p>We're building the founding team of a calmer kind of beauty lounge. Fair pay, a humane pace, and a real say in how we do things — for nail artists, estheticians, and hosts of every gender.</p>
+        <div class="btnrow">
+          <a class="btn btn-primary btn-lg" href="/recruit" style="background:#f6efe2;color:var(--ink);">Join Our Talent List</a>
+          <a class="btn btn-outline btn-lg" href="/recruit" style="color:#f1e7d7;border-color:rgba(255,255,255,.4);">See open roles</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-col">
+        <a class="brand" href="/waitlist" style="font-size:24px;"><span class="mark"></span>CureVà</a>
+        <p class="muted" style="margin:16px 0 0;max-width:34ch;font-size:15px;">Enhance what's already beautiful. Opening December 2026 at Legacy Village.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Explore</h4>
+        <a href="#difference">The Difference</a><a href="#waitlist">Waiting List</a><a href="/early-access">Preview site</a>
+      </div>
+      <div class="foot-col">
+        <h4>Join us</h4>
+        <a href="/recruit">Careers</a><a href="/recruit">Talent List</a><a href="#waitlist">Reserve my spot</a>
+      </div>
+      <div class="foot-col">
+        <h4>Contact</h4>
+        <a href="mailto:hello@cureva.co">hello@cureva.co</a><a href="mailto:careers@cureva.co">careers@cureva.co</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 CureVà · Opening December 2026 · Legacy Village</span>
+      <div class="socials">
+        <a class="soc" href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="#e6dccb" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1" fill="#e6dccb" stroke="none"></circle></svg></a>
+        <a class="soc" href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="#e6dccb"><path d="M16 3c.3 2.2 1.7 3.9 4 4.2v3c-1.5 0-2.9-.4-4-1.1V15a6 6 0 1 1-6-6c.3 0 .7 0 1 .1v3.1a3 3 0 1 0 2 2.8V3h3Z"></path></svg></a>
+        <a class="soc" href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="#e6dccb"><path d="M14 8h2V5h-2c-1.7 0-3 1.3-3 3v2H9v3h2v6h3v-6h2.2l.8-3H14V8.5c0-.3.2-.5.5-.5H14Z"></path></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script is:inline>
+  // Waitlist form — client-side validation + POST to /api/waitlist (the same
+  // D1-backed endpoint the getready splash uses). The endpoint requires both
+  // email and phone; success is {ok:true, alreadyJoined}, failure is
+  // {ok:false, errors|error}.
+  (function () {
+    'use strict';
+    function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || '').trim()); }
+    function digits(v) { return (v || '').replace(/\D/g, ''); }
+
+    document.querySelectorAll('.js-waitlist').forEach(function (form) {
+      var email = form.querySelector('input[type="email"]');
+      var phone = form.querySelector('input[type="tel"]');
+      var msg = form.querySelector('.js-msg') || form.parentElement.querySelector('.js-msg');
+      var btn = form.querySelector('button[type="submit"], .btn');
+      var origLabel = btn ? btn.textContent : '';
+
+      function setMsg(text, kind) {
+        if (!msg) return;
+        msg.textContent = text;
+        msg.className = 'form-msg js-msg' + (kind ? ' ' + kind : '');
+      }
+      function restore() {
+        if (btn) { btn.textContent = origLabel; btn.disabled = false; }
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var emailVal = email ? email.value.trim() : '';
+        var phoneVal = phone ? phone.value.trim() : '';
+
+        if (!isEmail(emailVal)) {
+          if (email) { email.classList.add('err'); email.focus(); }
+          setMsg('Please enter a valid email address.', 'bad');
+          return;
+        }
+        if (digits(phoneVal).length < 10) {
+          if (phone) { phone.classList.add('err'); phone.focus(); }
+          setMsg('Please enter a valid phone number (at least 10 digits).', 'bad');
+          return;
+        }
+        if (email) email.classList.remove('err');
+        if (phone) phone.classList.remove('err');
+
+        if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
+        setMsg('', '');
+
+        fetch('/api/waitlist', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ email: emailVal, phone: phoneVal, source: 'waitlist-landing' })
+        }).then(function (res) {
+          return res.json().catch(function () { return {}; }).then(function (data) {
+            return { status: res.status, data: data || {} };
+          });
+        }).then(function (r) {
+          var data = r.data;
+          if (r.status >= 200 && r.status < 300 && data.ok) {
+            setMsg(data.alreadyJoined
+              ? "You're already on the list — see you at opening."
+              : "You're on the list — welcome to CureVà. We'll be in touch soon.", 'ok');
+            form.reset();
+            if (btn) {
+              btn.textContent = 'Added ✓';
+              setTimeout(function () { restore(); }, 2600);
+            }
+            return;
+          }
+          var errText = data.error;
+          if (!errText && data.errors) errText = data.errors.email || data.errors.phone;
+          if (data.errors) {
+            if (data.errors.email && email) email.classList.add('err');
+            if (data.errors.phone && phone) phone.classList.add('err');
+          }
+          setMsg(errText || 'Something went wrong. Please try again.', 'bad');
+          restore();
+        }).catch(function () {
+          setMsg('Network error — please try again.', 'bad');
+          restore();
+        });
+      });
+
+      [email, phone].forEach(function (el) {
+        if (el) el.addEventListener('input', function () { el.classList.remove('err'); });
+      });
+    });
+  })();
+</script>
+</body>
+</html>

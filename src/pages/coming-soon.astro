@@ -1,0 +1,192 @@
+---
+// CureVà "Coming Soon" splash — the site's public holding page.
+// The root (/) redirects here. Primary CTA → /recruit (join the founding team);
+// secondary CTA → /early-access (the full homepage layout / "waitlist").
+// Standalone document (no Base.astro): renders its own <html>/<head> with the
+// curva.css warm design system inlined + a page-scoped split-layout style.
+export const prerender = false;
+
+const IMG = "https://lh3.googleusercontent.com/aida-public/";
+const INTERIOR_IMG = IMG + "AB6AXuAA_pTTZJjEtqMiDXWYt1JEyX2ZJbOGI16l2ptaLnYflA8SYFiw4jDq4KCcn6TCLhiYB9Shya4OEeonU1r_YkXQjbsUbJHPbrJsnC5py0QOCE9uKbLMFFmZoNIQ7spCZNZOU6-xf94L4YpE703AuSQqllxw-sgf8Sv9nrJhSNKE3j9QedDpR_vdsnWJVPw6HberHspnbquDLXnfbEoL6y8_4luLYCOt0ApoEIl6jRO4iPdquHTuPwAq_QdjRWDyK9KRXvWpV6HmwVJB";
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CureVà — Coming Soon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+	rel="stylesheet"
+	href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap"
+/>
+
+<style is:inline>
+/* ============================================================
+   CureVà — shared design system (WARM INTERIOR MOOD)
+   ============================================================ */
+:root{
+  --primary:#C8A97B;--primary-700:#B08E5E;--primary-100:#F0E7D6;
+  --accent:#EAD9AE;--accent-700:#D9C089;--accent-100:#F6EFDC;
+  --neutral:#B7BE97;--neutral-700:#7C8060;--neutral-100:#E7EBD6;
+  --walnut:#5B4632;--walnut-700:#4a3826;--plaster:#EFE9DE;--sage-deep:#5E6247;
+  --ink:#2B2419;--muted:#7C7160;--line:#E1D8C8;--bg:#F6F1E8;--bg-tint:#EFE9DE;
+  --r-lg:22px;--r-md:16px;--r-sm:12px;--r-pill:999px;
+  --sh-sm:0 6px 20px -12px rgba(43,36,25,.26);
+  --sh-md:0 18px 40px -18px rgba(43,36,25,.30);
+  --sh-lg:0 40px 90px -34px rgba(43,36,25,.40);
+  --serif:'Newsreader',Georgia,'Times New Roman',serif;
+  --sans:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'DM Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--bg);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
+img{max-width:100%;display:block;}
+a{color:inherit;text-decoration:none;}
+button{font-family:inherit;cursor:pointer;}
+::selection{background:#C8A97B;color:#fff;}
+h1,h2,h3,h4{margin:0;font-family:var(--serif);line-height:1.08;letter-spacing:-.01em;font-weight:500;text-wrap:balance;}
+.serif-i{font-style:italic;}
+p{margin:0;text-wrap:pretty;}
+.muted{color:var(--muted);}
+
+/* Buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:var(--r-pill);padding:14px 28px;font-size:15.5px;font-weight:600;border:1.5px solid transparent;transition:transform .18s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, color .2s ease;white-space:nowrap;}
+.btn:active{transform:translateY(1px);}
+.btn-primary{background:var(--walnut);color:#F6F1E8;box-shadow:var(--sh-sm);}
+.btn-primary:hover{background:var(--walnut-700);box-shadow:var(--sh-md);}
+.btn-outline{background:transparent;color:var(--ink);border-color:#CBBFA9;}
+.btn-outline:hover{border-color:var(--walnut);background:#00000006;}
+.btn-lg{padding:17px 34px;font-size:16.5px;}
+
+/* Logo mark */
+.brand .mark{width:30px;height:30px;border-radius:50% 50% 50% 7px;background:radial-gradient(120% 120% at 35% 25%, var(--primary) 0%, var(--walnut) 100%);box-shadow:inset 0 0 0 3px rgba(255,255,255,.35);transform:rotate(-8deg);}
+
+/* Blobs */
+.blobs{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none;}
+.blob{position:absolute;border-radius:50%;filter:blur(64px);opacity:.4;}
+.blob.b1{width:520px;height:520px;background:var(--primary);}
+.blob.b3{width:380px;height:380px;background:var(--accent);}
+</style>
+
+<style is:inline>
+  /* ---- Coming Soon split layout ---- */
+  html,body{height:100%;}
+  body{overflow:hidden;}
+  .cs{position:relative;min-height:100vh;display:grid;grid-template-columns:1.02fr .98fr;}
+  @media (max-width:900px){.cs{grid-template-columns:1fr;} .cs-media{display:none;} body{overflow:auto;}}
+
+  .cs-left{position:relative;display:flex;flex-direction:column;padding:46px 64px;overflow:hidden;}
+  .cs-left .blobs .blob{opacity:.32;}
+  .cs-brand{display:flex;align-items:center;gap:12px;font-family:var(--serif);font-size:25px;font-weight:500;position:relative;z-index:1;}
+  .cs-body{position:relative;z-index:1;margin:auto 0;max-width:560px;}
+  .cs-kicker{display:inline-flex;align-items:center;gap:10px;padding:9px 16px;border-radius:var(--r-pill);background:var(--plaster);border:1px solid var(--line);font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sage-deep);}
+  .cs-kicker .pulse{width:8px;height:8px;border-radius:50%;background:var(--neutral-700);position:relative;}
+  .cs-kicker .pulse::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1.5px solid var(--neutral-700);opacity:.5;animation:ping 2.4s ease-out infinite;}
+  @keyframes ping{0%{transform:scale(.6);opacity:.6}100%{transform:scale(1.6);opacity:0}}
+  @media (prefers-reduced-motion:reduce){.cs-kicker .pulse::after{animation:none;}}
+
+  .cs-h1{font-family:var(--serif);font-weight:400;font-size:clamp(46px,5.6vw,80px);line-height:1.02;letter-spacing:-.01em;margin:26px 0 0;}
+  .cs-h1 .serif-i{color:var(--sage-deep);}
+  .cs-sub{font-size:19px;color:#5f5646;max-width:46ch;margin-top:22px;line-height:1.6;}
+
+  .count{display:flex;gap:14px;margin-top:34px;}
+  .count .u{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 0;width:78px;text-align:center;box-shadow:var(--sh-sm);}
+  .count .u .v{font-family:var(--serif);font-size:34px;line-height:1;color:var(--ink);}
+  .count .u .k{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:7px;}
+
+  .cs-cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:38px;align-items:center;}
+  .cs-note{font-size:14px;color:var(--muted);margin-top:22px;}
+
+  .cs-foot{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:auto;padding-top:26px;}
+  .cs-foot .socials{display:flex;gap:10px;}
+  .cs-foot .soc{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+  .cs-foot .soc:hover{background:var(--primary);border-color:var(--primary);transform:translateY(-2px);}
+  .cs-foot .soc svg{width:17px;height:17px;}
+  .cs-foot span{font-size:13.5px;color:var(--muted);}
+
+  .cs-media{position:relative;background:var(--plaster) center/cover;}
+  .cs-media::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,transparent 22%),linear-gradient(200deg,transparent 50%,rgba(43,36,25,.34));}
+  .cs-chip{position:absolute;bottom:40px;right:40px;z-index:2;display:flex;align-items:center;gap:14px;background:rgba(246,241,232,.92);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:20px;padding:16px 20px;box-shadow:var(--sh-md);}
+  .cs-chip .ci{width:44px;height:44px;border-radius:12px;background:var(--neutral-100);display:flex;align-items:center;justify-content:center;flex:none;}
+  .cs-chip .ci svg{width:24px;height:24px;}
+  .cs-chip .ct{font-weight:600;font-size:15px;}
+  .cs-chip .cs2{font-size:13px;color:var(--muted);}
+</style>
+</head>
+<body>
+<main class="cs">
+
+  <!-- LEFT -->
+  <section class="cs-left">
+    <div class="blobs">
+      <span class="blob b1" style="top:-140px;left:-90px;"></span>
+      <span class="blob b3" style="bottom:-160px;left:20%;"></span>
+    </div>
+
+    <a class="cs-brand brand" href="/early-access"><span class="mark"></span>CureVà</a>
+
+    <div class="cs-body">
+      <span class="cs-kicker"><span class="pulse"></span>Opening December 2026</span>
+      <h1 class="cs-h1">Something calm is <span class="serif-i">coming.</span></h1>
+      <p class="cs-sub">A private, gender-inclusive nail &amp; beauty lounge built around stillness — plaster, walnut, real greenery, and the signature Zero Gravity ritual. We're building the founding team now.</p>
+
+      <div class="count" id="count" aria-label="Countdown to opening">
+        <div class="u"><div class="v" data-d>—</div><div class="k">Days</div></div>
+        <div class="u"><div class="v" data-h>—</div><div class="k">Hours</div></div>
+        <div class="u"><div class="v" data-m>—</div><div class="k">Minutes</div></div>
+        <div class="u"><div class="v" data-s>—</div><div class="k">Seconds</div></div>
+      </div>
+
+      <div class="cs-cta">
+        <a class="btn btn-primary btn-lg" href="/recruit">Join the founding team <span aria-hidden="true">→</span></a>
+        <a class="btn btn-outline btn-lg" href="/early-access">Join the waitlist</a>
+      </div>
+      <p class="cs-note">Now hiring nail artists, estheticians &amp; hosts — every role open to all genders.</p>
+    </div>
+
+    <div class="cs-foot">
+      <span>© 2026 CureVà · The Gallacher Collective</span>
+      <div class="socials">
+        <a class="soc" href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="#7C7160" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#7C7160" stroke="none"/></svg></a>
+        <a class="soc" href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="#7C7160"><path d="M16 3c.3 2.2 1.7 3.9 4 4.2v3c-1.5 0-2.9-.4-4-1.1V15a6 6 0 1 1-6-6c.3 0 .7 0 1 .1v3.1a3 3 0 1 0 2 2.8V3h3Z"/></svg></a>
+        <a class="soc" href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="#7C7160"><path d="M14 8h2V5h-2c-1.7 0-3 1.3-3 3v2H9v3h2v6h3v-6h2.2l.8-3H14V8.5c0-.3.2-.5.5-.5H14Z"/></svg></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT -->
+  <aside class="cs-media" style={`background-image:url('${INTERIOR_IMG}');`}>
+    <div class="cs-chip">
+      <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a4 4 0 0 1 4-4h2l3-5"/><path d="M4 14h8l4 5"/><path d="M16 19h4"/><path d="M5 14v5"/></svg></span>
+      <div><div class="ct">5 Zero Gravity chairs</div><div class="cs2">A calmer kind of lounge</div></div>
+    </div>
+  </aside>
+
+</main>
+
+<script is:inline>
+  // Countdown to opening — Dec 1, 2026
+  (function () {
+    var target = new Date('2026-12-01T09:00:00').getTime();
+    var elD = document.querySelector('[data-d]'), elH = document.querySelector('[data-h]'),
+        elM = document.querySelector('[data-m]'), elS = document.querySelector('[data-s]');
+    if (!elD) return;
+    function pad(n){ return String(n).padStart(2,'0'); }
+    function tick() {
+      var diff = target - Date.now();
+      if (diff < 0) diff = 0;
+      var d = Math.floor(diff / 86400000);
+      var h = Math.floor(diff % 86400000 / 3600000);
+      var m = Math.floor(diff % 3600000 / 60000);
+      var s = Math.floor(diff % 60000 / 1000);
+      elD.textContent = d; elH.textContent = pad(h); elM.textContent = pad(m); elS.textContent = pad(s);
+    }
+    tick(); setInterval(tick, 1000);
+  })();
+</script>
+</body>
+</html>
