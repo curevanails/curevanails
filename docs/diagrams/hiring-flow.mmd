@@ -1,0 +1,27 @@
+sequenceDiagram
+    autonumber
+    participant U as Browser (Applicant)
+    participant F as recruit.astro<br/>client JS
+    participant API as /api/recruit.ts<br/>(CF Worker)
+    participant R2 as R2 bucket MEDIA
+    participant D1 as D1 job_applications
+
+    U->>F: Fill form + attach files
+    F->>F: validate() client-side
+    Note over F: preventDefault if invalid
+    F->>API: POST multipart/form-data (fetch)
+    API->>API: Re-validate ALL fields<br/>(Set whitelist + regex + size <=10MB)
+    alt Validation fails
+        API-->>F: 400 { ok:false, errors }
+        F->>U: Highlight error fields
+    else Valid
+        API->>API: id = crypto.randomUUID()
+        API->>R2: put recruit/{id}/resume
+        API->>R2: put recruit/{id}/license
+        R2-->>API: { key, filename }
+        API->>D1: ensureApplicationsSchema()
+        API->>D1: INSERT job_applications
+        D1-->>API: OK
+        API-->>F: 200 { ok:true, id }
+        F->>U: Show success panel
+    end

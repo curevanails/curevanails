@@ -1,0 +1,21 @@
+sequenceDiagram
+    autonumber
+    participant B as Browser
+    participant Page as index.astro (CureVa)
+    participant MJS as booking.mangomint.com/app.js
+    participant MAPI as Mangomint SaaS<br/>(CompanyId 463532)
+
+    B->>Page: GET / (landing page)
+    Page-->>B: HTML + window.Mangomint.CompanyId=463532
+    Page->>MJS: load app.js (async, non-blocking)
+    MJS->>MJS: Scan DOM for booking.mangomint.com links
+    MJS-->>B: Attach handler -> turn links into popup triggers
+
+    B->>MJS: Click "Book now"
+    alt app.js loaded
+        MJS->>MAPI: Open popup iframe (in-page overlay)
+        MAPI-->>B: Booking UI (services / time)
+    else app.js not loaded yet
+        Note over B: No JS hijack -> fallback to href
+        B->>MAPI: GET booking.mangomint.com/463532 (full page)
+    end
