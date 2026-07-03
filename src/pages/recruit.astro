@@ -1,767 +1,394 @@
+---
+import RecruitHead from "../components/recruit/RecruitHead.astro";
+
+// Standalone marketing "Careers" landing page for CureVà. It does NOT use
+// Base.astro — it renders its own document with the warm "Gallacher
+// Collective" recruit theme (see RecruitHead.astro).
+//
+// Pre-launch strategy: this page collects a lightweight *talent list* (the
+// #apply form below is client-side-only — it validates and confirms but does
+// not persist). The full, database-backed application still lives at
+// /recruit/apply; it is intentionally unlinked from here for now.
+export const prerender = false;
+
+// Real interior photo for the hero band. Interior/material shots for the
+// mosaic and gallery aren't taken yet, so those tiles use labeled `.ph`
+// placeholders (drop JPGs into public/assets/ and swap `.ph` → `.tex`).
+const HERO_IMG =
+	"https://lh3.googleusercontent.com/aida-public/AB6AXuBjl1Zj1hdgTj8rTRs94Koj_TvqoMKEb9Om1bk0BgbUVOqg7ylwc0vAU4Q7aTnAt6lV1Mb0MihUKkGpEaddcRUBv6OSQsqZpt8zUpZddEL_-ez7phvS7XdkQm8uT1b98A8O0Lm7s8mHJKe9ljIkwrmMFlb0gtwVlOE26C1rgCYClojK8ZTWeiZzx5klWsSeni3k8b75w5Yd6vahSqdBMZoW4bvqFjfCVf0gKsGcQrGVKqJ3S66_SHNYxjpBrHkOekXd4dd-FnYza2pp";
+---
+
 <!DOCTYPE html>
-<html class="light" lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta content="width=device-width, initial-scale=1.0" name="viewport" />
-		<title>Join the Team | CureVà Premium Nail Lounge</title>
-		<script is:inline src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-		<link
-			href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&display=swap"
-			rel="stylesheet"
-		/>
-		<link
-			href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
-			rel="stylesheet"
-		/>
-		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
-		<style is:inline>
-			/* ---- flatpickr themed to the CureVà teal palette ---- */
-			.flatpickr-calendar { font-family: "DM Sans", sans-serif; border-radius: 16px; border: 1px solid #c0c8ca; box-shadow: 0 16px 40px rgba(58,101,110,0.22); padding-bottom: 4px; }
-			.flatpickr-months .flatpickr-month, .flatpickr-current-month, .flatpickr-current-month .flatpickr-monthDropdown-months { color: #0d1e22; font-weight: 600; }
-			.flatpickr-weekday { color: #41484a; font-weight: 600; }
-			.flatpickr-day { border-radius: 10px; color: #0d1e22; }
-			.flatpickr-day:hover, .flatpickr-day:focus { background: #dff1f7; border-color: #dff1f7; }
-			.flatpickr-day.today { border-color: #3a656e; }
-			.flatpickr-day.selected, .flatpickr-day.selected:hover { background: #3a656e; border-color: #3a656e; color: #fff; box-shadow: none; }
-			.flatpickr-day.flatpickr-disabled, .flatpickr-day.prevMonthDay, .flatpickr-day.nextMonthDay { color: #b0bcbf; }
-			.flatpickr-months .flatpickr-prev-month:hover svg, .flatpickr-months .flatpickr-next-month:hover svg { fill: #3a656e; }
-			.fp-cal {
-				background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%233a656e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2' ry='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
-				background-repeat: no-repeat;
-				background-position: right 16px center;
-				padding-right: 44px !important;
-				cursor: pointer;
-			}
-			.material-symbols-outlined {
-				font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
-				vertical-align: middle;
-			}
-			.clay-shadow {
-				box-shadow: 0 20px 40px 0 rgba(164, 208, 219, 0.15);
-			}
-			.organic-blob {
-				border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
-			}
-			input:focus, select:focus, textarea:focus {
-				box-shadow: 0 0 0 2px rgba(164, 208, 219, 0.4) !important;
-				border-color: #3a656e !important;
-			}
-			.drag-active {
-				border-color: #3a656e !important;
-				background-color: #dff1f7 !important;
-			}
-			.field-error {
-				border: 2px solid #ba1a1a !important;
-			}
-			.error-msg {
-				color: #ba1a1a;
-				font-size: 12px;
-				margin-top: 4px;
-			}
-		</style>
-		<script is:inline id="tailwind-config">
-			tailwind.config = {
-				darkMode: "class",
-				theme: {
-					extend: {
-						"colors": {
-							"surface-dim": "#cbdde3",
-							"inverse-surface": "#233337",
-							"primary-fixed": "#bdeaf5",
-							"on-tertiary-fixed": "#002113",
-							"secondary": "#665f38",
-							"on-tertiary-fixed-variant": "#1e4f3a",
-							"on-error-container": "#93000a",
-							"tertiary-fixed-dim": "#9ed2b5",
-							"inverse-on-surface": "#e2f4fa",
-							"surface-variant": "#d3e6eb",
-							"outline": "#71787a",
-							"secondary-container": "#ece0af",
-							"secondary-fixed-dim": "#d2c798",
-							"outline-variant": "#c0c8ca",
-							"surface-container-low": "#e4f7fd",
-							"surface": "#f0fbff",
-							"error-container": "#ffdad6",
-							"on-tertiary-container": "#2c5d46",
-							"on-surface-variant": "#41484a",
-							"on-error": "#ffffff",
-							"surface-container-highest": "#d3e6eb",
-							"primary-container": "#a4d0db",
-							"tertiary": "#376850",
-							"surface-container-high": "#d9ebf1",
-							"on-primary-fixed-variant": "#204d56",
-							"on-primary-fixed": "#001f25",
-							"on-secondary-fixed": "#211b00",
-							"primary": "#3a656e",
-							"on-secondary-container": "#6b633c",
-							"primary-fixed-dim": "#a2ced9",
-							"secondary-fixed": "#eee3b2",
-							"background": "#f0fbff",
-							"tertiary-container": "#a0d4b7",
-							"error": "#ba1a1a",
-							"inverse-primary": "#a2ced9",
-							"surface-tint": "#3a656e",
-							"on-primary-container": "#2f5a64",
-							"tertiary-fixed": "#baeed0",
-							"surface-bright": "#f0fbff",
-							"on-secondary-fixed-variant": "#4e4722",
-							"surface-container-lowest": "#ffffff",
-							"on-primary": "#ffffff",
-							"on-surface": "#0d1e22",
-							"surface-container": "#dff1f7",
-							"on-secondary": "#ffffff",
-							"on-tertiary": "#ffffff",
-							"on-background": "#0d1e22"
-						},
-						"borderRadius": {
-							"DEFAULT": "1rem",
-							"lg": "2rem",
-							"xl": "3rem",
-							"full": "9999px"
-						},
-						"spacing": {
-							"gutter": "24px",
-							"container-max": "1200px",
-							"margin-mobile": "20px",
-							"section-padding": "80px",
-							"base": "8px",
-							"margin-desktop": "64px"
-						},
-						"fontFamily": {
-							"display-lg-mobile": ["DM Sans"],
-							"display-lg": ["DM Sans"],
-							"headline-lg": ["DM Sans"],
-							"label-sm": ["DM Sans"],
-							"label-md": ["DM Sans"],
-							"body-lg": ["DM Sans"],
-							"headline-md": ["DM Sans"],
-							"body-md": ["DM Sans"]
-						},
-						"fontSize": {
-							"display-lg-mobile": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-							"display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
-							"headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "500"}],
-							"label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
-							"label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.01em", "fontWeight": "500"}],
-							"body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
-							"headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "500"}],
-							"body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
-						}
-					},
-				},
-			}
-		</script>
-	</head>
-	<body class="bg-background text-on-surface font-body-md overflow-x-hidden">
-		<!-- TopNavBar -->
-		<nav class="fixed top-0 w-full z-50 bg-surface/80 backdrop-blur-md shadow-[0_10px_40px_0_rgba(164,208,219,0.08)]">
-			<div class="flex justify-between items-center px-margin-mobile md:px-margin-desktop h-20 w-full max-w-container-max mx-auto">
-				<a class="font-display-lg text-display-lg-mobile md:text-display-lg tracking-tight text-primary" href="/">CureVà</a>
-				<div class="hidden md:flex gap-8 items-center">
-					<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="/#services">Services</a>
-					<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="/#membership">Lounge</a>
-					<a class="font-label-md text-label-md text-primary font-bold border-b-2 border-primary pb-1" href="/recruit">Careers</a>
-					<a class="font-label-md text-label-md text-on-surface-variant hover:text-primary transition-colors" href="/">Book Now</a>
-					<button class="bg-primary text-on-primary px-6 py-2.5 rounded-full font-label-md hover:scale-[1.02] transition-transform active:scale-95 shadow-md" onclick="document.getElementById('application-form').scrollIntoView({behavior: 'smooth'})">Join the Team</button>
-				</div>
-				<button class="md:hidden text-primary" onclick="document.getElementById('application-form').scrollIntoView({behavior: 'smooth'})">
-					<span class="material-symbols-outlined">menu</span>
-				</button>
-			</div>
-		</nav>
-		<main class="pt-20">
-			<!-- Section 1: Hero -->
-			<section class="relative overflow-hidden py-section-padding md:py-32">
-				<div class="absolute -top-24 -right-24 w-96 h-96 bg-primary-container/20 organic-blob blur-3xl -z-10"></div>
-				<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop grid grid-cols-1 md:grid-cols-2 gap-gutter items-center">
-					<div class="order-2 md:order-1 space-y-6">
-						<h1 class="font-display-lg text-display-lg-mobile md:text-display-lg text-primary max-w-lg leading-tight">
-							Join Our Growing Team in Utah!
-						</h1>
-						<p class="font-body-lg text-body-lg text-on-surface-variant max-w-md">
-							Experience a supportive work environment with competitive pay and flexible scheduling at our premium lounge.
-						</p>
-						<button class="bg-primary text-on-primary px-10 py-4 rounded-full font-label-md hover:scale-[1.02] transition-all clay-shadow flex items-center gap-2 group" onclick="document.getElementById('application-form').scrollIntoView({behavior: 'smooth'})">
-							Apply Now
-							<span class="material-symbols-outlined transition-transform group-hover:translate-x-1">arrow_forward</span>
-						</button>
-					</div>
-					<div class="order-1 md:order-2 relative">
-						<div class="absolute -bottom-6 -left-6 w-full h-full border-2 border-primary-container rounded-lg -z-10"></div>
-						<img alt="CureVà Spa Interior" class="w-full h-[400px] md:h-[500px] object-cover rounded-lg shadow-xl" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjl1Zj1hdgTj8rTRs94Koj_TvqoMKEb9Om1bk0BgbUVOqg7ylwc0vAU4Q7aTnAt6lV1Mb0MihUKkGpEaddcRUBv6OSQsqZpt8zUpZddEL_-ez7phvS7XdkQm8uT1b98A8O0Lm7s8mHJKe9ljIkwrmMFlb0gtwVlOE26C1rgCYClojK8ZTWeiZzx5klWsSeni3k8b75w5Yd6vahSqdBMZoW4bvqFjfCVf0gKsGcQrGVKqJ3S66_SHNYxjpBrHkOekXd4dd-FnYza2pp" />
-					</div>
-				</div>
-			</section>
-			<!-- Section 2: Why Join Us -->
-			<section class="bg-surface-container-low py-section-padding">
-				<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
-					<div class="text-center mb-16">
-						<h2 class="font-headline-lg text-headline-lg text-primary mb-4">Why CureVà?</h2>
-						<p class="text-on-surface-variant max-w-xl mx-auto">We believe that happy technicians lead to happy clients. Join a culture that values your craft and your time.</p>
-					</div>
-					<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-gutter">
-						<div class="bg-white p-8 rounded-lg clay-shadow text-center space-y-4 hover:translate-y-[-4px] transition-transform">
-							<div class="w-16 h-16 bg-primary-container/20 rounded-full flex items-center justify-center mx-auto text-primary">
-								<span class="material-symbols-outlined text-4xl">payments</span>
-							</div>
-							<h3 class="font-headline-md text-headline-md text-primary">Competitive Pay &amp; Tips</h3>
-							<p class="text-on-surface-variant font-body-md">Enjoy a guaranteed base rate plus high commission on services and retail.</p>
-						</div>
-						<div class="bg-white p-8 rounded-lg clay-shadow text-center space-y-4 hover:translate-y-[-4px] transition-transform">
-							<div class="w-16 h-16 bg-tertiary-container/20 rounded-full flex items-center justify-center mx-auto text-tertiary">
-								<span class="material-symbols-outlined text-4xl">calendar_month</span>
-							</div>
-							<h3 class="font-headline-md text-headline-md text-tertiary">Flexible Scheduling</h3>
-							<p class="text-on-surface-variant font-body-md">Choose your path with flexible full-time and part-time shift options.</p>
-						</div>
-						<div class="bg-white p-8 rounded-lg clay-shadow text-center space-y-4 hover:translate-y-[-4px] transition-transform">
-							<div class="w-16 h-16 bg-secondary-container/30 rounded-full flex items-center justify-center mx-auto text-on-secondary-container">
-								<span class="material-symbols-outlined text-4xl">spa</span>
-							</div>
-							<h3 class="font-headline-md text-headline-md text-on-secondary-container">Modern Environment</h3>
-							<p class="text-on-surface-variant font-body-md">Work in a clean, toxic-free, and high-end design environment.</p>
-						</div>
-						<div class="bg-white p-8 rounded-lg clay-shadow text-center space-y-4 hover:translate-y-[-4px] transition-transform">
-							<div class="w-16 h-16 bg-primary-container/20 rounded-full flex items-center justify-center mx-auto text-primary">
-								<span class="material-symbols-outlined text-4xl">group</span>
-							</div>
-							<h3 class="font-headline-md text-headline-md text-primary">Loyal Clientele</h3>
-							<p class="text-on-surface-variant font-body-md">Steady income through high walk-in traffic and regular membership clients.</p>
-						</div>
-					</div>
-				</div>
-			</section>
-			<!-- Section 3: Application Form -->
-			<section class="py-section-padding relative" id="application-form">
-				<div class="absolute bottom-0 left-0 w-80 h-80 bg-secondary-container/20 organic-blob blur-3xl -z-10"></div>
-				<div class="max-w-4xl mx-auto px-margin-mobile">
-					<div class="bg-white rounded-lg clay-shadow overflow-hidden">
-						<div class="bg-primary p-8 text-on-primary">
-							<h2 class="font-headline-lg text-headline-lg">Career Application</h2>
-							<p class="opacity-90 mt-1">Tell us about your passion for nail care.</p>
-						</div>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CureVà — Careers · Nail Technicians &amp; Estheticians</title>
+<RecruitHead />
+</head>
+<body>
 
-						<!-- Success panel (hidden until submission succeeds) -->
-						<div id="success-panel" class="hidden p-12 text-center space-y-4">
-							<div class="w-20 h-20 bg-tertiary-container/30 rounded-full flex items-center justify-center mx-auto text-tertiary">
-								<span class="material-symbols-outlined text-5xl">check_circle</span>
-							</div>
-							<h3 class="font-headline-lg text-headline-lg text-primary">Application Received!</h3>
-							<p class="text-on-surface-variant max-w-md mx-auto">
-								Thank you for applying to CureVà. Our hiring team will review your application and reach out
-								if there's a great fit. Keep an eye on your inbox.
-							</p>
-							<a href="/" class="inline-block mt-4 text-primary font-bold hover:underline">Back to home</a>
-						</div>
+<!-- ===================== NAV ===================== -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/"><span class="mark"></span>CureVà</a>
+    <nav class="nav-links">
+      <a href="#space">The space</a>
+      <a href="#values">Our craft</a>
+      <a href="#roles">Open roles</a>
+      <a href="#life">Life here</a>
+    </nav>
+    <div class="nav-right">
+      <a class="nav-signin" href="/">Visit the site</a>
+      <a class="btn btn-primary btn-sm" href="#apply">Join talent list</a>
+    </div>
+  </div>
+</header>
 
-						<form id="recruit-form" action="/api/recruit" method="POST" enctype="multipart/form-data" class="p-8 space-y-12" novalidate>
-							<!-- Block 3.1: Personal Info -->
-							<div class="space-y-6">
-								<h3 class="font-headline-md text-primary flex items-center gap-2">
-									<span class="material-symbols-outlined">person</span>
-									Personal Information
-								</h3>
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-									<div class="space-y-1">
-										<label class="font-label-md text-on-surface-variant" for="full_name">Full Name *</label>
-										<input id="full_name" name="full_name" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" placeholder="Jane Doe" type="text" />
-									</div>
-									<div class="space-y-1">
-										<label class="font-label-md text-on-surface-variant" for="phone">Phone Number *</label>
-										<input id="phone" name="phone" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" placeholder="(801) 000-0000" type="tel" />
-									</div>
-									<div class="space-y-1">
-										<label class="font-label-md text-on-surface-variant" for="email">Email Address *</label>
-										<input id="email" name="email" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" placeholder="jane@example.com" type="email" />
-									</div>
-									<div class="space-y-1">
-										<label class="font-label-md text-on-surface-variant" for="city">City of Residence *</label>
-										<input id="city" name="city" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" placeholder="Salt Lake City" type="text" />
-									</div>
-								</div>
-							</div>
-							<!-- Block 3.2: Licensing -->
-							<div class="space-y-6">
-								<h3 class="font-headline-md text-primary flex items-center gap-2">
-									<span class="material-symbols-outlined">verified</span>
-									Professional Licensing
-								</h3>
-								<div class="space-y-4" data-group="license_types">
-									<p class="font-label-md text-on-surface-variant">License Type * <span class="text-on-surface-variant/60 font-normal">(select at least one)</span></p>
-									<div class="flex flex-wrap gap-4">
-										<label class="flex items-center gap-3 bg-surface-container px-4 py-3 rounded-lg cursor-pointer">
-											<input class="rounded text-primary focus:ring-primary h-5 w-5" type="checkbox" name="license_types" value="nail_tech" />
-											<span class="font-body-md">Active Utah Nail Tech</span>
-										</label>
-										<label class="flex items-center gap-3 bg-surface-container px-4 py-3 rounded-lg cursor-pointer">
-											<input class="rounded text-primary focus:ring-primary h-5 w-5" type="checkbox" name="license_types" value="cosmetologist_barber" />
-											<span class="font-body-md">Active Cosmetologist / Barber</span>
-										</label>
-										<label class="flex items-center gap-3 bg-surface-container px-4 py-3 rounded-lg cursor-pointer">
-											<input class="rounded text-primary focus:ring-primary h-5 w-5" type="checkbox" name="license_types" value="other" />
-											<span class="font-body-md">Other (Apprentice / Out-of-state)</span>
-										</label>
-									</div>
-								</div>
-								<div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-									<div class="space-y-1">
-										<label class="font-label-md text-on-surface-variant" for="dopl_license_number">Utah DOPL License Number *</label>
-										<input id="dopl_license_number" name="dopl_license_number" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" placeholder="1234567-5501" type="text" />
-										<p class="text-[11px] text-on-surface-variant/70 italic">Format example: 1234567-5501. Required for background verification via the DOPL website.</p>
-									</div>
-									<div class="space-y-1">
-										<label class="font-label-md text-on-surface-variant" for="license_expiration">License Expiration Date *</label>
-										<input id="license_expiration" name="license_expiration" required placeholder="Select a date" class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" type="date" />
-									</div>
-								</div>
-								<div class="space-y-3" data-group="work_authorized">
-									<p class="font-label-md text-on-surface-variant">Are you legally authorized to work in the United States? *</p>
-									<div class="flex gap-6">
-										<label class="flex items-center gap-2 cursor-pointer">
-											<input class="text-primary focus:ring-primary h-5 w-5" name="work_authorized" type="radio" value="yes" />
-											<span>Yes</span>
-										</label>
-										<label class="flex items-center gap-2 cursor-pointer">
-											<input class="text-primary focus:ring-primary h-5 w-5" name="work_authorized" type="radio" value="no" />
-											<span>No</span>
-										</label>
-									</div>
-								</div>
-							</div>
-							<!-- Block 3.3: Skills -->
-							<div class="space-y-6">
-								<h3 class="font-headline-md text-primary flex items-center gap-2">
-									<span class="material-symbols-outlined">brush</span>
-									Skills &amp; Expertise
-								</h3>
-								<div class="space-y-4">
-									<p class="font-label-md text-on-surface-variant">Select your proficient services <span class="text-on-surface-variant/60 font-normal">(all that apply)</span></p>
-									<div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-										<label class="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-lg hover:bg-primary-container/20 transition-colors cursor-pointer">
-											<input class="rounded text-primary focus:ring-primary" type="checkbox" name="skills" value="manicure_pedicure" />
-											<span>Mani/Pedi</span>
-										</label>
-										<label class="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-lg hover:bg-primary-container/20 transition-colors cursor-pointer">
-											<input class="rounded text-primary focus:ring-primary" type="checkbox" name="skills" value="gel_shellac" />
-											<span>Gel / Shellac</span>
-										</label>
-										<label class="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-lg hover:bg-primary-container/20 transition-colors cursor-pointer">
-											<input class="rounded text-primary focus:ring-primary" type="checkbox" name="skills" value="acrylic_full_set" />
-											<span>Acrylic Full Set</span>
-										</label>
-										<label class="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-lg hover:bg-primary-container/20 transition-colors cursor-pointer">
-											<input class="rounded text-primary focus:ring-primary" type="checkbox" name="skills" value="gel_x_soft_gel" />
-											<span>Gel-X / Soft Gel</span>
-										</label>
-										<label class="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-lg hover:bg-primary-container/20 transition-colors cursor-pointer">
-											<input class="rounded text-primary focus:ring-primary" type="checkbox" name="skills" value="dip_powder" />
-											<span>Dip Powder</span>
-										</label>
-										<label class="flex items-center gap-3 bg-surface-container-low px-4 py-3 rounded-lg hover:bg-primary-container/20 transition-colors cursor-pointer">
-											<input class="rounded text-primary focus:ring-primary" type="checkbox" name="skills" value="nail_art_3d" />
-											<span>Nail Art &amp; 3D</span>
-										</label>
-									</div>
-								</div>
-								<div class="space-y-1">
-									<label class="font-label-md text-on-surface-variant" for="english_proficiency">English Proficiency *</label>
-									<select id="english_proficiency" name="english_proficiency" required class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md appearance-none">
-										<option value="" disabled selected>Select your level…</option>
-										<option value="native">Native / Bilingual</option>
-										<option value="fluent">Fluent (Can converse smoothly with clients)</option>
-										<option value="conversational">Salon English (Understands client requests &amp; basics)</option>
-										<option value="limited">Limited (Still practicing)</option>
-									</select>
-								</div>
-							</div>
-							<!-- Block 3.4: Availability -->
-							<div class="space-y-6">
-								<h3 class="font-headline-md text-primary flex items-center gap-2">
-									<span class="material-symbols-outlined">schedule</span>
-									Availability
-								</h3>
-								<div class="space-y-3" data-group="employment_type">
-									<p class="font-label-md text-on-surface-variant">Preferred Employment Type *</p>
-									<div class="flex gap-6">
-										<label class="flex items-center gap-2 cursor-pointer">
-											<input class="text-primary focus:ring-primary h-5 w-5" name="employment_type" type="radio" value="full_time" />
-											<span>Full-time</span>
-										</label>
-										<label class="flex items-center gap-2 cursor-pointer">
-											<input class="text-primary focus:ring-primary h-5 w-5" name="employment_type" type="radio" value="part_time" />
-											<span>Part-time</span>
-										</label>
-									</div>
-								</div>
-								<div class="space-y-4" data-group="days_available">
-									<p class="font-label-md text-on-surface-variant">Available Days * <span class="text-on-surface-variant/60 font-normal">(select all that apply)</span></p>
-									<div class="flex flex-wrap gap-2">
-										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
-											<input class="hidden" type="checkbox" name="days_available" value="monday" /> Mon
-										</label>
-										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
-											<input class="hidden" type="checkbox" name="days_available" value="tuesday" /> Tue
-										</label>
-										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
-											<input class="hidden" type="checkbox" name="days_available" value="wednesday" /> Wed
-										</label>
-										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
-											<input class="hidden" type="checkbox" name="days_available" value="thursday" /> Thu
-										</label>
-										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
-											<input class="hidden" type="checkbox" name="days_available" value="friday" /> Fri
-										</label>
-										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
-											<input class="hidden" type="checkbox" name="days_available" value="saturday" /> Sat
-										</label>
-										<label class="flex-1 min-w-[60px] h-12 flex items-center justify-center border-2 border-surface-container-high rounded-full cursor-pointer has-[:checked]:bg-primary has-[:checked]:text-on-primary has-[:checked]:border-primary transition-all">
-											<input class="hidden" type="checkbox" name="days_available" value="sunday" /> Sun
-										</label>
-									</div>
-								</div>
-								<div class="space-y-1">
-									<label class="font-label-md text-on-surface-variant" for="start_date">Earliest Possible Start Date *</label>
-									<input id="start_date" name="start_date" required placeholder="Select a date" class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" type="date" />
-								</div>
-							</div>
-							<!-- Block 3.5: Documents -->
-							<div class="space-y-6">
-								<h3 class="font-headline-md text-primary flex items-center gap-2">
-									<span class="material-symbols-outlined">upload_file</span>
-									Supporting Documents
-								</h3>
-								<div class="space-y-4" data-group="resume">
-									<div class="border-2 border-dashed border-primary-container bg-surface p-12 rounded-lg text-center cursor-pointer transition-all hover:bg-surface-container-low" id="drop-zone">
-										<span class="material-symbols-outlined text-5xl text-primary mb-3">cloud_upload</span>
-										<p class="font-headline-md text-primary" id="drop-title">Upload Resume *</p>
-										<p class="text-on-surface-variant font-body-md mt-1" id="drop-subtitle">Drag and drop or click to browse (PDF, Word)</p>
-										<input class="hidden" id="resume-input" name="resume" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required />
-									</div>
-									<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-										<div class="space-y-2">
-											<label class="font-label-md text-on-surface-variant" for="license_photo">DOPL License Photo (Optional)</label>
-											<input id="license_photo" name="license_photo" accept="image/*,.pdf" class="block w-full text-sm text-on-surface-variant file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-container/20 file:text-primary hover:file:bg-primary-container/30" type="file" />
-										</div>
-										<div class="space-y-2">
-											<label class="font-label-md text-on-surface-variant" for="portfolio_link">Portfolio / Instagram (Optional)</label>
-											<input id="portfolio_link" name="portfolio_link" class="w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md" placeholder="@yourhandle or link" type="text" />
-										</div>
-									</div>
-								</div>
-							</div>
+<!-- ===================== HERO ===================== -->
+<section class="section" style="padding-top:64px;padding-bottom:0;">
+  <div class="wrap">
+    <span class="eyebrow">Careers at CureVà · Opening in Sugar House · December</span>
+    <h1 style="margin:26px 0 0;max-width:16ch;">Come make something <span class="serif-i">calm.</span></h1>
+    <div style="display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:end;margin-top:30px;">
+      <div>
+        <p class="lede">We're creating the kind of beauty studio we always wished existed — not just for our clients, but for the professionals who care for them.</p>
+        <div style="margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;">
+          <span class="chip"><span class="dot" style="background:var(--oak);"></span>Nail Technicians</span>
+          <span class="chip"><span class="dot" style="background:var(--sage);"></span>Estheticians</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+        <a class="btn btn-primary btn-lg" href="#apply">Join our talent list</a>
+        <a class="btn btn-outline btn-lg" href="#why">Why grow with us</a>
+      </div>
+    </div>
+  </div>
+  <!-- full-bleed hero image band -->
+  <div class="wrap" style="margin-top:52px;">
+    <div class="tex" style={`height:440px;border-radius:24px;background-image:url('${HERO_IMG}');box-shadow:var(--sh-md);`}></div>
+  </div>
+</section>
 
-							<div id="form-error" class="hidden bg-error-container text-on-error-container rounded-lg p-4 font-body-md flex items-center gap-2">
-								<span class="material-symbols-outlined">error</span>
-								<span id="form-error-text">Please correct the highlighted fields.</span>
-							</div>
+<!-- ===================== INTRO / MANIFESTO ===================== -->
+<section class="section">
+  <div class="wrap" style="display:grid;grid-template-columns:.9fr 1.1fr;gap:60px;align-items:start;">
+    <div>
+      <span class="eyebrow">Why we exist</span>
+    </div>
+    <div>
+      <p style="font-family:var(--serif);font-size:clamp(26px,2.7vw,36px);line-height:1.34;font-weight:400;color:var(--ink);">
+        Most salons are loud, bright, and built for someone else. We're building the opposite — a warm, hushed room of plaster and walnut where every guest, of every gender, is genuinely cared for. That kind of calm doesn't happen by accident. <span class="serif-i" style="color:var(--sage-deep);">It's made by people who care about the craft.</span>
+      </p>
+      <p class="lede" style="margin-top:26px;">Opening in Sugar House this December — we're looking to connect with nail technicians and estheticians who feel the same.</p>
+    </div>
+  </div>
+</section>
 
-							<div class="pt-4 text-center">
-								<button id="submit-btn" class="bg-primary text-on-primary px-16 py-5 rounded-full font-headline-md clay-shadow hover:scale-[1.03] transition-all active:scale-95 w-full md:w-auto disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100" type="submit">
-									Submit Application
-								</button>
-								<p class="text-on-surface-variant text-sm mt-6 flex items-center justify-center gap-1">
-									<span class="material-symbols-outlined text-base">lock</span>
-									Your data is securely processed and reviewed only by our hiring team.
-								</p>
-							</div>
-						</form>
-					</div>
-				</div>
-			</section>
-			<!-- Section 4: Location -->
-			<section class="pb-section-padding">
-				<div class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop">
-					<div class="h-96 w-full rounded-lg overflow-hidden shadow-lg relative group">
-						<img alt="CureVà Location Map" class="w-full h-full object-cover filter saturate-[0.8]" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD29XNn3P_iRTw5wLnM6bhJux2dUXGCLUEz_K8eLOq8T2ITFCd-5IY3E4AMy8VJlwq_q8jWuKxC0ifnXxrB00yCegyNPUtXzni-x8hcRjWBI1-aHra6Tt8wjyPrTzi35zVnMAanf1xK-KRjYENeyEGd8VftKLS5yerTtg86eyl8pspTQxFJtX2gKVZpJBnB2FKL1vLUa14T7XozVJx_lZeM7S0cep512yPfRJmJwn3dWQ9n9QgZU7QXWHIkMmrhSTzLQ9SD1w61ULAE" />
-						<div class="absolute inset-0 bg-primary/20 backdrop-blur-[2px] flex items-center justify-center">
-							<div class="bg-white p-6 rounded-lg shadow-2xl text-center max-w-sm">
-								<span class="material-symbols-outlined text-primary text-4xl mb-2">location_on</span>
-								<h4 class="font-headline-md text-primary">CureVà Flagship</h4>
-								<p class="text-on-surface-variant">123 Premium Lane, Salt Lake City, UT 84101</p>
-								<a class="inline-block mt-4 text-primary font-bold hover:underline" href="#">Get Directions</a>
-							</div>
-						</div>
-					</div>
-				</div>
-			</section>
-		</main>
-		<!-- Footer -->
-		<footer class="bg-surface-container-lowest w-full rounded-t-lg">
-			<div class="grid grid-cols-1 md:grid-cols-4 gap-gutter px-margin-mobile md:px-margin-desktop py-section-padding w-full max-w-container-max mx-auto">
-				<div class="space-y-4">
-					<div class="font-headline-md text-headline-md text-primary">CureVà</div>
-					<p class="text-on-surface-variant font-body-md">Premium Nail Lounge offering an elevated wellness experience through artisanal craft and gentle care.</p>
-				</div>
-				<div class="space-y-4">
-					<h4 class="font-label-md text-primary">Contact Us</h4>
-					<ul class="space-y-2 text-on-surface-variant font-body-md">
-						<li class="flex items-center gap-2"><span class="material-symbols-outlined text-base">call</span> (801) 555-0199</li>
-						<li class="flex items-center gap-2"><span class="material-symbols-outlined text-base">mail</span> careers@cureva.com</li>
-						<li class="flex items-center gap-2"><span class="material-symbols-outlined text-base">location_on</span> Salt Lake City, UT</li>
-					</ul>
-				</div>
-				<div class="space-y-4">
-					<h4 class="font-label-md text-primary">Quick Links</h4>
-					<div class="flex flex-col gap-2">
-						<a class="text-on-surface-variant hover:text-primary transition-all hover:underline" href="#">Privacy Policy</a>
-						<a class="text-on-surface-variant hover:text-primary transition-all hover:underline" href="#">Terms of Service</a>
-						<a class="text-on-surface-variant hover:text-primary transition-all hover:underline" href="#">Utah Licensing</a>
-						<a class="text-on-surface-variant hover:text-primary transition-all hover:underline" href="#">Accessibility</a>
-					</div>
-				</div>
-				<div class="space-y-4">
-					<h4 class="font-label-md text-primary">Join Our Story</h4>
-					<p class="text-on-surface-variant font-body-md">Follow us for nail art inspiration and team updates.</p>
-					<div class="flex gap-4">
-						<div class="w-10 h-10 bg-primary-container/30 rounded-full flex items-center justify-center cursor-pointer hover:bg-primary-container transition-colors">
-							<span class="material-symbols-outlined text-primary">group</span>
-						</div>
-						<div class="w-10 h-10 bg-primary-container/30 rounded-full flex items-center justify-center cursor-pointer hover:bg-primary-container transition-colors">
-							<span class="material-symbols-outlined text-primary">camera</span>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="px-margin-mobile md:px-margin-desktop py-8 border-t border-surface-container-high max-w-container-max mx-auto text-center md:text-left">
-				<p class="text-on-surface-variant font-body-md">© 2024 CureVà Premium Nail Lounge. All rights reserved.</p>
-			</div>
-		</footer>
-		<script is:inline src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
-		<script is:inline>
-			(function () {
-				const form = document.getElementById("recruit-form");
-				const dropZone = document.getElementById("drop-zone");
-				const resumeInput = document.getElementById("resume-input");
-				const dropTitle = document.getElementById("drop-title");
-				const dropSubtitle = document.getElementById("drop-subtitle");
-				const submitBtn = document.getElementById("submit-btn");
-				const formError = document.getElementById("form-error");
-				const formErrorText = document.getElementById("form-error-text");
-				const successPanel = document.getElementById("success-panel");
+<!-- ===================== VALUES (the 5 keywords) ===================== -->
+<section class="section tight" id="values" style="background:var(--plaster);border-block:1px solid var(--line);">
+  <div class="wrap">
+    <div class="kicker-row" style="margin-bottom:36px;">
+      <div>
+        <span class="eyebrow">Our craft</span>
+        <h2 style="margin-top:18px;max-width:20ch;">Five things we build into every&nbsp;day</h2>
+      </div>
+      <p class="muted" style="max-width:32ch;">The same principles that shaped our space shape how we work together.</p>
+    </div>
+    <div class="values">
+      <span class="value-pill"><span class="d" style="background:var(--walnut);"></span>Intentional</span>
+      <span class="value-pill"><span class="d" style="background:var(--sage);"></span>Peaceful</span>
+      <span class="value-pill"><span class="d" style="background:var(--oak);"></span>Refreshing</span>
+      <span class="value-pill"><span class="d" style="background:var(--clay);"></span>Heritage</span>
+      <span class="value-pill"><span class="d" style="background:var(--sage-deep);"></span>Natural</span>
+    </div>
+  </div>
+</section>
 
-				// --- Resume drag & drop ---
-				["dragenter", "dragover"].forEach((ev) =>
-					dropZone.addEventListener(ev, (e) => {
-						e.preventDefault();
-						dropZone.classList.add("drag-active");
-					}),
-				);
-				["dragleave", "drop"].forEach((ev) =>
-					dropZone.addEventListener(ev, (e) => {
-						e.preventDefault();
-						dropZone.classList.remove("drag-active");
-					}),
-				);
-				dropZone.addEventListener("drop", (e) => {
-					if (e.dataTransfer && e.dataTransfer.files.length) {
-						resumeInput.files = e.dataTransfer.files;
-						showResumeName();
-					}
-				});
-				dropZone.addEventListener("click", () => resumeInput.click());
-				resumeInput.addEventListener("change", showResumeName);
-				function showResumeName() {
-					if (resumeInput.files && resumeInput.files.length) {
-						dropTitle.textContent = resumeInput.files[0].name;
-						dropSubtitle.textContent = "Click to choose a different file";
-						dropZone.classList.remove("field-error");
-					}
-				}
+<!-- ===================== THE SPACE ===================== -->
+<section class="section" id="space">
+  <div class="wrap">
+    <div class="kicker-row">
+      <div>
+        <span class="eyebrow">The space</span>
+        <h2 style="margin-top:18px;max-width:18ch;">A room made from honest&nbsp;materials</h2>
+      </div>
+      <p class="muted" style="max-width:34ch;">Rounded plaster walls, walnut cabinetry, travertine, oak wood-tile floors, linen curtains, and real greenery. You'll spend your days somewhere beautiful.</p>
+    </div>
 
-				// --- Date limits: licence expiry / start date can't be in the past ---
-				const _now = new Date();
-				const _pad = (n) => String(n).padStart(2, "0");
-				const TODAY = `${_now.getFullYear()}-${_pad(_now.getMonth() + 1)}-${_pad(_now.getDate())}`;
-				const licExpInput = document.getElementById("license_expiration");
-				const startDateInput = document.getElementById("start_date");
-				if (licExpInput) licExpInput.min = TODAY;
-				if (startDateInput) startDateInput.min = TODAY;
+    <!-- material mosaic -->
+    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;grid-template-rows:230px 230px;gap:18px;">
+      <div class="ph oak" style="grid-row:span 2;border-radius:18px;"><span class="tag">photo · cash wrap &amp; walnut millwork</span></div>
+      <div class="ph" style="border-radius:18px;"><span class="tag">photo · rounded plaster wall</span></div>
+      <div class="ph sage" style="border-radius:18px;"><span class="tag">photo · greenery</span></div>
+      <div class="ph oak" style="border-radius:18px;"><span class="tag">photo · oak wood-tile floor</span></div>
+      <div class="ph walnut" style="border-radius:18px;"><span class="tag">photo · Zero Gravity chair station</span></div>
+    </div>
 
-				// Pretty teal date pickers (flatpickr), keeping a machine-readable value.
-				if (window.flatpickr) {
-					const _fpOpts = {
-						dateFormat: "Y-m-d",
-						altInput: true,
-						altFormat: "M j, Y",
-						minDate: TODAY,
-						altInputClass: "fp-cal w-full bg-surface-container-low border-none rounded-lg p-4 font-body-md",
-					};
-					const _clearFieldErr = (el) => {
-						el.classList.remove("field-error");
-						if (el._flatpickr && el._flatpickr.altInput) el._flatpickr.altInput.classList.remove("field-error");
-						const c = el.closest(".space-y-1");
-						if (c) { const m = c.querySelector(".error-msg"); if (m) m.remove(); }
-					};
-					if (licExpInput) window.flatpickr(licExpInput, Object.assign({}, _fpOpts, { onChange: () => _clearFieldErr(licExpInput) }));
-					if (startDateInput) window.flatpickr(startDateInput, Object.assign({}, _fpOpts, { onChange: () => _clearFieldErr(startDateInput) }));
-				}
+    <!-- material captions -->
+    <div class="grid g4" style="margin-top:26px;gap:18px;">
+      <div><div class="num">01 — Walls</div><p style="margin-top:8px;font-size:15px;color:#5f5646;">Rounded plaster, 7′ high, with travertine baseboards.</p></div>
+      <div><div class="num">02 — Cabinetry</div><p style="margin-top:8px;font-size:15px;color:#5f5646;">Walnut millwork with contrast stitching and rope pulls.</p></div>
+      <div><div class="num">03 — Floors</div><p style="margin-top:8px;font-size:15px;color:#5f5646;">Oak wood-tile, laid in a soft basketweave grid.</p></div>
+      <div><div class="num">04 — Green</div><p style="margin-top:8px;font-size:15px;color:#5f5646;">Living palms, ferns and monstera throughout.</p></div>
+    </div>
+  </div>
+</section>
 
-				// --- Validation helpers ---
-				function clearErrors() {
-					formError.classList.add("hidden");
-					form.querySelectorAll(".field-error").forEach((el) => el.classList.remove("field-error"));
-					form.querySelectorAll(".error-msg").forEach((el) => el.remove());
-				}
-				function markGroup(name, message) {
-					const group = form.querySelector('[data-group="' + name + '"]');
-					if (!group) return;
-					if (!group.querySelector(".error-msg")) {
-						const p = document.createElement("p");
-						p.className = "error-msg";
-						p.textContent = message;
-						group.appendChild(p);
-					}
-				}
-				function fieldError(id, message) {
-					const el = document.getElementById(id);
-					if (!el) return;
-					el.classList.add("field-error");
-					if (el._flatpickr && el._flatpickr.altInput) el._flatpickr.altInput.classList.add("field-error");
-					const container = el.closest(".space-y-1") || el.parentElement;
-					if (container && !container.querySelector(".error-msg")) {
-						const p = document.createElement("p");
-						p.className = "error-msg";
-						p.textContent = message;
-						container.appendChild(p);
-					}
-				}
+<!-- ===================== WHY GROW WITH US ===================== -->
+<section class="section tight" id="why" style="background:var(--plaster);border-block:1px solid var(--line);">
+  <div class="wrap">
+    <div class="center" style="margin-bottom:52px;">
+      <span class="eyebrow">Why Grow With Us?</span>
+      <h2 style="margin-top:18px;">A studio built for the people in it</h2>
+    </div>
+    <div class="grid g3">
+      <div class="benefit">
+        <div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="#5B4632" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"></path><path d="M6 12v5c0 1 2.7 3 6 3s6-2 6-3v-5"></path></svg></div>
+        <h3>Training</h3>
+        <p class="muted" style="font-size:15px;">You'll receive training in the unique techniques and service experience that make CureVà different from a traditional salon.</p>
+      </div>
+      <div class="benefit">
+        <div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="#5B4632" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-6 7-9 15-9 0 8-3 15-9 15Z"></path><path d="M4 21c2.5-4 5.5-6.5 10-8"></path></svg></div>
+        <h3>A Cleaner Environment</h3>
+        <p class="muted" style="font-size:15px;">No acrylics, no dip powders, and no strong chemical odors. Our focus is on clean products and long-term wellness.</p>
+      </div>
+      <div class="benefit">
+        <div class="bi"><svg viewBox="0 0 24 24" fill="none" stroke="#5B4632" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a4 4 0 0 1 4-4h2l3-5"></path><path d="M4 14h8l4 5"></path><path d="M16 19h4"></path><path d="M5 14v5"></path></svg></div>
+        <h3>Designed With Comfort in Mind</h3>
+        <p class="muted" style="font-size:15px;">From our specialized zero-gravity setup to our thoughtful service model, every detail is designed to create a more comfortable experience for both clients and professionals.</p>
+      </div>
+    </div>
+  </div>
+</section>
 
-				function validate() {
-					clearErrors();
-					let firstInvalid = null;
-					const fail = (el) => {
-						if (!firstInvalid) firstInvalid = el;
-					};
+<!-- ===================== PULL QUOTE ===================== -->
+<section class="section">
+  <div class="wrap" style="max-width:960px;text-align:center;">
+    <p class="pull">"I've worked in salons for twelve years. This is the first one designed as carefully for the people <span class="serif-i" style="color:var(--sage-deep);">working</span> in it as the people visiting."</p>
+    <div class="who" style="justify-content:center;">
+      <span class="av">avatar</span>
+      <div style="text-align:left;"><div class="nm">A founding nail artist</div><div class="rl">On joining early</div></div>
+    </div>
+  </div>
+</section>
 
-					const emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-					const doplRe = /^\d{6,8}-\d{4}$/;
-					const validDate = (v) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
-					const letters = (v) => (v.match(/\p{L}/gu) || []).length;
+<!-- ===================== OPEN ROLES ===================== -->
+<section class="section tight" id="roles">
+  <div class="wrap" style="max-width:1000px;">
+    <div class="center" style="margin-bottom:44px;">
+      <span class="eyebrow">Who we're hiring</span>
+      <h2 style="margin-top:18px;">Two roles, opening this December</h2>
+      <p class="lede center" style="margin:16px auto 0;">Founding-team positions in Sugar House. We'd love to connect early.</p>
+    </div>
 
-					// Per-field rules → error message, or null when valid.
-					const rules = {
-						full_name: (v) => !v ? "Full name is required." : /\d/.test(v) ? "Name can't contain numbers." : letters(v) < 2 ? "Please enter your full name." : null,
-						phone: (v) => !v ? "Phone number is required." : /[A-Za-z]/.test(v) ? "Phone number can't contain letters." : v.replace(/\D/g, "").length < 10 ? "Enter a valid phone number (at least 10 digits)." : null,
-						email: (v) => !v ? "Email address is required." : !emailRe.test(v) ? "Enter a valid email address." : null,
-						city: (v) => !v ? "City of residence is required." : /\d/.test(v) ? "City can't contain numbers." : null,
-						dopl_license_number: (v) => !v ? "DOPL license number is required." : !doplRe.test(v) ? "Use the format 1234567-5501." : null,
-						license_expiration: (v) => !v ? "License expiration date is required." : !validDate(v) ? "Enter a valid date." : v < TODAY ? "License has expired — enter a current expiration date." : null,
-						start_date: (v) => !v ? "Available start date is required." : !validDate(v) ? "Enter a valid date." : v < TODAY ? "Start date can't be in the past." : null,
-						english_proficiency: (v) => !v ? "Select your English proficiency." : null,
-					};
-					for (const id of Object.keys(rules)) {
-						const el = document.getElementById(id);
-						if (!el) continue;
-						const msg = rules[id]((el.value || "").trim());
-						if (msg) {
-							fieldError(id, msg);
-							fail(el);
-						}
-					}
+    <div class="js-roles">
+      <div class="role">
+        <button class="role-head" type="button">
+          <span class="role-title">Nail Technicians</span>
+          <span class="role-meta">Founding team · Sugar House</span>
+          <span class="role-toggle"></span>
+        </button>
+        <div class="role-body"><div class="role-body-inner">
+          <div>
+            <p>Deliver waterless manicures, pedicures, and natural-finish nail care in a calm, unrushed setting. You'll own the full guest experience at your zero-gravity station — no acrylics, no dip powders, no harsh odors.</p>
+            <p class="muted" style="font-size:15px;">We'll look for a steady hand, a clean and gentle technique, and warmth with people of every background.</p>
+          </div>
+          <ul>
+            <li>Licensed nail technician (or licensable by opening)</li>
+            <li>Comfortable with a waterless, clean-product approach</li>
+            <li>Open to training in our techniques</li>
+            <li><a href="#apply" style="color:var(--walnut);font-weight:600;">Join the talent list →</a></li>
+          </ul>
+        </div></div>
+      </div>
 
-					// Checkbox / radio groups that require a selection
-					const groups = [
-						["license_types", "Select at least one license type."],
-						["work_authorized", "Please answer the work authorization question."],
-						["days_available", "Select at least one available day."],
-						["employment_type", "Select an employment type."],
-					];
-					groups.forEach(([name, msg]) => {
-						const checked = form.querySelectorAll('[name="' + name + '"]:checked').length;
-						if (checked === 0) {
-							markGroup(name, msg);
-							fail(form.querySelector('[name="' + name + '"]'));
-						}
-					});
+      <div class="role">
+        <button class="role-head" type="button">
+          <span class="role-title">Estheticians</span>
+          <span class="role-meta">Founding team · Sugar House</span>
+          <span class="role-toggle"></span>
+        </button>
+        <div class="role-body"><div class="role-body-inner">
+          <div>
+            <p>Lead our customized facials, lash lifts, and skin treatments using clean, results-driven products. You'll guide guests kindly and help shape the service menu from day one.</p>
+            <p class="muted" style="font-size:15px;">Comfort with a range of skin types and tones is essential; a calm chairside manner is everything.</p>
+          </div>
+          <ul>
+            <li>Esthetics license required</li>
+            <li>Facial, lash &amp; skin-treatment experience</li>
+            <li>Clean / non-toxic product knowledge</li>
+            <li><a href="#apply" style="color:var(--walnut);font-weight:600;">Join the talent list →</a></li>
+          </ul>
+        </div></div>
+      </div>
+    </div>
 
-					// Resume: required + type + size
-					const MAX = 10 * 1024 * 1024;
-					const resumeRe = /\.(pdf|docx?)$/i;
-					if (!resumeInput.files || resumeInput.files.length === 0) {
-						dropZone.classList.add("field-error");
-						markGroup("resume", "Please attach your resume / CV.");
-						fail(dropZone);
-					} else {
-						const f = resumeInput.files[0];
-						if (!resumeRe.test(f.name)) {
-							dropZone.classList.add("field-error");
-							markGroup("resume", "Resume must be a PDF or Word document (.pdf, .doc, .docx).");
-							fail(dropZone);
-						} else if (f.size > MAX) {
-							dropZone.classList.add("field-error");
-							markGroup("resume", "Resume must be 10 MB or smaller.");
-							fail(dropZone);
-						}
-					}
+    <p class="center muted" style="margin-top:34px;font-size:15px;">Not quite your title but this feels like your kind of place? Tell us anyway — we'd love to meet you.</p>
+  </div>
+</section>
 
-					// License photo (optional): type + size when provided
-					const photoInput = document.getElementById("license_photo");
-					const photoRe = /\.(png|jpe?g|gif|webp|heic|pdf)$/i;
-					if (photoInput && photoInput.files && photoInput.files.length) {
-						const f = photoInput.files[0];
-						if (!photoRe.test(f.name)) {
-							fieldError("license_photo", "License photo must be an image or PDF.");
-							fail(photoInput);
-						} else if (f.size > MAX) {
-							fieldError("license_photo", "License photo must be 10 MB or smaller.");
-							fail(photoInput);
-						}
-					}
+<!-- ===================== LIFE HERE (gallery) ===================== -->
+<section class="section" id="life">
+  <div class="wrap">
+    <div class="kicker-row">
+      <div>
+        <span class="eyebrow">Life here</span>
+        <h2 style="margin-top:18px;">Days at CureVà</h2>
+      </div>
+      <p class="muted" style="max-width:32ch;">Slow mornings, good light, real plants, and a team that has each other's backs.</p>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:200px;gap:16px;">
+      <div class="ph sage" style="grid-column:span 2;grid-row:span 2;border-radius:18px;"><span class="tag">photo · greenery &amp; daylight</span></div>
+      <div class="ph oak" style="border-radius:18px;"><span class="tag">photo · team at the cash wrap</span></div>
+      <div class="ph" style="border-radius:18px;"><span class="tag">photo · leaf detail</span></div>
+      <div class="ph" style="border-radius:18px;"><span class="tag">photo · plaster texture</span></div>
+      <div class="ph sage" style="border-radius:18px;"><span class="tag">photo · morning setup</span></div>
+      <div class="ph" style="border-radius:18px;"><span class="tag">photo · linen curtains, daylight</span></div>
+      <div class="ph oak" style="grid-column:span 2;border-radius:18px;"><span class="tag">photo · walnut cash wrap</span></div>
+      <div class="ph walnut" style="border-radius:18px;"><span class="tag">photo · tea break</span></div>
+    </div>
+  </div>
+</section>
 
-					if (firstInvalid) {
-						formError.classList.remove("hidden");
-						formErrorText.textContent = "Please fix the highlighted fields.";
-						firstInvalid.scrollIntoView({ behavior: "smooth", block: "center" });
-					}
-					return firstInvalid === null;
-				}
+<!-- ===================== JOIN OUR TALENT LIST ===================== -->
+<section class="section" id="apply" style="background:var(--plaster);border-top:1px solid var(--line);">
+  <div class="wrap" style="display:grid;grid-template-columns:.85fr 1.15fr;gap:60px;align-items:start;">
+    <div>
+      <span class="eyebrow">Join Our Talent List</span>
+      <h2 style="margin-top:18px;">Let's connect.</h2>
+      <p class="lede" style="margin-top:16px;">Leave your information below and we'll personally reach out when interview scheduling begins this fall.</p>
+      <div style="margin-top:30px;display:flex;flex-direction:column;gap:14px;">
+        <span class="chip"><span class="dot" style="background:var(--sage);"></span>Nail Technicians &amp; Estheticians</span>
+        <span class="chip"><span class="dot" style="background:var(--oak);"></span>Opening December · Sugar House</span>
+        <span class="chip"><span class="dot" style="background:var(--clay);"></span>We reach out personally</span>
+      </div>
+    </div>
 
-				// --- Submit via fetch ---
-				form.addEventListener("submit", async (e) => {
-					e.preventDefault();
-					if (!validate()) return;
+    <form class="card js-apply" novalidate style="padding:38px;">
+      <div class="grid g2" style="gap:18px;">
+        <div class="field"><label>Full name</label><input class="inp" name="name" placeholder="Your name" /></div>
+        <div class="field"><label>Email</label><input class="inp" type="email" name="email" placeholder="you@email.com" /></div>
+      </div>
+      <div class="grid g2" style="gap:18px;margin-top:18px;">
+        <div class="field"><label>Role you're interested in</label>
+          <select class="inp" name="role">
+            <option value="">Select a role…</option>
+            <option>Nail Technician</option>
+            <option>Esthetician</option>
+            <option>Something else</option>
+          </select>
+        </div>
+        <div class="field"><label>Portfolio or Instagram <span style="color:#a99e88;font-weight:400;">(optional)</span></label><input class="inp" name="portfolio" placeholder="@yourwork" /></div>
+      </div>
+      <div class="field" style="margin-top:18px;">
+        <label>Tell us about the work you love</label>
+        <textarea class="inp" name="about" rows="4" placeholder="A few sentences on your craft, your pace, and why CureVà…"></textarea>
+      </div>
+      <div style="display:flex;align-items:center;gap:20px;margin-top:24px;flex-wrap:wrap;">
+        <button class="btn btn-primary btn-lg" type="submit">Join Our Talent List <span class="arr">↗</span></button>
+        <p class="form-msg js-msg" role="status"></p>
+      </div>
+    </form>
+  </div>
+</section>
 
-					submitBtn.disabled = true;
-					submitBtn.textContent = "Submitting…";
+<!-- ===================== FOOTER ===================== -->
+<footer class="footer">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div class="foot-col">
+        <a class="brand" href="/"><span class="mark"></span>CureVà</a>
+        <p style="margin:18px 0 0;max-width:34ch;font-size:15px;color:#cabb9f;">A private, gender-inclusive nail &amp; beauty studio built around stillness. Opening December 2026 in Sugar House.</p>
+      </div>
+      <div class="foot-col">
+        <h4>Explore</h4>
+        <a class="fl" href="/">Homepage</a>
+        <a class="fl" href="/waitlist">Waitlist</a>
+        <a class="fl" href="/#services">Services</a>
+        <a class="fl" href="/posts">Journal</a>
+      </div>
+      <div class="foot-col">
+        <h4>Join us</h4>
+        <a class="fl" href="#roles">Open roles</a>
+        <a class="fl" href="#why">Why grow with us</a>
+        <a class="fl" href="#life">Life here</a>
+        <a class="fl" href="#apply">Talent list</a>
+      </div>
+      <div class="foot-col">
+        <h4>Contact</h4>
+        <a class="fl" href="mailto:careers@cureva.co">careers@cureva.co</a>
+        <a class="fl" href="mailto:hello@cureva.co">hello@cureva.co</a>
+      </div>
+    </div>
+    <div class="foot-bottom">
+      <span>© 2026 CureVà · The Gallacher Collective</span>
+      <div class="socials">
+        <a class="soc" href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="#e6dccb" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1" fill="#e6dccb" stroke="none"></circle></svg></a>
+        <a class="soc" href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="#e6dccb"><path d="M16 3c.3 2.2 1.7 3.9 4 4.2v3c-1.5 0-2.9-.4-4-1.1V15a6 6 0 1 1-6-6c.3 0 .7 0 1 .1v3.1a3 3 0 1 0 2 2.8V3h3Z"></path></svg></a>
+        <a class="soc" href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="#e6dccb"><path d="M14 8h2V5h-2c-1.7 0-3 1.3-3 3v2H9v3h2v6h3v-6h2.2l.8-3H14V8.5c0-.3.2-.5.5-.5H14Z"></path></svg></a>
+      </div>
+    </div>
+  </div>
+</footer>
 
-					try {
-						const res = await fetch(form.action, {
-							method: "POST",
-							body: new FormData(form),
-							headers: { Accept: "application/json" },
-						});
-						const data = await res.json().catch(() => ({}));
+<script is:inline>
+  /* CureVà Careers — role accordion + talent-list form (client-side only) */
 
-						if (res.ok && data.ok) {
-							form.classList.add("hidden");
-							successPanel.classList.remove("hidden");
-							successPanel.scrollIntoView({ behavior: "smooth", block: "center" });
-							return;
-						}
+  /* Role accordion (single-open) */
+  document.querySelectorAll('.js-roles').forEach(function (wrap) {
+    var roles = wrap.querySelectorAll('.role');
+    roles.forEach(function (role) {
+      var head = role.querySelector('.role-head');
+      var body = role.querySelector('.role-body');
+      head.addEventListener('click', function () {
+        var open = role.classList.contains('open');
+        roles.forEach(function (r) {
+          r.classList.remove('open');
+          var b = r.querySelector('.role-body');
+          if (b) b.style.maxHeight = null;
+        });
+        if (!open) {
+          role.classList.add('open');
+          body.style.maxHeight = body.scrollHeight + 'px';
+        }
+      });
+    });
+  });
 
-						// Server-side field errors
-						if (data && data.errors) {
-							clearErrors();
-							Object.keys(data.errors).forEach((key) => {
-								const field = form.querySelector('[name="' + key + '"]');
-								if (field && field.type !== "checkbox" && field.type !== "radio" && field.type !== "file") {
-									field.classList.add("field-error");
-								} else {
-									markGroup(key, data.errors[key]);
-								}
-							});
-						}
-						formError.classList.remove("hidden");
-						formErrorText.textContent = data.error || "Something went wrong. Please review your entries and try again.";
-					} catch (err) {
-						formError.classList.remove("hidden");
-						formErrorText.textContent = "Network error. Please check your connection and try again.";
-					} finally {
-						submitBtn.disabled = false;
-						submitBtn.textContent = "Submit Application";
-					}
-				});
-			})();
-		</script>
-	</body>
+  /* Talent-list form validation + confirm */
+  function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || '').trim()); }
+  document.querySelectorAll('.js-apply').forEach(function (form) {
+    var msg = form.querySelector('.js-msg');
+    var name = form.querySelector('[name="name"]');
+    var email = form.querySelector('[name="email"]');
+    var role = form.querySelector('[name="role"]');
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var bad = [];
+      [name, email, role].forEach(function (f) { if (f) f.classList.remove('err'); });
+      if (name && !name.value.trim()) { name.classList.add('err'); bad.push(name); }
+      if (email && !isEmail(email.value)) { email.classList.add('err'); bad.push(email); }
+      if (role && !role.value) { role.classList.add('err'); bad.push(role); }
+
+      if (bad.length) {
+        if (msg) { msg.textContent = 'Please add your name, a valid email, and a role.'; msg.className = 'form-msg js-msg bad'; }
+        bad[0].focus();
+        return;
+      }
+      if (msg) { msg.textContent = "Thank you — you're on the list. We'll personally reach out this fall."; msg.className = 'form-msg js-msg ok'; }
+      var btn = form.querySelector('button[type="submit"]');
+      if (btn) { var o = btn.innerHTML; btn.innerHTML = 'Sent ✓'; btn.disabled = true;
+        setTimeout(function () { btn.innerHTML = o; btn.disabled = false; }, 3000); }
+      form.querySelectorAll('.inp').forEach(function (i) { i.value = ''; });
+    });
+
+    form.querySelectorAll('.inp').forEach(function (i) {
+      i.addEventListener('input', function () { i.classList.remove('err'); });
+      i.addEventListener('change', function () { i.classList.remove('err'); });
+    });
+  });
+</script>
+</body>
 </html>

@@ -1,0 +1,552 @@
+---
+import RecruitHead from "../../components/recruit/RecruitHead.astro";
+
+// Full "Career Application" form for CureVà, warm "Gallacher Collective" theme.
+// Standalone document (no Base.astro). Posts multipart/form-data to
+// /api/recruit, which validates, stores uploads in R2, and writes the row into
+// the D1 `job_applications` table. The option groups use real <input>s (styled
+// as pills / toggles) so the browser serialises them into FormData with the
+// exact field names + values the endpoint expects.
+export const prerender = false;
+---
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CureVà — Career Application</title>
+<RecruitHead />
+<style is:inline>
+  body{background:var(--travertine);
+    background-image:radial-gradient(1200px 600px at 50% -200px, var(--plaster), transparent);}
+  .app-page{padding:44px 20px 80px;display:flex;justify-content:center;}
+  .app-shell{width:100%;max-width:900px;background:var(--oat);border:1px solid var(--line);
+    border-radius:26px;box-shadow:var(--sh-lg);overflow:hidden;}
+
+  /* header band */
+  .app-head{background:var(--walnut);color:#F4EDE0;padding:38px 46px;position:relative;overflow:hidden;}
+  .app-head::after{content:"";position:absolute;right:-40px;top:-40px;width:200px;height:200px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, rgba(200,169,123,.5), transparent 70%);pointer-events:none;}
+  .app-head .back{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:#d8ccb7;
+    font-weight:500;margin-bottom:16px;opacity:.9;transition:opacity .15s;}
+  .app-head .back:hover{opacity:1;}
+  .app-head h1{font-size:38px;font-weight:400;color:#F6F1E8;letter-spacing:-.01em;}
+  .app-head p{margin-top:8px;color:#d8ccb7;font-size:16px;}
+
+  .app-body{padding:44px 46px 46px;}
+
+  /* section */
+  .sec{margin-top:44px;}
+  .sec:first-child{margin-top:0;}
+  .sec-h{display:flex;align-items:center;gap:11px;margin-bottom:22px;}
+  .sec-h .si{width:34px;height:34px;border-radius:10px;background:var(--plaster);border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;flex:none;}
+  .sec-h .si svg{width:19px;height:19px;}
+  .sec-h h2{font-family:var(--sans);font-size:17px;font-weight:600;letter-spacing:.01em;color:var(--sage-deep);}
+
+  /* fields */
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .fld{display:flex;flex-direction:column;gap:8px;}
+  .fld > label,.q-label{font-size:14px;font-weight:500;color:var(--ink);}
+  .q-label .req,.fld label .req{color:var(--clay);margin-left:1px;}
+  .q-label .hint{color:var(--muted);font-weight:400;margin-left:6px;font-size:13px;}
+  .help{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:2px;line-height:1.45;}
+
+  .inp{width:100%;border:1.5px solid transparent;background:var(--plaster);border-radius:12px;
+    padding:14px 16px;font-size:15px;color:var(--ink);font-family:var(--sans);
+    transition:border-color .15s, box-shadow .15s, background .15s;}
+  .inp::placeholder{color:#a99e88;}
+  .inp:focus{outline:none;border-color:var(--walnut);background:var(--oat);box-shadow:0 0 0 4px rgba(91,70,50,.09);}
+  .inp.err{border-color:var(--clay);box-shadow:0 0 0 4px rgba(176,122,91,.13);background:#fbf4ee;}
+  textarea.inp{resize:vertical;min-height:96px;}
+  select.inp{appearance:none;cursor:pointer;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%237C7160' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:right 15px center;background-size:18px;padding-right:44px;}
+  .date-wrap{position:relative;}
+  .date-wrap .cal{position:absolute;right:15px;top:50%;transform:translateY(-50%);width:18px;height:18px;pointer-events:none;color:var(--muted);}
+
+  /* selectable option pills (multi + single) — real inputs, visually hidden */
+  .opts{display:flex;flex-wrap:wrap;gap:12px;}
+  .opts.cols3{display:grid;grid-template-columns:repeat(3,1fr);}
+  .opt{display:inline-flex;align-items:center;gap:11px;padding:14px 20px;border-radius:var(--r-pill);
+    background:var(--plaster);border:1.5px solid var(--line);cursor:pointer;user-select:none;
+    font-size:14.5px;font-weight:500;color:var(--ink);transition:all .16s ease;}
+  .opt:hover{border-color:var(--line-2);}
+  .opt input,.iopt input,.day input{position:absolute;opacity:0;width:0;height:0;margin:0;pointer-events:none;}
+  .opt .mk{width:19px;height:19px;border-radius:6px;border:1.6px solid var(--line-2);flex:none;position:relative;transition:all .16s;}
+  .opt .mk::after{content:"";position:absolute;inset:0;opacity:0;transition:opacity .15s;}
+  .opt:has(input:checked){background:#E7EBD6;border-color:var(--sage);color:var(--sage-deep);}
+  .opt:has(input:checked) .mk{border-color:var(--sage-deep);background:var(--sage-deep);}
+  .opt:has(input:checked) .mk::after{opacity:1;background:no-repeat center/12px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F6F1E8' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");}
+  .opt:focus-within{border-color:var(--walnut);box-shadow:0 0 0 4px rgba(91,70,50,.09);}
+  .opts.err .opt{border-color:var(--clay);}
+
+  /* small inline radios (Yes/No, Full/Part) */
+  .inline-opts{display:flex;gap:22px;align-items:center;flex-wrap:wrap;}
+  .iopt{display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-size:15px;color:var(--ink);position:relative;}
+  .iopt .mk{width:20px;height:20px;border-radius:50%;border:1.6px solid var(--line-2);position:relative;transition:all .15s;}
+  .iopt:has(input:checked) .mk{border-color:var(--walnut);}
+  .iopt:has(input:checked) .mk::after{content:"";position:absolute;inset:4px;border-radius:50%;background:var(--walnut);}
+  .iopt:focus-within .mk{box-shadow:0 0 0 4px rgba(91,70,50,.09);}
+  .inline-opts.err .mk{border-color:var(--clay);}
+
+  /* day toggles */
+  .days{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;}
+  .day{padding:14px 6px;border-radius:14px;border:1.5px solid var(--line-2);background:var(--oat);
+    text-align:center;font-size:14.5px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .16s;user-select:none;position:relative;}
+  .day:hover{border-color:var(--walnut);color:var(--ink);}
+  .day:has(input:checked){background:var(--walnut);border-color:var(--walnut);color:var(--oat);box-shadow:var(--sh-sm);}
+  .day:focus-within{box-shadow:0 0 0 4px rgba(91,70,50,.09);}
+  .days.err .day{border-color:var(--clay);}
+
+  /* dropzone */
+  .drop{border:2px dashed var(--line-2);border-radius:18px;padding:46px 24px;text-align:center;
+    background:var(--plaster);cursor:pointer;transition:all .18s;}
+  .drop:hover{border-color:var(--sage);background:#EDEFE0;}
+  .drop.drag{border-color:var(--sage-deep);background:#E7EBD6;}
+  .drop.err{border-color:var(--clay);background:#fbf4ee;}
+  .drop.filled{border-style:solid;border-color:var(--sage);background:#E7EBD6;}
+  .drop .dz-ico{width:44px;height:44px;margin:0 auto 12px;color:var(--sage-deep);}
+  .drop .dz-t{font-weight:600;color:var(--sage-deep);font-size:15.5px;}
+  .drop .dz-s{font-size:14px;color:var(--muted);margin-top:4px;}
+  .drop .dz-file{font-family:var(--mono);font-size:13.5px;color:var(--ink);margin-top:6px;}
+  .drop .req{color:var(--clay);}
+
+  /* choose-file */
+  .filepick{display:flex;align-items:center;gap:14px;}
+  .filebtn{padding:11px 18px;border-radius:var(--r-pill);border:1.5px solid var(--line-2);background:var(--plaster);
+    font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;white-space:nowrap;transition:all .16s;}
+  .filebtn:hover{border-color:var(--walnut);}
+  .filename{font-size:14px;color:var(--muted);font-family:var(--mono);}
+
+  .app-divider{height:1px;background:var(--line);border:none;margin:44px 0 0;}
+
+  .submit-row{margin-top:40px;text-align:center;}
+  .app-foot-note{display:flex;align-items:center;justify-content:center;gap:8px;
+    margin-top:20px;font-size:13.5px;color:var(--muted);}
+  .app-foot-note svg{width:15px;height:15px;}
+  .form-alert{margin-top:16px;font-size:14.5px;font-weight:600;min-height:1.2em;text-align:center;}
+  .form-alert.bad{color:var(--clay);}
+  .submit-row .btn[disabled]{opacity:.6;cursor:not-allowed;}
+
+  /* success overlay */
+  .done-card{display:none;text-align:center;padding:70px 40px;}
+  .done-card.show{display:block;}
+  .done-card .seal{width:76px;height:76px;border-radius:50%;background:#E7EBD6;border:1px solid var(--sage);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 24px;}
+  .done-card .seal svg{width:38px;height:38px;}
+  .done-card h2{font-family:var(--serif);font-size:38px;font-weight:400;}
+  .done-card p{margin-top:14px;color:#5f5646;font-size:17px;max-width:44ch;margin-left:auto;margin-right:auto;}
+
+  @media (max-width:720px){
+    .app-body{padding:30px 22px;}
+    .app-head{padding:30px 24px;}
+    .row2{grid-template-columns:1fr;}
+    .opts.cols3{grid-template-columns:1fr;}
+    .days{grid-template-columns:repeat(4,1fr);}
+  }
+</style>
+</head>
+<body>
+
+<!-- ===================== NAV ===================== -->
+<header class="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="/"><span class="mark"></span>CureVà</a>
+    <nav class="nav-links">
+      <a href="/recruit#space">The space</a>
+      <a href="/recruit#values">Our craft</a>
+      <a href="/recruit#roles">Open roles</a>
+      <a href="/recruit#life">Life here</a>
+    </nav>
+    <div class="nav-right">
+      <a class="nav-signin" href="/recruit">Back to careers</a>
+      <a class="btn btn-primary btn-sm" href="#form">Apply now</a>
+    </div>
+  </div>
+</header>
+
+<div class="app-page">
+  <div class="app-shell" id="form">
+
+    <!-- ===== HEADER BAND ===== -->
+    <div class="app-head">
+      <a class="back" href="/recruit">← Back to open roles</a>
+      <h1>Career Application</h1>
+      <p>Tell us about your passion for nail care.</p>
+    </div>
+
+    <!-- ===== FORM ===== -->
+    <form class="app-body js-apply-full" action="/api/recruit" method="POST" enctype="multipart/form-data" novalidate>
+
+      <!-- Personal Information -->
+      <div class="sec">
+        <div class="sec-h">
+          <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span>
+          <h2>Personal Information</h2>
+        </div>
+        <div class="row2">
+          <div class="fld"><label for="full_name">Full Name <span class="req">*</span></label><input class="inp" id="full_name" name="full_name" placeholder="Jane Doe" /></div>
+          <div class="fld"><label for="phone">Phone Number <span class="req">*</span></label><input class="inp" id="phone" name="phone" type="tel" placeholder="(801) 000-0000" /></div>
+        </div>
+        <div class="row2" style="margin-top:20px;">
+          <div class="fld"><label for="email">Email Address <span class="req">*</span></label><input class="inp" id="email" name="email" type="email" placeholder="jane@example.com" /></div>
+          <div class="fld"><label for="city">City of Residence <span class="req">*</span></label><input class="inp" id="city" name="city" placeholder="Salt Lake City" /></div>
+        </div>
+      </div>
+
+      <!-- Professional Licensing -->
+      <div class="sec">
+        <div class="sec-h">
+          <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 11 4.5-3 8-6 8-11V5l-8-3Z"/><polyline points="9 12 11 14 15 10"/></svg></span>
+          <h2>Professional Licensing</h2>
+        </div>
+
+        <div class="fld">
+          <span class="q-label">License Type <span class="req">*</span><span class="hint">(select at least one)</span></span>
+          <div class="opts js-group" data-name="license_types" style="margin-top:2px;">
+            <label class="opt"><input type="checkbox" name="license_types" value="nail_tech" /><span class="mk"></span>Active Utah Nail Tech</label>
+            <label class="opt"><input type="checkbox" name="license_types" value="cosmetologist_barber" /><span class="mk"></span>Active Cosmetologist / Barber</label>
+            <label class="opt"><input type="checkbox" name="license_types" value="other" /><span class="mk"></span>Other (Apprentice / Out-of-state)</label>
+          </div>
+        </div>
+
+        <div class="row2" style="margin-top:22px;">
+          <div class="fld">
+            <label for="dopl_license_number">Utah DOPL License Number <span class="req">*</span></label>
+            <input class="inp" id="dopl_license_number" name="dopl_license_number" placeholder="1234567-5501" />
+            <span class="help">Format example: 1234567-5501. Required for background verification via the DOPL website.</span>
+          </div>
+          <div class="fld">
+            <label for="license_expiration">License Expiration Date <span class="req">*</span></label>
+            <div class="date-wrap">
+              <input class="inp js-date" id="license_expiration" name="license_expiration" placeholder="Select a date" />
+              <svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+            </div>
+          </div>
+        </div>
+
+        <div class="fld" style="margin-top:22px;">
+          <span class="q-label">Are you legally authorized to work in the United States? <span class="req">*</span></span>
+          <div class="inline-opts js-group" data-name="work_authorized" style="margin-top:4px;">
+            <label class="iopt"><input type="radio" name="work_authorized" value="yes" /><span class="mk"></span>Yes</label>
+            <label class="iopt"><input type="radio" name="work_authorized" value="no" /><span class="mk"></span>No</label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Skills & Expertise -->
+      <div class="sec">
+        <div class="sec-h">
+          <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4l5 5L9 20H4v-5L15 4Z"/><path d="M13 6l5 5"/></svg></span>
+          <h2>Skills &amp; Expertise</h2>
+        </div>
+
+        <div class="fld">
+          <span class="q-label">Select your proficient services <span class="hint">(all that apply)</span></span>
+          <div class="opts cols3 js-group" data-name="skills" style="margin-top:2px;">
+            <label class="opt"><input type="checkbox" name="skills" value="manicure_pedicure" /><span class="mk"></span>Mani/Pedi</label>
+            <label class="opt"><input type="checkbox" name="skills" value="gel_shellac" /><span class="mk"></span>Gel / Shellac</label>
+            <label class="opt"><input type="checkbox" name="skills" value="acrylic_full_set" /><span class="mk"></span>Acrylic Full Set</label>
+            <label class="opt"><input type="checkbox" name="skills" value="gel_x_soft_gel" /><span class="mk"></span>Gel-X / Soft Gel</label>
+            <label class="opt"><input type="checkbox" name="skills" value="dip_powder" /><span class="mk"></span>Dip Powder</label>
+            <label class="opt"><input type="checkbox" name="skills" value="nail_art_3d" /><span class="mk"></span>Nail Art &amp; 3D</label>
+          </div>
+        </div>
+
+        <div class="fld" style="margin-top:22px;max-width:calc(50% - 10px);">
+          <label for="english_proficiency">English Proficiency <span class="req">*</span></label>
+          <select class="inp" id="english_proficiency" name="english_proficiency">
+            <option value="">Select your level…</option>
+            <option value="native">Native / Bilingual</option>
+            <option value="fluent">Fluent (Can converse smoothly with clients)</option>
+            <option value="conversational">Salon English (Understands client requests &amp; basics)</option>
+            <option value="limited">Limited (Still practicing)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Availability -->
+      <div class="sec">
+        <div class="sec-h">
+          <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
+          <h2>Availability</h2>
+        </div>
+
+        <div class="fld">
+          <span class="q-label">Preferred Employment Type <span class="req">*</span></span>
+          <div class="inline-opts js-group" data-name="employment_type" style="margin-top:4px;">
+            <label class="iopt"><input type="radio" name="employment_type" value="full_time" /><span class="mk"></span>Full-time</label>
+            <label class="iopt"><input type="radio" name="employment_type" value="part_time" /><span class="mk"></span>Part-time</label>
+          </div>
+        </div>
+
+        <div class="fld" style="margin-top:22px;">
+          <span class="q-label">Available Days <span class="req">*</span><span class="hint">(select all that apply)</span></span>
+          <div class="days js-group" data-name="days_available" style="margin-top:4px;">
+            <label class="day"><input type="checkbox" name="days_available" value="monday" />Mon</label>
+            <label class="day"><input type="checkbox" name="days_available" value="tuesday" />Tue</label>
+            <label class="day"><input type="checkbox" name="days_available" value="wednesday" />Wed</label>
+            <label class="day"><input type="checkbox" name="days_available" value="thursday" />Thu</label>
+            <label class="day"><input type="checkbox" name="days_available" value="friday" />Fri</label>
+            <label class="day"><input type="checkbox" name="days_available" value="saturday" />Sat</label>
+            <label class="day"><input type="checkbox" name="days_available" value="sunday" />Sun</label>
+          </div>
+        </div>
+
+        <div class="fld" style="margin-top:22px;">
+          <label for="start_date">Earliest Possible Start Date <span class="req">*</span></label>
+          <div class="date-wrap">
+            <input class="inp js-date" id="start_date" name="start_date" placeholder="Select a date" />
+            <svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <!-- Supporting Documents -->
+      <div class="sec">
+        <div class="sec-h">
+          <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-5Z"/><path d="M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg></span>
+          <h2>Supporting Documents</h2>
+        </div>
+
+        <div class="fld">
+          <div class="drop js-drop" tabindex="0">
+            <div class="dz-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0-.5 9"/><path d="M12 12v7M9 15l3-3 3 3"/></svg></div>
+            <div class="dz-t">Upload Resume <span class="req">*</span></div>
+            <div class="dz-s">Drag and drop or click to browse (PDF, Word)</div>
+            <div class="dz-file js-dropfile"></div>
+            <input type="file" class="js-resume" name="resume" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
+          </div>
+        </div>
+
+        <div class="row2" style="margin-top:22px;">
+          <div class="fld">
+            <label>DOPL License Photo <span style="color:var(--muted);font-weight:400;">(Optional)</span></label>
+            <div class="filepick">
+              <button type="button" class="filebtn js-choosebtn">Choose File</button>
+              <span class="filename js-choosename">No file chosen</span>
+              <input type="file" class="js-license" name="license_photo" accept="image/*,.pdf" hidden />
+            </div>
+          </div>
+          <div class="fld">
+            <label for="portfolio_link">Portfolio / Instagram <span style="color:var(--muted);font-weight:400;">(Optional)</span></label>
+            <input class="inp" id="portfolio_link" name="portfolio_link" placeholder="@yourhandle or link" />
+          </div>
+        </div>
+      </div>
+
+      <hr class="app-divider" />
+
+      <div class="submit-row">
+        <button class="btn btn-primary btn-lg js-submit" type="submit" style="min-width:280px;">Submit Application</button>
+        <p class="form-alert js-alert" role="status"></p>
+        <div class="app-foot-note">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+          Your data is securely processed and reviewed only by our hiring team.
+        </div>
+      </div>
+    </form>
+
+    <!-- ===== SUCCESS ===== -->
+    <div class="done-card js-done">
+      <div class="seal"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+      <h2>Thank you, <span class="js-done-name serif-i">friend</span>.</h2>
+      <p>Your application is in. We read every one ourselves and we'll be in touch within a week. In the meantime — breathe easy.</p>
+      <div style="margin-top:30px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
+        <a class="btn btn-primary" href="/recruit">Back to careers</a>
+        <a class="btn btn-outline" href="/">Visit the lounge</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script is:inline>
+  (function () {
+    'use strict';
+    var form = document.querySelector('.js-apply-full');
+    if (!form) return;
+
+    var alertEl = form.querySelector('.js-alert');
+    var submitBtn = form.querySelector('.js-submit');
+    var drop = document.querySelector('.js-drop');
+    var resume = document.querySelector('.js-resume');
+    var dropFile = document.querySelector('.js-dropfile');
+
+    /* ---- date fields: text → date on focus so the placeholder shows ---- */
+    var _now = new Date();
+    var _pad = function (n) { return String(n).padStart(2, '0'); };
+    var TODAY = _now.getFullYear() + '-' + _pad(_now.getMonth() + 1) + '-' + _pad(_now.getDate());
+    document.querySelectorAll('.js-date').forEach(function (inp) {
+      inp.min = TODAY;
+      inp.addEventListener('focus', function () {
+        inp.type = 'date';
+        if (inp.showPicker) { try { inp.showPicker(); } catch (e) {} }
+      });
+      inp.addEventListener('blur', function () { if (!inp.value) inp.type = 'text'; });
+    });
+
+    /* ---- resume dropzone ---- */
+    function showResume(file) {
+      if (!file) return;
+      drop.classList.add('filled');
+      drop.classList.remove('err');
+      dropFile.textContent = '✓ ' + file.name;
+    }
+    if (drop) {
+      drop.addEventListener('click', function () { resume.click(); });
+      drop.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); resume.click(); }
+      });
+      resume.addEventListener('change', function () { if (resume.files[0]) showResume(resume.files[0]); });
+      ['dragenter', 'dragover'].forEach(function (ev) {
+        drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('drag'); });
+      });
+      ['dragleave', 'drop'].forEach(function (ev) {
+        drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('drag'); });
+      });
+      drop.addEventListener('drop', function (e) {
+        var f = e.dataTransfer.files[0];
+        if (f) { try { resume.files = e.dataTransfer.files; } catch (err) {} showResume(f); }
+      });
+    }
+
+    /* ---- optional license photo ---- */
+    var chooseBtn = document.querySelector('.js-choosebtn');
+    var license = document.querySelector('.js-license');
+    var chooseName = document.querySelector('.js-choosename');
+    if (chooseBtn) {
+      chooseBtn.addEventListener('click', function () { license.click(); });
+      license.addEventListener('change', function () {
+        chooseName.textContent = license.files[0] ? license.files[0].name : 'No file chosen';
+      });
+    }
+
+    /* ---- clear error styling as the user fixes things ---- */
+    form.querySelectorAll('.inp').forEach(function (i) {
+      i.addEventListener('input', function () { i.classList.remove('err'); });
+      i.addEventListener('change', function () { i.classList.remove('err'); });
+    });
+    form.querySelectorAll('.js-group').forEach(function (g) {
+      g.addEventListener('change', function () { g.classList.remove('err'); });
+    });
+
+    function groupEl(name) { return form.querySelector('.js-group[data-name="' + name + '"]'); }
+    function groupCount(name) {
+      var g = groupEl(name);
+      return g ? g.querySelectorAll('input:checked').length : 0;
+    }
+
+    var emailRe = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    var doplRe = /^\d{6,8}-\d{4}$/;
+    var validDate = function (v) { return /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v)); };
+    var letters = function (v) { return (v.match(/\p{L}/gu) || []).length; };
+
+    var rules = {
+      full_name: function (v) { return !v ? 1 : /\d/.test(v) ? 1 : letters(v) < 2 ? 1 : 0; },
+      phone: function (v) { return !v ? 1 : /[A-Za-z]/.test(v) ? 1 : v.replace(/\D/g, '').length < 10 ? 1 : 0; },
+      email: function (v) { return !emailRe.test(v) ? 1 : 0; },
+      city: function (v) { return !v ? 1 : /\d/.test(v) ? 1 : 0; },
+      dopl_license_number: function (v) { return !doplRe.test(v) ? 1 : 0; },
+      license_expiration: function (v) { return !validDate(v) || v < TODAY ? 1 : 0; },
+      english_proficiency: function (v) { return !v ? 1 : 0; },
+      start_date: function (v) { return !validDate(v) || v < TODAY ? 1 : 0; }
+    };
+
+    function validate() {
+      var firstBad = null;
+      var problems = 0;
+
+      Object.keys(rules).forEach(function (name) {
+        var el = form.querySelector('[name="' + name + '"]');
+        if (!el) return;
+        if (rules[name]((el.value || '').trim())) {
+          el.classList.add('err'); problems++; if (!firstBad) firstBad = el;
+        } else {
+          el.classList.remove('err');
+        }
+      });
+
+      ['license_types', 'work_authorized', 'employment_type', 'days_available'].forEach(function (name) {
+        var g = groupEl(name);
+        if (g && groupCount(name) === 0) {
+          g.classList.add('err'); problems++; if (!firstBad) firstBad = g;
+        }
+      });
+
+      var resumeRe = /\.(pdf|docx?)$/i;
+      var MAX = 10 * 1024 * 1024;
+      if (!resume.files || !resume.files[0]) {
+        drop.classList.add('err'); problems++; if (!firstBad) firstBad = drop;
+      } else {
+        var f = resume.files[0];
+        if (!resumeRe.test(f.name) || f.size > MAX) {
+          drop.classList.add('err'); problems++; if (!firstBad) firstBad = drop;
+        }
+      }
+
+      return { problems: problems, firstBad: firstBad };
+    }
+
+    form.addEventListener('submit', async function (e) {
+      e.preventDefault();
+      var res = validate();
+      if (res.problems) {
+        alertEl.textContent = 'Please complete the highlighted fields (' + res.problems + ' remaining).';
+        alertEl.className = 'form-alert js-alert bad';
+        if (res.firstBad && res.firstBad.getBoundingClientRect) {
+          window.scrollTo({ top: window.pageYOffset + res.firstBad.getBoundingClientRect().top - 140, behavior: 'smooth' });
+        }
+        return;
+      }
+
+      alertEl.textContent = '';
+      alertEl.className = 'form-alert js-alert';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Submitting…';
+
+      try {
+        var response = await fetch(form.action, {
+          method: 'POST',
+          body: new FormData(form),
+          headers: { Accept: 'application/json' }
+        });
+        var data = await response.json().catch(function () { return {}; });
+
+        if (response.ok && data.ok) {
+          var nameVal = (form.querySelector('[name="full_name"]').value || '').trim().split(' ')[0] || 'friend';
+          var doneName = document.querySelector('.js-done-name');
+          if (doneName) doneName.textContent = nameVal;
+          document.querySelector('.app-head').style.display = 'none';
+          form.style.display = 'none';
+          document.querySelector('.js-done').classList.add('show');
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          return;
+        }
+
+        // Server-side field errors → re-highlight
+        if (data && data.errors) {
+          Object.keys(data.errors).forEach(function (key) {
+            var field = form.querySelector('[name="' + key + '"]');
+            var g = groupEl(key);
+            if (g) g.classList.add('err');
+            else if (field && field.type !== 'file') field.classList.add('err');
+            else if (key === 'resume') drop.classList.add('err');
+          });
+        }
+        alertEl.textContent = data.error || 'Please review the highlighted fields and try again.';
+        alertEl.className = 'form-alert js-alert bad';
+      } catch (err) {
+        alertEl.textContent = 'Network error. Please check your connection and try again.';
+        alertEl.className = 'form-alert js-alert bad';
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Application';
+      }
+    });
+  })();
+</script>
+</body>
+</html>
