@@ -156,7 +156,7 @@ export const prerender = false;
     <nav class="nav-links">
       <a href="/recruit#space">The space</a>
       <a href="/recruit#values">Our craft</a>
-      <a href="/recruit#roles">Open roles</a>
+      <a href="#roles">Open roles</a>
       <a href="/recruit#life">Life here</a>
     </nav>
     <div class="nav-right">
@@ -319,6 +319,120 @@ export const prerender = false;
 
   </div>
 </div>
+
+<!-- ===================== OPEN ROLES (for quick-appliers) ===================== -->
+<section class="section tight" id="roles" style="padding-top:20px;">
+  <div class="wrap" style="max-width:900px;">
+    <div class="center" style="margin-bottom:44px;">
+      <span class="eyebrow">Open Roles</span>
+      <h2 style="margin-top:18px;">Who we're hiring this December</h2>
+      <p class="lede center" style="margin:16px auto 0;">Six founding-team openings in Sugar House — the same application above covers every role.</p>
+    </div>
+
+    <div class="js-roles">
+      <div class="role">
+        <button class="role-head" type="button">
+          <span class="role-title">Nail Technician</span>
+          <span class="role-meta">2 openings · Full-time / Part-time</span>
+          <span class="role-toggle"></span>
+        </button>
+        <div class="role-body"><div class="role-body-inner">
+          <div>
+            <p>We're looking for someone who takes pride in their work, enjoys creating meaningful connections with clients, and wants to grow with a team that's redefining the salon experience.</p>
+          </div>
+          <ul>
+            <li>Licensed (or eligible for Utah licensure)</li>
+            <li>Kind, dependable, and detail-oriented</li>
+            <li>Excited to learn and grow with us</li>
+            <li><a href="#form" style="color:var(--walnut);font-weight:600;">Apply above ↑</a></li>
+          </ul>
+        </div></div>
+      </div>
+
+      <div class="role">
+        <button class="role-head" type="button">
+          <span class="role-title">Esthetician</span>
+          <span class="role-meta">2 openings · Full-time / Part-time</span>
+          <span class="role-toggle"></span>
+        </button>
+        <div class="role-body"><div class="role-body-inner">
+          <div>
+            <p>We're looking for someone who genuinely enjoys helping others feel confident, values a calm and welcoming environment, and wants to be part of building something special from the beginning.</p>
+          </div>
+          <ul>
+            <li>Licensed (or eligible for Utah licensure)</li>
+            <li>Warm, caring, and professional</li>
+            <li>Passionate about continuous learning</li>
+            <li><a href="#form" style="color:var(--walnut);font-weight:600;">Apply above ↑</a></li>
+          </ul>
+        </div></div>
+      </div>
+
+      <div class="role">
+        <button class="role-head" type="button">
+          <span class="role-title">Lash &amp; Brow Specialist</span>
+          <span class="role-meta">1 opening · Full-time / Part-time</span>
+          <span class="role-toggle"></span>
+        </button>
+        <div class="role-body"><div class="role-body-inner">
+          <div>
+            <p>We're looking for someone who appreciates natural beauty, pays attention to the little details, and enjoys building lasting relationships with every client.</p>
+          </div>
+          <ul>
+            <li>Licensed (or eligible for Utah licensure)</li>
+            <li>Patient, reliable, and detail-oriented</li>
+            <li>Committed to delivering a thoughtful experience</li>
+            <li><a href="#form" style="color:var(--walnut);font-weight:600;">Apply above ↑</a></li>
+          </ul>
+        </div></div>
+      </div>
+
+      <div class="role">
+        <button class="role-head" type="button">
+          <span class="role-title">Cosmetologist</span>
+          <span class="role-meta">1 opening · Full-time / Part-time</span>
+          <span class="role-toggle"></span>
+        </button>
+        <div class="role-body"><div class="role-body-inner">
+          <div>
+            <p>We're looking for someone who enjoys working with people, embraces learning new techniques, and wants to help shape the culture of a growing wellness-focused studio.</p>
+          </div>
+          <ul>
+            <li>Licensed (or eligible for Utah licensure)</li>
+            <li>Positive, adaptable, and team-oriented</li>
+            <li>Interested in growing with CURE VÀ</li>
+            <li><a href="#form" style="color:var(--walnut);font-weight:600;">Apply above ↑</a></li>
+          </ul>
+        </div></div>
+      </div>
+    </div>
+
+    <p class="center muted" style="margin-top:34px;font-size:15px;">Not quite your title but this feels like your kind of place? Apply anyway — we'd love to meet you.</p>
+  </div>
+</section>
+
+<script is:inline>
+  /* Open-roles accordion (single-open) — same behaviour as /recruit */
+  document.querySelectorAll('.js-roles').forEach(function (wrap) {
+    var roles = wrap.querySelectorAll('.role');
+    roles.forEach(function (role) {
+      var head = role.querySelector('.role-head');
+      var body = role.querySelector('.role-body');
+      head.addEventListener('click', function () {
+        var open = role.classList.contains('open');
+        roles.forEach(function (r) {
+          r.classList.remove('open');
+          var b = r.querySelector('.role-body');
+          if (b) b.style.maxHeight = null;
+        });
+        if (!open) {
+          role.classList.add('open');
+          body.style.maxHeight = body.scrollHeight + 'px';
+        }
+      });
+    });
+  });
+</script>
 
 <script is:inline>
   (function () {
