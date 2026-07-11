@@ -5,10 +5,12 @@ import RecruitHead from "../components/recruit/RecruitHead.astro";
 // Base.astro — it renders its own document with the warm "Gallacher
 // Collective" recruit theme (see RecruitHead.astro).
 //
-// Pre-launch strategy: this page collects a lightweight *talent list* (the
-// #apply form below POSTs to /api/talent → D1 `talent_list`, reviewed at
-// /admin/talent). The full, database-backed application still lives at
-// /recruit/apply; it is intentionally unlinked from here for now.
+// Two intake paths, both database-backed:
+//  - the lightweight *talent list* (#apply form below → /api/talent → D1
+//    `talent_list`, reviewed at /admin/talent), and
+//  - the full Career Application at /recruit/apply (the complete July 2026
+//    "Hiring Form" field set → /api/recruit → D1 `job_applications`),
+//    linked from the nav, each open role, and the talent-list section.
 export const prerender = false;
 
 // Real interior photo for the hero band. Interior/material shots for the
@@ -39,8 +41,8 @@ const HERO_IMG =
       <a href="#life">Life here</a>
     </nav>
     <div class="nav-right">
-      <a class="nav-signin" href="/">Visit the site</a>
-      <a class="btn btn-primary btn-sm" href="#apply">Join talent list</a>
+      <a class="nav-signin" href="#apply">Join talent list</a>
+      <a class="btn btn-primary btn-sm" href="/recruit/apply">Apply now</a>
     </div>
   </div>
 </header>
@@ -61,8 +63,8 @@ const HERO_IMG =
         </div>
       </div>
       <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
-        <a class="btn btn-primary btn-lg" href="#apply">Join our talent list</a>
-        <a class="btn btn-outline btn-lg" href="#why">Why grow with us</a>
+        <a class="btn btn-primary btn-lg" href="/recruit/apply">Apply now</a>
+        <a class="btn btn-outline btn-lg" href="#apply">Join our talent list</a>
       </div>
     </div>
   </div>
@@ -199,7 +201,7 @@ const HERO_IMG =
             <li>Licensed (or eligible for Utah licensure)</li>
             <li>Kind, dependable, and detail-oriented</li>
             <li>Excited to learn and grow with us</li>
-            <li><a href="#apply" style="color:var(--walnut);font-weight:600;">Join the talent list →</a></li>
+            <li><a href="/recruit/apply" style="color:var(--walnut);font-weight:600;">Apply for this role →</a></li>
           </ul>
         </div></div>
       </div>
@@ -218,7 +220,7 @@ const HERO_IMG =
             <li>Licensed (or eligible for Utah licensure)</li>
             <li>Warm, caring, and professional</li>
             <li>Passionate about continuous learning</li>
-            <li><a href="#apply" style="color:var(--walnut);font-weight:600;">Join the talent list →</a></li>
+            <li><a href="/recruit/apply" style="color:var(--walnut);font-weight:600;">Apply for this role →</a></li>
           </ul>
         </div></div>
       </div>
@@ -237,7 +239,7 @@ const HERO_IMG =
             <li>Licensed (or eligible for Utah licensure)</li>
             <li>Patient, reliable, and detail-oriented</li>
             <li>Committed to delivering a thoughtful experience</li>
-            <li><a href="#apply" style="color:var(--walnut);font-weight:600;">Join the talent list →</a></li>
+            <li><a href="/recruit/apply" style="color:var(--walnut);font-weight:600;">Apply for this role →</a></li>
           </ul>
         </div></div>
       </div>
@@ -256,7 +258,7 @@ const HERO_IMG =
             <li>Licensed (or eligible for Utah licensure)</li>
             <li>Positive, adaptable, and team-oriented</li>
             <li>Interested in growing with CURE VÀ</li>
-            <li><a href="#apply" style="color:var(--walnut);font-weight:600;">Join the talent list →</a></li>
+            <li><a href="/recruit/apply" style="color:var(--walnut);font-weight:600;">Apply for this role →</a></li>
           </ul>
         </div></div>
       </div>
@@ -301,6 +303,8 @@ const HERO_IMG =
         <span class="chip"><span class="dot" style="background:var(--oak);"></span>Opening December · Sugar House</span>
         <span class="chip"><span class="dot" style="background:var(--clay);"></span>We reach out personally</span>
       </div>
+      <p class="muted" style="margin-top:26px;font-size:15px;max-width:40ch;">Ready to tell us more? Send the full application — résumé, licensure status and all — in about two minutes.</p>
+      <a class="btn btn-outline" href="/recruit/apply" style="margin-top:14px;">Fill out the full application <span class="arr">↗</span></a>
     </div>
 
     <form class="card js-apply" novalidate style="padding:38px;">
