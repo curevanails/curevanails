@@ -104,6 +104,18 @@ required asterisks use `--clay`, not red.
   keep whichever the source doc uses for that section.
 - Every marketing page keeps a single primary CTA per section.
 
+## Motion
+
+- `html { scroll-behavior: smooth; }` on every page (anchor links glide).
+- **Page transitions:** cross-document View Transitions — `@view-transition
+  { navigation: auto; }` plus a ~0.3s fade-with-lift on
+  `::view-transition-old/new(root)`, disabled under
+  `prefers-reduced-motion: reduce`. The rules live in `RecruitHead.astro`
+  (getready/recruit/apply), inline on `coming-soon` / `waitlist` /
+  `early-access`, and in `src/styles/theme.css` for the blog pages. Keep the
+  keyframe names (`vt-fade-out` / `vt-fade-in`) and timings in sync across
+  copies.
+
 ## Astro rules for these pages
 
 - `export const prerender = false;` on every page.

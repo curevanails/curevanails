@@ -60,6 +60,19 @@
   --mono:'DM Mono',ui-monospace,Menlo,monospace;
 }
 
+/* ---------- Smooth page transitions ----------
+   Cross-document View Transitions: same-origin navigations cross-fade with a
+   gentle lift in supporting browsers (Chrome 126+, Safari 18.2+); everything
+   else falls back to instant navigation. */
+@view-transition { navigation: auto; }
+@keyframes vt-fade-out { to { opacity: 0; } }
+@keyframes vt-fade-in { from { opacity: 0; transform: translateY(10px); } }
+::view-transition-old(root){animation:vt-fade-out .18s ease both;}
+::view-transition-new(root){animation:vt-fade-in .3s ease both;}
+@media (prefers-reduced-motion:reduce){
+  ::view-transition-old(root),::view-transition-new(root){animation:none;}
+}
+
 *{box-sizing:border-box;}
 html{scroll-behavior:smooth;}
 body{
