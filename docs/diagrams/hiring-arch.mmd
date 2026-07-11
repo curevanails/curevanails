@@ -8,7 +8,7 @@ flowchart LR
     subgraph Admin["/admin (gated by middleware)"]
       L["/admin/login<br/>HMAC signed cookie"] --> DASH["/admin<br/>Dashboard (PII)"]
       DASH -->|POST /admin/update| UPD["status / notes<br/>new -> pending -> contacted -> deal"]
-      DASH -->|GET /admin/file| DL["Download resume/license<br/>stream from R2"]
+      DASH -->|GET /admin/file| DL["Download resume<br/>stream from R2"]
     end
 
     D1 --> DASH

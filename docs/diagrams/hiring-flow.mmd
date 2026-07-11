@@ -6,7 +6,7 @@ sequenceDiagram
     participant R2 as R2 bucket MEDIA
     participant D1 as D1 job_applications
 
-    U->>F: Fill form + attach files
+    U->>F: Fill form (+ optional resume)
     F->>F: validate() client-side
     Note over F: preventDefault if invalid
     F->>API: POST multipart/form-data (fetch)
@@ -16,8 +16,7 @@ sequenceDiagram
         F->>U: Highlight error fields
     else Valid
         API->>API: id = crypto.randomUUID()
-        API->>R2: put recruit/{id}/resume
-        API->>R2: put recruit/{id}/license
+        API->>R2: put recruit/{id}/resume (if attached)
         R2-->>API: { key, filename }
         API->>D1: ensureApplicationsSchema()
         API->>D1: INSERT job_applications

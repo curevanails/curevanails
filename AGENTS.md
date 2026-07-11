@@ -23,7 +23,7 @@ npx emdash types      # Regenerate TypeScript types from schema
 pnpm build            # astro build (compiles the Cloudflare Worker)
 pnpm typecheck        # astro check
 pnpm deploy           # astro build && wrangler deploy (main curevanails site)
-pnpm deploy:getready  # build & deploy the standalone getready careers Worker
+pnpm deploy:getready  # build & deploy the standalone getready waitlist-landing Worker (design: docs/DESIGN.md)
 pnpm deploy:admin     # build & deploy the standalone admin recruit-dashboard Worker
 ```
 
@@ -96,14 +96,15 @@ A blog with posts, pages, categories, tags, full-text search, and RSS. Designed 
 | Category    | `/category/[slug]` | Posts filtered by category                                                                             |
 | Tag         | `/tag/[slug]`      | Posts filtered by tag                                                                                  |
 | RSS         | `/rss.xml`         | Generated feed                                                                                         |
-| Careers     | `/recruit`         | Nail-tech job application form (POSTs to `/api/recruit`)                                               |
+| Careers     | `/recruit`         | Careers page + talent list; full application at `/recruit/apply` (POSTs to `/api/recruit`)             |
 | Admin login | `/admin/login`     | Styled login form for the recruit dashboard                                                            |
-| Admin       | `/admin`           | Recruit dashboard — lists `job_applications`, résumé/license downloads (auth-gated)                    |
+| Admin       | `/admin`           | Recruit dashboard — lists `job_applications`, résumé downloads (auth-gated)                            |
 
 ## Recruit & Admin
 
-The careers form (`/recruit`) writes applicants to the D1 `job_applications`
-table and uploads résumé / DOPL-license files to R2 under `recruit/<id>/…`. A
+The application form (`/recruit/apply`) writes applicants to the D1
+`job_applications` table and uploads the optional résumé to R2 under
+`recruit/<id>/…`. A
 password-protected dashboard reviews them. **Full guide:
 [`docs/ADMIN.md`](docs/ADMIN.md).** Key points for editing:
 

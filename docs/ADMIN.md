@@ -18,7 +18,7 @@ which wrangler config drives the build (see
 | Worker      | Config                    | URL                                         | Serves at `/`        |
 | ----------- | ------------------------- | ------------------------------------------- | -------------------- |
 | `curevanails` | `wrangler.jsonc`          | `curevanails-tech.workers.dev`              | Marketing + blog     |
-| `getready`  | `wrangler.getready.jsonc` | `getready.curevanails-tech.workers.dev`     | `/getready` (careers) |
+| `getready`  | `wrangler.getready.jsonc` | `getready.curevanails-tech.workers.dev`     | `/getready` (waitlist landing) |
 | `admin`     | `wrangler.admin.jsonc`    | `admin.curevanails-tech.workers.dev`        | `/admin` (dashboard) |
 
 All three share the **same D1 database** (`curevanails`) and **R2 bucket**
@@ -36,13 +36,17 @@ writes.
 
 On submit the endpoint:
 
-1. Validates the structured fields (name, phone, email, license types, skills,
-   availability, etc.).
-2. Uploads the **résumé** (required) and optional **DOPL license photo** to R2
-   under `recruit/<application-id>/resume/...` and `recruit/<application-id>/license/...`.
+1. Validates the structured fields (name, phone, positions of interest,
+   licensure status, background, employment type, etc. — the July 2026
+   "Hiring Form" field set).
+2. Uploads the optional **résumé** to R2 under
+   `recruit/<application-id>/resume/...`.
 3. Inserts a row into the D1 `job_applications` table. The table is created
-   lazily with `CREATE TABLE IF NOT EXISTS`, so no separate migration is needed —
-   it appears on the first successful submission.
+   lazily via `ensureApplicationsSchema` (`src/utils/recruit-db.ts`), so no
+   separate migration is needed — it appears on the first successful
+   submission. A pre-existing old-shape table (the original nail-tech-only
+   field set with DOPL/skills/availability columns) is renamed to
+   `job_applications_legacy`, keeping its data.
 
 ### `job_applications` columns
 
@@ -50,18 +54,18 @@ On submit the endpoint:
 | --------------------- | ------------------------------------------------ |
 | `id`                  | UUID, primary key                                |
 | `created_at`          | ISO timestamp                                    |
-| `full_name`, `phone`, `email`, `city` | Contact details                  |
-| `license_types`       | JSON array (`nail_tech`, `cosmetologist_barber`, `other`) |
-| `dopl_license_number`, `license_expiration` | Utah DOPL license info     |
-| `work_authorized`     | `yes` / `no`                                     |
-| `skills`              | JSON array (manicure_pedicure, gel_shellac, …)   |
-| `english_proficiency` | `native` / `fluent` / `conversational` / `limited` |
-| `employment_type`     | `full_time` / `part_time`                        |
-| `days_available`      | JSON array of weekdays                            |
-| `start_date`          | Available start date                             |
-| `resume_key`, `resume_filename` | R2 object key + original filename      |
-| `license_photo_key`   | R2 object key (nullable)                          |
-| `portfolio_link`      | URL (nullable)                                   |
+| `first_name`, `last_name`, `phone` | Contact details (required)          |
+| `email`               | Contact email (nullable — optional on the form)  |
+| `positions`           | JSON array (`nail_technician`, `esthetician`, `cosmetologist`, `lash_artist`, `open_to_multiple`) |
+| `current_status`      | `licensed_utah` / `beauty_school` / `transferring_license` |
+| `graduation_date`     | `YYYY-MM` expected graduation (nullable)         |
+| `background`          | `school_or_recent_grad` / `salon_experience`     |
+| `employment_type`     | `full_time` / `part_time` / `either`             |
+| `resume_key`, `resume_filename` | R2 object key + original filename (nullable — résumé is optional) |
+| `portfolio_link`      | Instagram / Facebook / LinkedIn handle or URL (nullable) |
+| `why_cureva`          | Short "Why would you like to work at CURE VÀ?" answer (nullable) |
+| `contact_consent`     | `1` if the applicant agreed to be contacted about future opportunities |
+| `status`, `notes`     | Staff-managed pipeline status + recruiter notes  |
 
 ---
 
@@ -80,10 +84,10 @@ On submit the endpoint:
 | `src/utils/admin-auth.ts`       | Session-token signing/verification + credential check               |
 | `src/middleware.ts`             | Gates `/admin*`, handles the standalone root rewrite                 |
 
-The dashboard renders each application as a card with contact info, license
-details, skills/availability chips, and download buttons for the résumé,
-license photo, and portfolio link. The header shows the total count and a
-**Sign out** button.
+The dashboard renders each application as an expandable table row with contact
+info, position/employment chips, licensure status, background, the "Why
+CURE VÀ?" answer, and links for the résumé and portfolio. The header shows the
+pipeline stat cards and a **Sign out** button.
 
 ---
 
