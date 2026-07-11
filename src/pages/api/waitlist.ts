@@ -14,10 +14,12 @@ export const prerender = false;
 /**
  * Waitlist capture for the CureVà "getready" pre-launch site.
  *
- * Accepts a JSON (or form-encoded) POST with `email` + `phone`, validates them
- * with the same rules the recruit form uses, and upserts a row into the D1
- * `waitlist` table (deduped by normalized email). Capture-only: no discount
- * code is generated yet — see `src/utils/waitlist-db.ts`.
+ * Accepts a JSON (or form-encoded) POST with `email` (required) and `phone`
+ * (optional — the getready landing form is email-only per the July 2026
+ * landing-page doc, while /early-access and /waitlist still send both).
+ * Upserts a row into the D1 `waitlist` table (deduped by normalized email).
+ * Capture-only: no discount code is generated yet — see
+ * `src/utils/waitlist-db.ts`.
  */
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -95,11 +97,13 @@ export const POST: APIRoute = async ({ request }) => {
 	if (!email) errors.email = "Email address is required.";
 	else if (!EMAIL_RE.test(email)) errors.email = "Enter a valid email address.";
 
-	if (!phone) errors.phone = "Phone number is required.";
-	else if (/[A-Za-z]/.test(phone) || !PHONE_ALLOWED_RE.test(phone))
-		errors.phone = "Phone number can't contain letters.";
-	else if (digitsOnly(phone).length < 10 || digitsOnly(phone).length > 15)
-		errors.phone = "Enter a valid phone number (at least 10 digits).";
+	// Phone is optional; validate only when provided.
+	if (phone) {
+		if (/[A-Za-z]/.test(phone) || !PHONE_ALLOWED_RE.test(phone))
+			errors.phone = "Phone number can't contain letters.";
+		else if (digitsOnly(phone).length < 10 || digitsOnly(phone).length > 15)
+			errors.phone = "Enter a valid phone number (at least 10 digits).";
+	}
 
 	if (Object.keys(errors).length > 0) {
 		return json({ ok: false, errors }, 400);
@@ -123,12 +127,20 @@ export const POST: APIRoute = async ({ request }) => {
 
 		if (existing) {
 			// Already joined — refresh phone/source, keep the original join time.
-			await db
-				.prepare(
-					"UPDATE waitlist SET phone = ?, phone_norm = ?, source = ? WHERE email_norm = ?",
-				)
-				.bind(phone, phoneNorm, cleanSource, emailNorm)
-				.run();
+			// An email-only signup must not blank out a phone we already have.
+			if (phone) {
+				await db
+					.prepare(
+						"UPDATE waitlist SET phone = ?, phone_norm = ?, source = ? WHERE email_norm = ?",
+					)
+					.bind(phone, phoneNorm, cleanSource, emailNorm)
+					.run();
+			} else {
+				await db
+					.prepare("UPDATE waitlist SET source = ? WHERE email_norm = ?")
+					.bind(cleanSource, emailNorm)
+					.run();
+			}
 			return json({ ok: true, alreadyJoined: true });
 		}
 
