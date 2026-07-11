@@ -6,8 +6,8 @@ import RecruitHead from "../components/recruit/RecruitHead.astro";
 // Collective" recruit theme (see RecruitHead.astro).
 //
 // Pre-launch strategy: this page collects a lightweight *talent list* (the
-// #apply form below is client-side-only — it validates and confirms but does
-// not persist). The full, database-backed application still lives at
+// #apply form below POSTs to /api/talent → D1 `talent_list`, reviewed at
+// /admin/talent). The full, database-backed application still lives at
 // /recruit/apply; it is intentionally unlinked from here for now.
 export const prerender = false;
 
@@ -312,12 +312,12 @@ const HERO_IMG =
         <div class="field"><label>Role you're interested in</label>
           <select class="inp" name="role">
             <option value="">Select a role…</option>
-            <option>Nail Technician</option>
-            <option>Esthetician</option>
-            <option>Lash &amp; Brow Specialist</option>
-            <option>Cosmetologist</option>
-            <option>I'm open to multiple roles</option>
-            <option>Something else</option>
+            <option value="nail_technician">Nail Technician</option>
+            <option value="esthetician">Esthetician</option>
+            <option value="lash_brow_specialist">Lash &amp; Brow Specialist</option>
+            <option value="cosmetologist">Cosmetologist</option>
+            <option value="open_to_multiple">I'm open to multiple roles</option>
+            <option value="other">Something else</option>
           </select>
         </div>
         <div class="field"><label>Portfolio or Instagram <span style="color:#a99e88;font-weight:400;">(optional)</span></label><input class="inp" name="portfolio" placeholder="@yourwork" /></div>
@@ -397,13 +397,15 @@ const HERO_IMG =
     });
   });
 
-  /* Talent-list form validation + confirm */
+  /* Talent-list form — validates then POSTs to /api/talent (D1 `talent_list`) */
   function isEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((v || '').trim()); }
   document.querySelectorAll('.js-apply').forEach(function (form) {
     var msg = form.querySelector('.js-msg');
     var name = form.querySelector('[name="name"]');
     var email = form.querySelector('[name="email"]');
     var role = form.querySelector('[name="role"]');
+    var portfolio = form.querySelector('[name="portfolio"]');
+    var about = form.querySelector('[name="about"]');
 
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -418,11 +420,59 @@ const HERO_IMG =
         bad[0].focus();
         return;
       }
-      if (msg) { msg.textContent = "Thank you — you're on the list. We'll personally reach out this fall."; msg.className = 'form-msg js-msg ok'; }
+
       var btn = form.querySelector('button[type="submit"]');
-      if (btn) { var o = btn.innerHTML; btn.innerHTML = 'Sent ✓'; btn.disabled = true;
-        setTimeout(function () { btn.innerHTML = o; btn.disabled = false; }, 3000); }
-      form.querySelectorAll('.inp').forEach(function (i) { i.value = ''; });
+      var original = btn ? btn.innerHTML : '';
+      if (btn) { btn.disabled = true; btn.innerHTML = 'Sending…'; }
+      if (msg) { msg.textContent = ''; msg.className = 'form-msg js-msg'; }
+
+      fetch('/api/talent', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          name: name.value.trim(),
+          email: email.value.trim(),
+          role: role.value,
+          portfolio: portfolio ? portfolio.value.trim() : '',
+          about: about ? about.value.trim() : '',
+          source: 'recruit-talent-list',
+        }),
+      })
+        .then(function (res) {
+          return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+        })
+        .then(function (r) {
+          if (r.ok && r.data && r.data.ok) {
+            if (msg) {
+              msg.textContent = r.data.alreadyJoined
+                ? "You're already on our list — we've refreshed your details."
+                : "Thank you — you're on the list. We'll personally reach out this fall.";
+              msg.className = 'form-msg js-msg ok';
+            }
+            if (btn) { btn.innerHTML = 'Sent ✓';
+              setTimeout(function () { btn.innerHTML = original; btn.disabled = false; }, 3000); }
+            form.querySelectorAll('.inp').forEach(function (i) { i.value = ''; });
+            return;
+          }
+          if (r.data && r.data.errors) {
+            Object.keys(r.data.errors).forEach(function (k) {
+              var f = form.querySelector('[name="' + k + '"]');
+              if (f) f.classList.add('err');
+            });
+          }
+          if (msg) {
+            msg.textContent =
+              (r.data && r.data.errors && (r.data.errors.name || r.data.errors.email || r.data.errors.role)) ||
+              (r.data && r.data.error) ||
+              'Something went wrong. Please try again.';
+            msg.className = 'form-msg js-msg bad';
+          }
+          if (btn) { btn.innerHTML = original; btn.disabled = false; }
+        })
+        .catch(function () {
+          if (msg) { msg.textContent = 'Network error. Please try again.'; msg.className = 'form-msg js-msg bad'; }
+          if (btn) { btn.innerHTML = original; btn.disabled = false; }
+        });
     });
 
     form.querySelectorAll('.inp').forEach(function (i) {

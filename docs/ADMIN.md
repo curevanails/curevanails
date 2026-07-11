@@ -29,8 +29,12 @@ writes.
 
 ## 1. The application form
 
-- **Page:** `src/pages/recruit.astro` → `/recruit` (linked from the `getready`
-  careers page).
+- **Careers page + talent list:** `src/pages/recruit.astro` → `/recruit`.
+  Its lightweight "Join Our Talent List" form (name, email, role, optional
+  portfolio + about) POSTs JSON to `src/pages/api/talent.ts` →
+  `POST /api/talent`, which upserts into the D1 `talent_list` table
+  (`src/utils/talent-db.ts`, deduped by email). Reviewed at `/admin/talent`.
+- **Full application page:** `src/pages/recruit/apply.astro` → `/recruit/apply`.
 - **Endpoint:** `src/pages/api/recruit.ts` → `POST /api/recruit`
   (`multipart/form-data`).
 

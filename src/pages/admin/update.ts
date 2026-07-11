@@ -5,6 +5,10 @@ import {
 	isApplicationStatus,
 } from "../../utils/recruit-db";
 import {
+	ensureTalentSchema,
+	isTalentStatus,
+} from "../../utils/talent-db";
+import {
 	ensureWaitlistSchema,
 	isWaitlistStatus,
 } from "../../utils/waitlist-db";
@@ -21,12 +25,14 @@ function json(body: unknown, status = 200) {
 }
 
 /**
- * Updates the staff-managed fields (status, notes) on either a recruit
- * application or a waitlist entry, selected by the optional `entity` field:
+ * Updates the staff-managed fields (status, notes) on a recruit application,
+ * a waitlist entry, or a talent-list entry, selected by the optional
+ * `entity` field:
  *
  *   POST /admin/update
  *     { "id": "...", "status"?: "...", "notes"?: "..." }                  // application (default)
  *     { "entity": "waitlist", "id": "...", "status"?: "...", "notes"?: "..." }
+ *     { "entity": "talent",   "id": "...", "status"?: "...", "notes"?: "..." }
  */
 export const POST: APIRoute = async ({ request }) => {
 	const db = env.DB as D1Database;
@@ -49,10 +55,16 @@ export const POST: APIRoute = async ({ request }) => {
 	}
 
 	const isWaitlist = body.entity === "waitlist";
-	const table = isWaitlist ? "waitlist" : "job_applications";
-	const validStatus = isWaitlist ? isWaitlistStatus : isApplicationStatus;
+	const isTalent = body.entity === "talent";
+	const table = isWaitlist ? "waitlist" : isTalent ? "talent_list" : "job_applications";
+	const validStatus = isWaitlist
+		? isWaitlistStatus
+		: isTalent
+			? isTalentStatus
+			: isApplicationStatus;
 
 	if (isWaitlist) await ensureWaitlistSchema(db);
+	else if (isTalent) await ensureTalentSchema(db);
 	else await ensureApplicationsSchema(db);
 
 	try {
