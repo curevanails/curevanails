@@ -141,3 +141,14 @@
 		animation: none;
 	}
 }
+
+/* ============================================================
+   Responsive safety: the EmDash body layout is a CSS grid, and
+   grid items default to min-width:auto — a wide/unbreakable
+   child (footer columns, a long link) can force the track past
+   the viewport on narrow screens. Letting the top-level items
+   shrink keeps every blog page free of horizontal overflow.
+   ============================================================ */
+body > * {
+	min-width: 0;
+}

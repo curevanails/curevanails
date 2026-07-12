@@ -206,10 +206,15 @@ p{margin:0;text-wrap:pretty;}
   .g3,.g4{grid-template-columns:repeat(2,1fr);}
   .foot-grid{grid-template-columns:1fr 1fr;}
 }
+@media (max-width:900px){
+  .nav-links{display:none;}
+  .nav-signin{display:none;}
+  .nav-inner{gap:16px;}
+  .nav-right{gap:12px;}
+}
 @media (max-width:720px){
   .wrap{padding:0 22px;}
   .g2,.g3,.g4{grid-template-columns:1fr;}
-  .nav-links{display:none;}
 }
 </style>
 

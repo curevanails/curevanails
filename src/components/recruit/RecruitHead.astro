@@ -267,11 +267,23 @@ select.inp{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns
   .foot-grid{grid-template-columns:1fr 1fr;}
   .role-body-inner{grid-template-columns:1fr;gap:22px;}
 }
+/* Collapse the nav to brand + primary button below the point where the
+   section links + right-side actions stop fitting (covers tablet portrait). */
+@media (max-width:900px){
+  .nav-links{display:none;}
+  .nav-inner{gap:16px;}
+  .nav-right{gap:12px;}
+  .nav-signin{display:none;}
+}
 @media (max-width:720px){
   .wrap{padding:0 22px;}
   .g2,.g3,.g4{grid-template-columns:1fr;}
-  .nav-links{display:none;}
   .role-head{grid-template-columns:1fr auto;}
   .role-meta{display:none;}
+}
+@media (max-width:380px){
+  .brand{font-size:22px;}
+  .brand .mark{width:26px;height:26px;}
+  .btn-sm{padding:10px 16px;font-size:13.5px;}
 }
 </style>

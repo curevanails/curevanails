@@ -27,6 +27,22 @@ const HERO_IMG =
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CureVà — Careers · Nail Technicians &amp; Estheticians</title>
 <RecruitHead />
+<style is:inline>
+  /* Responsive collapse for this page's inline-styled grids. Inline styles
+     win over classes, so these overrides use !important. */
+  @media (max-width:820px){
+    .r-2{grid-template-columns:1fr !important;gap:32px !important;}
+    .r-mosaic{grid-template-columns:1fr 1fr !important;grid-template-rows:auto !important;}
+    .r-gallery{grid-template-columns:1fr 1fr !important;}
+    .r-gallery > *{grid-column:auto !important;grid-row:auto !important;}
+    .r-mosaic > *{grid-column:auto !important;grid-row:auto !important;min-height:180px;}
+  }
+  @media (max-width:520px){
+    .r-mosaic,.r-gallery{grid-template-columns:1fr !important;}
+    .hero-cta{justify-content:flex-start !important;}
+    .hero-cta .btn{flex:1 1 auto;}
+  }
+</style>
 </head>
 <body>
 
@@ -52,7 +68,7 @@ const HERO_IMG =
   <div class="wrap">
     <span class="eyebrow">Careers at CureVà · Opening in Sugar House · December</span>
     <h1 style="margin:26px 0 0;max-width:16ch;">Come make something <span class="serif-i">calm.</span></h1>
-    <div style="display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:end;margin-top:30px;">
+    <div class="r-2" style="display:grid;grid-template-columns:1.05fr .95fr;gap:48px;align-items:end;margin-top:30px;">
       <div>
         <p class="lede">We're creating the kind of beauty studio we always wished existed — not just for our clients, but for the professionals who care for them.</p>
         <div style="margin-top:22px;display:flex;flex-wrap:wrap;gap:10px;">
@@ -62,7 +78,7 @@ const HERO_IMG =
           <span class="chip"><span class="dot" style="background:var(--walnut);"></span>Cosmetologists</span>
         </div>
       </div>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
+      <div class="hero-cta" style="display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end;">
         <a class="btn btn-primary btn-lg" href="/recruit/apply">Apply now</a>
         <a class="btn btn-outline btn-lg" href="#apply">Join our talent list</a>
       </div>
@@ -76,7 +92,7 @@ const HERO_IMG =
 
 <!-- ===================== INTRO / MANIFESTO ===================== -->
 <section class="section">
-  <div class="wrap" style="display:grid;grid-template-columns:.9fr 1.1fr;gap:60px;align-items:start;">
+  <div class="wrap r-2" style="display:grid;grid-template-columns:.9fr 1.1fr;gap:60px;align-items:start;">
     <div>
       <span class="eyebrow">Why we exist</span>
     </div>
@@ -121,7 +137,7 @@ const HERO_IMG =
     </div>
 
     <!-- material mosaic -->
-    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr;grid-template-rows:230px 230px;gap:18px;">
+    <div class="r-mosaic" style="display:grid;grid-template-columns:1.4fr 1fr 1fr;grid-template-rows:230px 230px;gap:18px;">
       <div class="ph oak" style="grid-row:span 2;border-radius:18px;"><span class="tag">photo · cash wrap &amp; walnut millwork</span></div>
       <div class="ph" style="border-radius:18px;"><span class="tag">photo · rounded plaster wall</span></div>
       <div class="ph sage" style="border-radius:18px;"><span class="tag">photo · greenery</span></div>
@@ -278,7 +294,7 @@ const HERO_IMG =
       </div>
       <p class="muted" style="max-width:32ch;">Slow mornings, good light, real plants, and a team that has each other's backs.</p>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:200px;gap:16px;">
+    <div class="r-gallery" style="display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:200px;gap:16px;">
       <div class="ph sage" style="grid-column:span 2;grid-row:span 2;border-radius:18px;"><span class="tag">photo · greenery &amp; daylight</span></div>
       <div class="ph oak" style="border-radius:18px;"><span class="tag">photo · team at the cash wrap</span></div>
       <div class="ph" style="border-radius:18px;"><span class="tag">photo · leaf detail</span></div>
@@ -293,7 +309,7 @@ const HERO_IMG =
 
 <!-- ===================== JOIN OUR TALENT LIST ===================== -->
 <section class="section" id="apply" style="background:var(--plaster);border-top:1px solid var(--line);">
-  <div class="wrap" style="display:grid;grid-template-columns:.85fr 1.15fr;gap:60px;align-items:start;">
+  <div class="wrap r-2" style="display:grid;grid-template-columns:.85fr 1.15fr;gap:60px;align-items:start;">
     <div>
       <span class="eyebrow">Join Our Talent List</span>
       <h2 style="margin-top:18px;">Let's connect.</h2>
