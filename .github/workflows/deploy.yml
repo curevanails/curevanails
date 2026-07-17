@@ -55,11 +55,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # The Worker boots under Miniflare during `astro preview`; provide a
-      # throwaway local EmDash key (no secrets are committed). The local D1 is
-      # empty so nothing encrypted is ever decrypted with it.
-      - name: Provide a local EmDash key
-        run: echo "EMDASH_ENCRYPTION_KEY=$(openssl rand -hex 32)" > .dev.vars
+      # The Worker boots under Miniflare during `astro preview`; provide
+      # throwaway local secrets (nothing is committed). The local D1 is empty so
+      # nothing encrypted is ever decrypted with the EmDash key. ADMIN_PASSWORD
+      # enables the /admin area so admin.spec.ts actually runs instead of
+      # skipping — it is a disposable CI value, NOT the production secret.
+      - name: Provide local secrets for the preview Worker
+        run: |
+          {
+            echo "EMDASH_ENCRYPTION_KEY=$(openssl rand -hex 32)"
+            echo "ADMIN_PASSWORD=ci-test-password"
+          } > .dev.vars
 
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
@@ -86,6 +92,13 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     environment: production
+    # wrangler reads these from the environment. The Worker runtime secrets
+    # (ADMIN_PASSWORD, AWS_*, EMDASH_ENCRYPTION_KEY) are set once with
+    # `wrangler secret put` and persist across deploys — the pipeline never
+    # touches them.
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v6
 
@@ -101,12 +114,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
+      # This codebase runs as THREE Workers off different wrangler configs,
+      # sharing the same D1 + R2. Each script sets WRANGLER_CONFIG so both the
+      # astro build and `wrangler deploy` target the matching config. Deploy all
+      # three so a push to main updates the whole surface, not just the main site.
+      - name: Deploy main site (curevanails)
+        run: pnpm deploy
 
-      - name: Deploy to Cloudflare Workers
-        uses: cloudflare/wrangler-action@v4
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: deploy
+      - name: Deploy getready waitlist Worker
+        run: pnpm deploy:getready
+
+      - name: Deploy admin dashboard Worker
+        run: pnpm deploy:admin
