@@ -10,8 +10,10 @@
 	// ADMIN_STANDALONE makes the app serve the recruit admin dashboard at the
 	// root (`/`) of this Worker. See src/middleware.ts.
 	//
-	// The admin area is gated by HTTP Basic Auth. Set the credentials as
-	// secrets (NOT vars) after the first deploy:
+	// The admin area is gated by a form login that issues a signed session
+	// cookie (see src/utils/admin-auth.ts + src/pages/admin/login.astro). If
+	// ADMIN_PASSWORD is unset the admin area returns 404 and is disabled. Set the
+	// credentials as secrets (NOT vars) after the first deploy:
 	//   wrangler secret put ADMIN_PASSWORD --config wrangler.admin.jsonc
 	//   wrangler secret put ADMIN_USERNAME --config wrangler.admin.jsonc   (optional, defaults to "admin")
 	"vars": {

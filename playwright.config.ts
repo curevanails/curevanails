@@ -32,7 +32,7 @@ export default defineConfig({
 		// `reuseExistingServer` (local only) lets you point at an already-running
 		// `pnpm preview --port 8788` to skip the rebuild while iterating.
 		command: `pnpm build && pnpm preview --port ${PORT}`,
-		url: `${BASE_URL}/recruit`,
+		url: `${BASE_URL}/recruit/apply`,
 		reuseExistingServer: !process.env.CI,
 		timeout: 180_000,
 		stdout: "pipe",

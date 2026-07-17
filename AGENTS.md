@@ -25,6 +25,7 @@ pnpm typecheck        # astro check
 pnpm deploy           # astro build && wrangler deploy (main curevanails site)
 pnpm deploy:getready  # build & deploy the standalone getready waitlist-landing Worker (design: docs/DESIGN.md)
 pnpm deploy:admin     # build & deploy the standalone admin recruit-dashboard Worker
+pnpm test:e2e         # build + preview the Worker, run the Playwright E2E suite (docs/TESTING.md)
 ```
 
 The EmDash content admin is at `http://localhost:4321/_emdash/admin`.
@@ -40,7 +41,7 @@ After a change, verify end-to-end before committing:
 4. Booking CTAs (**Book now** in the header, **Book your visit** in the hero) open the Mangomint popup; they fall back to `https://booking.mangomint.com/463532` if the widget script hasn't loaded. Booking must be enabled in the Mangomint account for the popup to appear.
 5. Blog routes respond: `/posts`, a single post, `/search`, `/rss.xml`.
 6. `/_emdash/admin` loads.
-7. If you touched recruit/admin: `/recruit` renders the form; `/admin` redirects to `/admin/login` when signed out; logging in shows the dashboard. (See [`docs/ADMIN.md`](docs/ADMIN.md).)
+7. If you touched recruit/admin: `/recruit` renders the form; `/admin` redirects to `/admin/login` when signed out; logging in shows the dashboard. (See [`docs/ADMIN.md`](docs/ADMIN.md).) Run `pnpm test:e2e` — the Playwright suite in `e2e/` covers the apply form and the admin dashboard end-to-end (see [`docs/TESTING.md`](docs/TESTING.md)).
 
 ## Key Files
 
@@ -71,6 +72,13 @@ Agent skills are in `.agents/skills/`. Load them when working on specific tasks:
 The EmDash docs are available as an MCP server at `https://docs.emdashcms.com/mcp`. When you need to verify an API, hook, config option, field type, or pattern, call `search_docs` against the live documentation rather than relying on training-data recall. The docs reflect current behaviour; assumptions may not.
 
 This template ships with `.mcp.json`, `.cursor/mcp.json`, and `.vscode/mcp.json` so Claude Code, Cursor, and VS Code auto-discover the docs server. Other tools (OpenCode, Windsurf, etc.) need a manual one-time setup -- see [docs.emdashcms.com/docs-mcp](https://docs.emdashcms.com/docs-mcp).
+
+Project docs in `docs/`:
+
+- [`docs/RECRUIT.md`](docs/RECRUIT.md) — the `/recruit/apply` Hiring Form field contract (fields, validation, D1 columns, R2 layout, the three-Worker topology). Update it whenever the form changes.
+- [`docs/ADMIN.md`](docs/ADMIN.md) — the recruit admin dashboard, auth, and endpoints.
+- [`docs/TESTING.md`](docs/TESTING.md) — the Playwright E2E suite (`e2e/`): how to run it, structure, and conventions.
+- [`docs/DESIGN.md`](docs/DESIGN.md), [`docs/EMAIL.md`](docs/EMAIL.md) — the getready landing design and email sending.
 
 ## Rules
 
@@ -105,8 +113,10 @@ A blog with posts, pages, categories, tags, full-text search, and RSS. Designed 
 The application form (`/recruit/apply`) writes applicants to the D1
 `job_applications` table and uploads the optional résumé to R2 under
 `recruit/<id>/…`. A
-password-protected dashboard reviews them. **Full guide:
-[`docs/ADMIN.md`](docs/ADMIN.md).** Key points for editing:
+password-protected dashboard reviews them. **Guides: the form field contract is
+[`docs/RECRUIT.md`](docs/RECRUIT.md); the dashboard is
+[`docs/ADMIN.md`](docs/ADMIN.md); the E2E coverage is
+[`docs/TESTING.md`](docs/TESTING.md).** Key points for editing:
 
 - **Three Workers, one codebase.** `getready` and `admin` reuse this code under
   different Worker names (= subdomains), selected by a `*_STANDALONE` var read in
