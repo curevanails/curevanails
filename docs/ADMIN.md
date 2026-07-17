@@ -196,6 +196,13 @@ drive the **build** with the alternate config via the `WRANGLER_CONFIG` env var
   not a `var`.
 - The `/admin/file` endpoint only serves keys under the `recruit/` prefix and
   rejects `..`, so it cannot be used to read arbitrary bucket objects.
-- Possible future work: multiple admin users, an applicant status/notes field,
-  CSV export, delete/archive actions, and email notification on new submissions
-  (an `@emdash-cms/plugin-webhook-notifier` is already a dependency).
+- Per-applicant **status** (`new` / `pending` / `contacted` / `deal`) and
+  **recruiter notes** are implemented — the dashboard writes them through
+  `POST /admin/update`, and they survive a reload. They are covered end-to-end
+  in `e2e/admin.spec.ts` (see [`docs/TESTING.md`](TESTING.md)).
+- Possible future work: multiple admin users, CSV export, delete/archive
+  actions, and email notification on new submissions (an
+  `@emdash-cms/plugin-webhook-notifier` is already a dependency).
+
+See [`docs/RECRUIT.md`](RECRUIT.md) for the full apply-form field contract and
+[`docs/TESTING.md`](TESTING.md) for the E2E suite that guards this flow.
