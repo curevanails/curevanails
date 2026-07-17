@@ -12,12 +12,18 @@ import { E2E_SURNAME } from "./helpers";
  * this is a no-op there.
  */
 export default function globalTeardown(): void {
-	try {
-		execSync(
-			`npx wrangler d1 execute curevanails --local --command "DELETE FROM job_applications WHERE last_name = '${E2E_SURNAME}'"`,
-			{ stdio: "ignore" },
-		);
-	} catch {
-		// Table may not exist yet, or wrangler unavailable — ignore.
+	// Each submit also writes a best-effort recruit_notifications row; clean both.
+	const statements = [
+		`DELETE FROM job_applications WHERE last_name = '${E2E_SURNAME}'`,
+		`DELETE FROM recruit_notifications WHERE candidate_name LIKE '%${E2E_SURNAME}%'`,
+	];
+	for (const sql of statements) {
+		try {
+			execSync(`npx wrangler d1 execute curevanails --local --command "${sql}"`, {
+				stdio: "ignore",
+			});
+		} catch {
+			// Table may not exist yet, or wrangler unavailable — ignore.
+		}
 	}
 }

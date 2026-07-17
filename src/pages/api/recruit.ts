@@ -7,6 +7,7 @@ import {
 	POSITION_OPTIONS,
 	ensureApplicationsSchema,
 } from "../../utils/recruit-db";
+import { notifyNewApplication } from "../../utils/recruit-notify";
 
 // Server-rendered endpoint — never prerender.
 export const prerender = false;
@@ -216,6 +217,26 @@ export const POST: APIRoute = async ({ request }) => {
 	} catch (err) {
 		console.error("recruit insert failed", err);
 		return json({ ok: false, error: "Failed to save application." }, 500);
+	}
+
+	// Best-effort recruiter alert — must never affect the applicant's result.
+	try {
+		await notifyNewApplication(db, env as unknown as Record<string, unknown>, {
+			id,
+			firstName,
+			lastName,
+			email: email || null,
+			phone,
+			positions,
+			currentStatus,
+			background,
+			employmentType,
+			portfolioLink: portfolioLink || null,
+			whyCureva: whyCureva || null,
+			resumeFilename: resumeMeta?.filename ?? null,
+		});
+	} catch (err) {
+		console.error("recruit notify failed", err);
 	}
 
 	return json({ ok: true, id });
