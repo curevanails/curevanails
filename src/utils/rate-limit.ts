@@ -47,3 +47,52 @@ export async function rateLimit(
 		return { ok: true, remaining: limit };
 	}
 }
+
+/**
+ * Read-only check: true when `key` has already reached `limit` failures in the
+ * current window. Does NOT mutate the counter — pair with `recordAttempt` so a
+ * successful login never counts against the limit (only failures are throttled,
+ * and a legitimate admin is never locked out by their own success). Fails open.
+ */
+export async function isRateLimited(
+	kv: KVNamespace | undefined,
+	key: string,
+	limit: number,
+): Promise<boolean> {
+	if (!kv) return false;
+	try {
+		const cur = (await kv.get(`rl:${key}`, "json")) as
+			| { c: number; reset: number }
+			| null;
+		if (!cur || cur.reset < Date.now()) return false;
+		return cur.c >= limit;
+	} catch {
+		return false;
+	}
+}
+
+/** Increment the fixed-window counter for `key`. Call on each failed attempt. */
+export async function recordAttempt(
+	kv: KVNamespace | undefined,
+	key: string,
+	windowSec: number,
+): Promise<void> {
+	if (!kv) return;
+	const k = `rl:${key}`;
+	const now = Date.now();
+	try {
+		const cur = (await kv.get(k, "json")) as { c: number; reset: number } | null;
+		if (!cur || cur.reset < now) {
+			await kv.put(k, JSON.stringify({ c: 1, reset: now + windowSec * 1000 }), {
+				expirationTtl: windowSec,
+			});
+		} else {
+			const ttl = Math.max(60, Math.ceil((cur.reset - now) / 1000));
+			await kv.put(k, JSON.stringify({ c: cur.c + 1, reset: cur.reset }), {
+				expirationTtl: ttl,
+			});
+		}
+	} catch {
+		// best-effort — never block a login on a KV hiccup
+	}
+}

@@ -25,6 +25,14 @@ export default defineConfig({
 			plugins: [formsPlugin()],
 		}),
 	],
+	// AWS SNS posts to /api/webhooks/ses with `Content-Type: text/plain` and no
+	// `Origin` header. Astro's default CSRF `checkOrigin` rejects exactly that
+	// shape with a 403 *before* the handler runs, which silently dropped every
+	// SES delivery/bounce/complaint event (so permanent bounces were never
+	// suppressed). We turn it off and rely on stronger, intentional protection:
+	// the signed-cookie admin gate (src/middleware.ts), SNS signature + topic
+	// verification on the webhook, and the unguessable token on /unsubscribe.
+	security: { checkOrigin: false },
 	fonts: [
 		{
 			provider: fontProviders.google(),
