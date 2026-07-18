@@ -13,9 +13,10 @@ const BASE_URL = `http://localhost:${PORT}`;
 
 export default defineConfig({
 	testDir: "./e2e",
-	// The notify Worker suite lives in ./e2e/notify and runs against a different
-	// build via playwright.notify.config.ts — keep it out of the main run.
-	testIgnore: "**/notify/**",
+	// The email-dashboard suite lives in ./e2e/mail and runs against a different
+	// build (the admin Worker) via playwright.mail.config.ts — keep it out of the
+	// main run.
+	testIgnore: "**/mail/**",
 	globalTeardown: "./e2e/global-teardown.ts",
 	fullyParallel: true,
 	forbidOnly: !!process.env.CI,

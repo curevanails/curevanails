@@ -40,7 +40,13 @@ export function devVar(name: string): string | undefined {
 export const ADMIN_USERNAME = devVar("ADMIN_USERNAME") || "admin";
 export const ADMIN_PASSWORD = devVar("ADMIN_PASSWORD");
 
-/** Sign in through the real login form and land on the dashboard. */
+/**
+ * Sign in through the real admin login form and land on the email dashboard.
+ *
+ * The email dashboard now lives on the admin Worker under `/mail`; the admin
+ * login redirects to the recruit dashboard at `/`, so we navigate on to `/mail`
+ * afterwards, leaving every caller on the email dashboard.
+ */
 export async function login(page: Page): Promise<void> {
 	await page.goto("/login");
 	await page.fill('input[name="username"]', ADMIN_USERNAME);
@@ -49,6 +55,7 @@ export async function login(page: Page): Promise<void> {
 		page.waitForURL((url) => new URL(url).pathname === "/"),
 		page.click('button[type="submit"]'),
 	]);
+	await page.goto("/mail");
 }
 
 /** A unique template name so parallel workers never collide. */

@@ -16,7 +16,7 @@ export const CONFIGURATION_SET = "cureva-main";
  * nor a request origin is available — e.g. cron-triggered scheduled campaigns.
  * A `List-Unsubscribe` header MUST be an absolute URL, so this can't be blank.
  */
-export const DEFAULT_PUBLIC_URL = "https://notify.curevanails.com";
+export const DEFAULT_PUBLIC_URL = "https://admin.curevanails.com";
 
 export interface SesCredentials {
 	region: string;

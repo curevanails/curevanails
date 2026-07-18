@@ -7,8 +7,9 @@
 	"main": "./src/worker.ts",
 	"compatibility_date": "2026-02-24",
 	"compatibility_flags": ["nodejs_compat"],
-	// ADMIN_STANDALONE makes the app serve the recruit admin dashboard at the
-	// root (`/`) of this Worker. See src/middleware.ts.
+	// ADMIN_STANDALONE makes the app serve the admin console at the root (`/`) of
+	// this Worker — recruit + waitlist + the email dashboard at `/mail`. See
+	// src/middleware.ts.
 	//
 	// The admin area is gated by a form login that issues a signed session
 	// cookie (see src/utils/admin-auth.ts + src/pages/admin/login.astro). If
@@ -16,8 +17,29 @@
 	// credentials as secrets (NOT vars) after the first deploy:
 	//   wrangler secret put ADMIN_PASSWORD --config wrangler.admin.jsonc
 	//   wrangler secret put ADMIN_USERNAME --config wrangler.admin.jsonc   (optional, defaults to "admin")
+	//
+	// Email lives here too (the standalone notify service was retired). SES send +
+	// the campaign cron + the SNS webhook run on this Worker, so set the SES
+	// secrets here as well:
+	//   wrangler secret put AWS_REGION            --config wrangler.admin.jsonc
+	//   wrangler secret put AWS_ACCESS_KEY_ID     --config wrangler.admin.jsonc
+	//   wrangler secret put AWS_SECRET_ACCESS_KEY --config wrangler.admin.jsonc
+	//   wrangler secret put PUBLIC_SITE_URL       --config wrangler.admin.jsonc   (https://admin.curevanails.com)
+	//   wrangler secret put SESSION_SECRET        --config wrangler.admin.jsonc   (recommended)
+	// AWS SNS must post delivery/bounce/complaint events to
+	// https://admin.curevanails.com/api/webhooks/ses (was notify.curevanails.com).
+	// Cron Trigger: fire due scheduled campaigns every 5 minutes → src/worker.ts
+	// scheduled() → runDueCampaigns().
+	"triggers": {
+		"crons": ["*/5 * * * *"],
+	},
 	"vars": {
 		"ADMIN_STANDALONE": "true",
+		// ARN of the SNS topic the SES Configuration Set publishes to. When empty
+		// the /api/webhooks/ses handler fails closed (HTTP 503) and processes no
+		// SES events — set it to the real topic ARN before relying on bounce/
+		// complaint intake.
+		"SES_TOPIC_ARN": "",
 	},
 	"d1_databases": [
 		{
