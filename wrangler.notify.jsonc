@@ -1,0 +1,71 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	// Standalone Worker: same codebase + same D1/R2 as the main site, but a
+	// different Worker name. The name becomes the subdomain, so this deploys to
+	// https://notify.curevanails-tech.workers.dev (aliased notify.curevanails.com).
+	//
+	// This is the transactional / campaign email service (the old
+	// notifications-service repo, folded into this codebase). It serves the email
+	// dashboard, SES send + scheduled campaigns, the SNS bounce/complaint webhook,
+	// and the public unsubscribe page.
+	"name": "notify",
+	"main": "./src/worker.ts",
+	"compatibility_date": "2026-02-24",
+	"compatibility_flags": ["nodejs_compat"],
+	// Cron Trigger: fire due scheduled campaigns every 5 minutes. The handler
+	// lives in src/worker.ts → scheduled() → runDueCampaigns(). Scheduling times
+	// are stored as absolute Unix ms (the UI converts from Utah / America/Denver),
+	// so the cron cadence is timezone-independent.
+	"triggers": {
+		"crons": ["*/5 * * * *"],
+	},
+	"vars": {
+		// NOTIFY_STANDALONE makes the app serve the email dashboard at the root
+		// (`/`) of this Worker, with clean URLs (/settings, /recruit-alerts,
+		// /login, /logout). See src/middleware.ts.
+		"NOTIFY_STANDALONE": "true",
+		// The ARN of the SNS topic your SES Configuration Set publishes to. The
+		// /api/webhooks/ses handler rejects any SNS message from a different topic
+		// and refuses to auto-confirm foreign subscriptions. REQUIRED: when this is
+		// empty the webhook fails closed (HTTP 503) and processes no SES events, so
+		// set it to your real topic ARN before relying on bounce/complaint intake.
+		"SES_TOPIC_ARN": "",
+	},
+	// Shares the same D1 as the main CureVà site — the `waitlist` table IS the
+	// subscriber list and `email_logs` / `email_campaigns` / `suppression_list`
+	// live alongside it.
+	"d1_databases": [
+		{
+			"binding": "DB",
+			"database_name": "curevanails",
+			"database_id": "fcc8f06b-3ddf-4cae-953f-b9fce243eed8",
+		},
+	],
+	// The emdash integration (astro.config.mjs) binds R2 as `MEDIA`; the binding
+	// must exist for the build to run even though the notify service doesn't serve
+	// media. Same bucket as the main site.
+	"r2_buckets": [
+		{
+			"binding": "MEDIA",
+			"bucket_name": "curevanails-media",
+		},
+	],
+	// Astro's Cloudflare adapter enables sessions backed by a KV namespace named
+	// SESSION. The admin auth here uses signed cookies (not Astro sessions), and
+	// the login rate-limiter (src/utils/rate-limit.ts) also uses this namespace —
+	// but the binding must exist for the adapter. Dedicated notify namespace.
+	"kv_namespaces": [
+		{
+			"binding": "SESSION",
+			"id": "7dc602c72cc14651858c96a67e3c7997",
+		},
+	],
+	// SES credentials are SECRETS, not vars — set with `wrangler secret put … --config wrangler.notify.jsonc`.
+	// See docs/notify/EMAIL.md:
+	//   AWS_REGION, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, PUBLIC_SITE_URL
+	// Admin auth secrets:
+	//   ADMIN_PASSWORD  (required — if unset the dashboard returns 404)
+	//   ADMIN_USERNAME  (optional, default "admin")
+	//   SESSION_SECRET  (recommended — dedicated key for signing session cookies,
+	//                    falls back to ADMIN_PASSWORD when unset)
+}

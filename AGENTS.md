@@ -25,7 +25,9 @@ pnpm typecheck        # astro check
 pnpm deploy           # astro build && wrangler deploy (main curevanails site)
 pnpm deploy:getready  # build & deploy the standalone getready waitlist-landing Worker (design: docs/DESIGN.md)
 pnpm deploy:admin     # build & deploy the standalone admin recruit-dashboard Worker
+pnpm deploy:notify    # build & deploy the standalone notify email Worker (docs/notify/)
 pnpm test:e2e         # build + preview the Worker, run the Playwright E2E suite (docs/TESTING.md)
+pnpm test:e2e:notify  # build + preview the notify Worker, run its E2E suite (e2e/notify/)
 ```
 
 The EmDash content admin is at `http://localhost:4321/_emdash/admin`.
@@ -76,7 +78,8 @@ This template ships with `.mcp.json`, `.cursor/mcp.json`, and `.vscode/mcp.json`
 Project docs in `docs/` (index: [`docs/README.md`](docs/README.md)):
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — **start here.** The whole platform in Mermaid diagrams: the four Workers, shared D1/R2/KV, auth, the recruit application + email flows, CI/CD, and the D1 data model.
-- [`docs/RECRUIT.md`](docs/RECRUIT.md) — the `/recruit/apply` Hiring Form field contract (fields, validation, D1 columns, R2 layout, the three-Worker topology). Update it whenever the form changes.
+- [`docs/RECRUIT.md`](docs/RECRUIT.md) — the `/recruit/apply` Hiring Form field contract (fields, validation, D1 columns, R2 layout, the multi-Worker topology). Update it whenever the form changes.
+- [`docs/notify/`](docs/notify/README.md) — the **notify** email Worker: dashboard, SES send, scheduled campaigns, SNS webhook, unsubscribe (formerly the `notifications-service` repo).
 - [`docs/ADMIN.md`](docs/ADMIN.md) — the recruit admin dashboard, auth, and endpoints.
 - [`docs/TESTING.md`](docs/TESTING.md) — the Playwright E2E suite (`e2e/`): how to run it, structure, and conventions.
 - [`docs/DESIGN.md`](docs/DESIGN.md), [`docs/EMAIL.md`](docs/EMAIL.md) — the getready landing design and email sending.
@@ -119,11 +122,20 @@ password-protected dashboard reviews them. **Guides: the form field contract is
 [`docs/ADMIN.md`](docs/ADMIN.md); the E2E coverage is
 [`docs/TESTING.md`](docs/TESTING.md).** Key points for editing:
 
-- **Three Workers, one codebase.** `getready` and `admin` reuse this code under
-  different Worker names (= subdomains), selected by a `*_STANDALONE` var read in
-  `src/middleware.ts`. The build must be driven by the matching wrangler config
-  via `WRANGLER_CONFIG` (the `deploy:getready` / `deploy:admin` scripts do this),
-  not by `wrangler deploy -c`. All three share the same D1 + R2.
+- **Four Workers, one codebase.** `getready`, `admin`, and `notify` reuse this
+  code under different Worker names (= subdomains), selected by a `*_STANDALONE`
+  var read in `src/middleware.ts`. The build must be driven by the matching
+  wrangler config via `WRANGLER_CONFIG` (the `deploy:getready` / `deploy:admin` /
+  `deploy:notify` scripts do this), not by `wrangler deploy -c`. All four share
+  the same D1 (+ R2). **`notify`** (`NOTIFY_STANDALONE`, `wrangler.notify.jsonc`)
+  is the email service: it serves the email dashboard at its root (`/`,
+  `/settings`, `/recruit-alerts`, gated) plus `/api/email/*`, the public
+  `/api/webhooks/ses` SNS receiver, and `/unsubscribe/*`. Its pages live at
+  `src/pages/notify/*`; it also has a **Cron Trigger** (`*/5 * * * *`) that fires
+  `runDueCampaigns()` via the `scheduled` handler in `src/worker.ts`. See
+  [`docs/notify/`](docs/notify/README.md). The in-app `/admin/email` section was
+  retired — `src/middleware.ts` redirects any `/email` or `/admin/email` path to
+  the notify service.
 - **Auth is form-based with a signed cookie**, not HTTP Basic Auth.
   `src/utils/admin-auth.ts` mints an HMAC-SHA256 token (keyed by
   `ADMIN_PASSWORD`, 12 h TTL); `src/middleware.ts` verifies it on every
