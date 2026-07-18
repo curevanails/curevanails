@@ -3,12 +3,18 @@ import { isSuppressed } from "./suppression";
 
 /**
  * AWS SES (v2) sending. Region + credentials come from Worker secrets — never
- * hardcoded. The From address and Configuration Set are fixed to the verified
- * CureVà identity.
+ * hardcoded. The From address must be on a domain (or address) verified in SES.
  */
 
-export const FROM_ADDRESS = "CureVà <hello@cureva.vn>";
-export const CONFIGURATION_SET = "cureva-main";
+// Must be on a domain verified in SES (Identities). The domain `curevanails.com`
+// needs DKIM verified before this can send.
+export const FROM_ADDRESS = "CureVà <hello@curevanails.com>";
+
+// Optional SES Configuration Set (used for event publishing → SNS: opens,
+// bounces, complaints). Leave "" to send WITHOUT a config set — SES still sends
+// and still auto-suppresses hard bounces at the account level. Set this to the
+// name of a config set you create in SES to enable event tracking.
+export const CONFIGURATION_SET = "";
 
 /**
  * Absolute public origin, used as the last-resort base for unsubscribe links
@@ -107,7 +113,7 @@ export async function sendEmail(
 					...(headers.length ? { Headers: headers } : {}),
 				},
 			},
-			ConfigurationSetName: CONFIGURATION_SET,
+			...(CONFIGURATION_SET ? { ConfigurationSetName: CONFIGURATION_SET } : {}),
 			EmailTags: [{ Name: "log_id", Value: params.logId }],
 		}),
 	);
