@@ -16,8 +16,13 @@ import { SESSION_COOKIE, resolveSessionSecret, verifySessionToken } from "./util
  * On the standalone `admin` Worker the whole thing IS the admin, so the pages —
  * which physically live at `src/pages/admin/*` — are exposed at the root:
  * `/`, `/talent`, `/waitlist`, `/file`, `/update`, `/login`, `/logout`. Legacy
- * `/admin/*` URLs 308-redirect to their clean equivalent, and the old in-app
- * email section redirects to the standalone notify service.
+ * `/admin/*` URLs 308-redirect to their clean equivalent.
+ *
+ * The email dashboard (folded in from the notify service, pages at
+ * `src/pages/notify/*`) is served in-app on the admin surface — `/email` on the
+ * admin Worker, `/admin/email` on the main Worker — under the SAME admin session,
+ * so the operator never logs in twice. The `notify` Worker still serves the same
+ * dashboard standalone at its own root, plus the public SNS webhook + unsubscribe.
  *
  * Auth: verified with a dedicated `SESSION_SECRET` when set (falling back to
  * `ADMIN_PASSWORD`), so a captured cookie can't be used to brute-force the login
@@ -44,25 +49,27 @@ function signingSecret(password: string): string {
 	return resolveSessionSecret(password, workerVar("SESSION_SECRET"));
 }
 
-/** Email management moved to the standalone notify service. */
-const NOTIFY_URL = "https://notify.curevanails.com/";
-
 /**
  * Clean admin routes on the standalone admin Worker → the real `/admin/<seg>`
- * pages. `email` is intentionally absent (it redirects to the notify service).
+ * pages. `email` is handled separately (it has sub-pages and rewrites onto the
+ * `/notify/*` dashboard folded in from the notify service — see emailTarget).
  */
 const ADMIN_PAGES = new Set(["talent", "waitlist", "file", "update", "login", "logout"]);
 /** These manage their own auth (no session cookie required). */
 const ADMIN_PUBLIC = new Set(["login", "logout"]);
 
-/** Any spelling of the retired in-app email section. */
-function isEmailPath(p: string): boolean {
-	return (
-		p === "/email" ||
-		p.startsWith("/email/") ||
-		p === "/admin/email" ||
-		p.startsWith("/admin/email/")
-	);
+/** Email dashboard sub-pages (relative to the mount point). */
+const EMAIL_SUBPAGES = new Set(["", "settings", "recruit-alerts"]);
+
+/**
+ * Map an email dashboard sub-path ("" | "settings" | "recruit-alerts") to the
+ * physical `/notify/*` page that backs it, or null if it isn't a dashboard page.
+ * The email dashboard is served in-app on the admin surface (admin Worker
+ * `/email`, main Worker `/admin/email`) using the notify service's pages.
+ */
+function emailTarget(sub: string): string | null {
+	if (!EMAIL_SUBPAGES.has(sub)) return null;
+	return sub === "" ? "/notify" : `/notify/${sub}`;
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
@@ -71,11 +78,6 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	// both `/admin/login` and `/admin/login/`).
 	const pathname = context.url.pathname.replace(/\/+$/, "") || "/";
 	const password = workerVar("ADMIN_PASSWORD");
-
-	// Email management moved to the notify service — redirect on every Worker.
-	if (isEmailPath(pathname)) {
-		return Response.redirect(NOTIFY_URL, 302);
-	}
 
 	// ===== Standalone notify Worker: email dashboard at CLEAN root URLs =====
 	// Serves the email dashboard (`/`), settings, recruit-alerts, and the
@@ -147,6 +149,32 @@ export const onRequest = defineMiddleware(async (context, next) => {
 			return next(target);
 		}
 
+		// Email dashboard (folded in from the notify service) at clean `/email[/*]`,
+		// gated by the admin session — so the operator never logs in twice.
+		if (pathname === "/email" || pathname.startsWith("/email/")) {
+			const sub = pathname === "/email" ? "" : pathname.slice("/email/".length);
+			const target = emailTarget(sub);
+			if (target) {
+				if (!password) return new Response("Not found", { status: 404 });
+				const token = context.cookies.get(SESSION_COOKIE)?.value;
+				if (!(await verifySessionToken(token, signingSecret(password)))) {
+					return context.redirect("/login", 302);
+				}
+				return next(target + context.url.search);
+			}
+		}
+
+		// Email action endpoints (send / templates / test / schedule / settings) —
+		// admin-gated on this Worker too, not just on notify.*.
+		if (pathname.startsWith("/api/email/") || pathname.startsWith("/api/settings")) {
+			if (!password) return new Response("Not found", { status: 404 });
+			const token = context.cookies.get(SESSION_COOKIE)?.value;
+			if (!(await verifySessionToken(token, signingSecret(password)))) {
+				return context.redirect("/login", 302);
+			}
+			return next();
+		}
+
 		// Any other path (blog, recruit form, static assets) — serve unchanged.
 		return next();
 	}
@@ -156,6 +184,23 @@ export const onRequest = defineMiddleware(async (context, next) => {
 	if (isAdminArea) {
 		if (!password) return new Response("Not found", { status: 404 });
 		if (pathname === "/admin/login" || pathname === "/admin/logout") return next();
+		const token = context.cookies.get(SESSION_COOKIE)?.value;
+		if (!(await verifySessionToken(token, signingSecret(password)))) {
+			return context.redirect("/admin/login", 302);
+		}
+		// Email dashboard (folded in from the notify service) at `/admin/email[/*]`.
+		if (pathname === "/admin/email" || pathname.startsWith("/admin/email/")) {
+			const sub = pathname === "/admin/email" ? "" : pathname.slice("/admin/email/".length);
+			const target = emailTarget(sub);
+			if (target) return next(target + context.url.search);
+		}
+		return next();
+	}
+
+	// Email action endpoints on the main Worker — admin-gated (they live outside
+	// /admin/*, so the gate above doesn't cover them).
+	if (pathname.startsWith("/api/email/") || pathname.startsWith("/api/settings")) {
+		if (!password) return new Response("Not found", { status: 404 });
 		const token = context.cookies.get(SESSION_COOKIE)?.value;
 		if (!(await verifySessionToken(token, signingSecret(password)))) {
 			return context.redirect("/admin/login", 302);
