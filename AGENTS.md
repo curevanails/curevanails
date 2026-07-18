@@ -73,8 +73,9 @@ The EmDash docs are available as an MCP server at `https://docs.emdashcms.com/mc
 
 This template ships with `.mcp.json`, `.cursor/mcp.json`, and `.vscode/mcp.json` so Claude Code, Cursor, and VS Code auto-discover the docs server. Other tools (OpenCode, Windsurf, etc.) need a manual one-time setup -- see [docs.emdashcms.com/docs-mcp](https://docs.emdashcms.com/docs-mcp).
 
-Project docs in `docs/`:
+Project docs in `docs/` (index: [`docs/README.md`](docs/README.md)):
 
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — **start here.** The whole platform in Mermaid diagrams: the four Workers, shared D1/R2/KV, auth, the recruit application + email flows, CI/CD, and the D1 data model.
 - [`docs/RECRUIT.md`](docs/RECRUIT.md) — the `/recruit/apply` Hiring Form field contract (fields, validation, D1 columns, R2 layout, the three-Worker topology). Update it whenever the form changes.
 - [`docs/ADMIN.md`](docs/ADMIN.md) — the recruit admin dashboard, auth, and endpoints.
 - [`docs/TESTING.md`](docs/TESTING.md) — the Playwright E2E suite (`e2e/`): how to run it, structure, and conventions.
