@@ -8,6 +8,7 @@ import {
 	ensureApplicationsSchema,
 } from "../../utils/recruit-db";
 import { rateLimit } from "../../utils/rate-limit";
+import { sendRecruitEmails } from "../../utils/recruit-emails";
 
 // Server-rendered endpoint — never prerender.
 export const prerender = false;
@@ -262,6 +263,28 @@ export const POST: APIRoute = async ({ request }) => {
 	} catch (err) {
 		console.error("recruit insert failed", err);
 		return json({ ok: false, error: "Failed to save application." }, 500);
+	}
+
+	// Best-effort transactional emails (recruiter alert + candidate ack). The
+	// application is already saved, so a failed/unconfigured send never affects
+	// the applicant's result — swallow everything.
+	try {
+		await sendRecruitEmails(db, env as unknown as Record<string, unknown>, {
+			id,
+			firstName,
+			lastName,
+			email: email || null,
+			phone,
+			positions,
+			currentStatus,
+			graduationDate,
+			background,
+			employmentType,
+			portfolioLink: portfolioLink || null,
+			whyCureva: whyCureva || null,
+		});
+	} catch (err) {
+		console.error("recruit emails failed", err);
 	}
 
 	return json({ ok: true, id });
