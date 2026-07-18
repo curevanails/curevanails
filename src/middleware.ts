@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { defineMiddleware } from "astro:middleware";
-import { SESSION_COOKIE, verifySessionToken } from "./utils/admin-auth";
+import { SESSION_COOKIE, resolveSessionSecret, verifySessionToken } from "./utils/admin-auth";
 
 /**
  * Standalone-Worker routing + the recruit admin gate.
@@ -46,7 +46,10 @@ function isStandalone(flag: string): boolean {
  *   ADMIN_USERNAME  (optional — defaults to "admin")
  */
 export const onRequest = defineMiddleware(async (context, next) => {
-	const path = context.url.pathname;
+	// Normalize the path before matching so a trailing slash can't flip a route
+	// between the admin gate and a public exemption (Astro's default
+	// `trailingSlash: "ignore"` serves both `/admin/login` and `/admin/login/`).
+	const path = context.url.pathname.replace(/\/+$/, "") || "/";
 	const adminStandalone = isStandalone("ADMIN_STANDALONE");
 	const isAdminArea =
 		path === "/admin" ||
@@ -65,8 +68,12 @@ export const onRequest = defineMiddleware(async (context, next) => {
 			return next();
 		}
 
+		// Sign/verify with a dedicated SESSION_SECRET when configured (falls back
+		// to ADMIN_PASSWORD) so a leaked cookie can't be used to brute-force the
+		// login password offline. See src/utils/admin-auth.ts.
+		const signingSecret = resolveSessionSecret(password, workerVar("SESSION_SECRET"));
 		const token = context.cookies.get(SESSION_COOKIE)?.value;
-		const authed = await verifySessionToken(token, password);
+		const authed = await verifySessionToken(token, signingSecret);
 		if (!authed) {
 			return context.redirect("/admin/login", 302);
 		}

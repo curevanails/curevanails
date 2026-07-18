@@ -26,6 +26,19 @@
 			"id": "e43a37563faa4521865018e6b08461bf",
 		},
 	],
+	"vars": {
+		// The ARN of the SNS topic your SES Configuration Set publishes to. The
+		// /api/webhooks/ses handler rejects SNS messages from any other topic and
+		// refuses to auto-confirm foreign subscriptions. Leave empty to disable
+		// the check (NOT recommended — set this in production).
+		"SES_TOPIC_ARN": "",
+	},
+	// Admin auth secrets (set with `wrangler secret put`, NOT vars):
+	//   ADMIN_PASSWORD  (required — the /admin area 404s when unset)
+	//   ADMIN_USERNAME  (optional, default "admin")
+	//   SESSION_SECRET  (recommended — dedicated key for signing session cookies,
+	//                    kept separate from ADMIN_PASSWORD; falls back to it when
+	//                    unset)
 	// Worker Loader for plugin sandboxing — requires the paid Workers plan.
 	// Disabled for the free plan. Re-enable (and restore the sandboxed plugin
 	// wiring in astro.config.mjs) after upgrading to Workers Paid.

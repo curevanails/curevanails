@@ -3,6 +3,8 @@ dist
 .astro
 uploads
 data.db
+data.db-shm
+data.db-wal
 .wrangler
 .DS_Store
 
