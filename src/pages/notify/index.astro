@@ -2,6 +2,7 @@
 import { env } from "cloudflare:workers";
 import { ensureEmailSchema, type LogStatus } from "../../utils/email-db";
 import { emailNav } from "../../utils/email-nav";
+import AdminSidebar from "../../components/AdminSidebar.astro";
 
 // Server-rendered, never cached. Gated by the admin auth in src/middleware.ts.
 export const prerender = false;
@@ -307,84 +308,7 @@ const templatesForClient = templates.map((t) => ({
 		</style>
 	</head>
 	<body class="font-sans text-gray-700 antialiased dark:text-gray-300">
-		<!-- Mobile sidebar overlay -->
-		<div id="sidebar-overlay" class="hidden fixed inset-0 z-40 bg-gray-900/50 lg:hidden" onclick="sidebarToggle()"></div>
-
-		<!-- Sidebar (TailAdmin style: light, with brand accent on active) -->
-		<aside id="sidebar" class="fixed inset-y-0 left-0 z-50 w-[290px] -translate-x-full lg:translate-x-0 transition-transform duration-300 bg-white border-r border-gray-200 dark:bg-gray-900 dark:border-gray-800 flex flex-col">
-			<!-- Brand -->
-			<div class="flex items-center gap-3 px-6 h-[70px] shrink-0 border-b border-gray-200 dark:border-gray-800">
-				<div class="w-10 h-10 rounded-xl bg-curva text-white grid place-items-center font-bold text-base shadow-theme-sm">C</div>
-				<div>
-					<p class="text-sm font-semibold text-gray-800 dark:text-white/90 leading-none">CureVà Notify</p>
-					<p class="text-[11px] text-gray-400 dark:text-gray-500 mt-1">Email &amp; notifications</p>
-				</div>
-			</div>
-
-			<nav class="flex-1 px-4 py-5 space-y-6 overflow-y-auto nice-scroll">
-				<div>
-					<p class="px-3 mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Email</p>
-					<div class="space-y-1">
-						<a href="#compose" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
-							<span class="material-symbols-outlined text-xl">send</span>Compose
-						</a>
-						<a href="#campaigns" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
-							<span class="material-symbols-outlined text-xl">schedule</span>Campaigns
-						</a>
-						<a href="#templates" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
-							<span class="material-symbols-outlined text-xl">description</span>Templates
-						</a>
-					</div>
-				</div>
-				<div>
-					<p class="px-3 mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Insights</p>
-					<div class="space-y-1">
-						<a href="#analytics" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
-							<span class="material-symbols-outlined text-xl">monitoring</span>Analytics
-						</a>
-						<a href="#activity" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
-							<span class="material-symbols-outlined text-xl">history</span>Activity
-						</a>
-						<a href="#suppressed" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
-							<span class="material-symbols-outlined text-xl">block</span>Suppressed
-						</a>
-					</div>
-				</div>
-				<div>
-					<p class="px-3 mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Recruit</p>
-					<div class="space-y-1">
-						<a href={nav.recruitAlerts} class="nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
-							<span class="material-symbols-outlined text-xl">badge</span>Recruit alerts
-						</a>
-						<a href={nav.settings} class="nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
-							<span class="material-symbols-outlined text-xl">settings</span>Settings
-						</a>
-					</div>
-				</div>
-				<div>
-					<p class="px-3 mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Audience</p>
-					<div class="px-3.5 py-3 rounded-xl bg-gray-50 border border-gray-200 dark:bg-white/[0.03] dark:border-gray-800 space-y-2">
-						<div class="flex items-center justify-between text-xs"><span class="text-gray-600 dark:text-gray-400 font-medium">All active</span><span class="font-semibold text-gray-800 dark:text-white/90 tabular-nums">{counts.all}</span></div>
-						<div class="flex items-center justify-between text-xs"><span class="text-gray-500 dark:text-gray-400">Waiting</span><span class="font-medium text-gray-700 dark:text-gray-300 tabular-nums">{counts.waiting}</span></div>
-						<div class="flex items-center justify-between text-xs"><span class="text-gray-500 dark:text-gray-400">Invited</span><span class="font-medium text-gray-700 dark:text-gray-300 tabular-nums">{counts.invited}</span></div>
-						<div class="flex items-center justify-between text-xs"><span class="text-gray-500 dark:text-gray-400">Redeemed</span><span class="font-medium text-gray-700 dark:text-gray-300 tabular-nums">{counts.redeemed}</span></div>
-					</div>
-				</div>
-			</nav>
-
-			<div class="px-4 py-4 border-t border-gray-200 dark:border-gray-800 space-y-2 shrink-0">
-				<div class={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium ${sesConfigured ? "text-success-700 bg-success-50 dark:text-success-500 dark:bg-success-500/10" : "text-warning-700 bg-warning-50 dark:text-warning-400 dark:bg-warning-500/10"}`}>
-					<span class="relative flex h-2 w-2">
-						<span class={`absolute inline-flex h-full w-full rounded-full opacity-60 ${sesConfigured ? "bg-success-500 animate-ping" : "bg-warning-500"}`}></span>
-						<span class={`relative inline-flex h-2 w-2 rounded-full ${sesConfigured ? "bg-success-500" : "bg-warning-500"}`}></span>
-					</span>
-					{sesConfigured ? "SES connected" : "SES not configured"}
-				</div>
-				<a href={nav.logout} class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
-					<span class="material-symbols-outlined text-xl">logout</span>Sign out
-				</a>
-			</div>
-		</aside>
+		<AdminSidebar active="mail" />
 
 		<!-- Content -->
 		<div class="lg:pl-[290px] min-h-screen flex flex-col">
@@ -984,14 +908,8 @@ const templatesForClient = templates.map((t) => ({
 				try { localStorage.setItem("theme", isDark ? "dark" : "light"); } catch (_) {}
 			}
 
-			// ---- Mobile sidebar ----
-			function sidebarToggle() {
-				const sb = document.getElementById("sidebar");
-				const ov = document.getElementById("sidebar-overlay");
-				const open = sb.classList.contains("-translate-x-full");
-				sb.classList.toggle("-translate-x-full", !open);
-				ov.classList.toggle("hidden", !open);
-			}
+			// ---- Mobile sidebar ---- (wired by the shared AdminSidebar component;
+			// window.sidebarToggle is provided there for the header button.)
 
 			// Rebuild the template-dependent UI (Compose dropdown, Templates list,
 			// count, Preview) from the in-memory TEMPLATES array — used after an
