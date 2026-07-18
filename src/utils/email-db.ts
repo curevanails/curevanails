@@ -162,16 +162,21 @@ const DEFAULT_TEMPLATES: SeedTemplate[] = [
 	},
 ];
 
-/** Insert the default templates if they don't already exist (by id). */
+/**
+ * Seed the default templates, but only on a *fresh* table. Once any template
+ * exists — whether a seeded default, an edited one, or a user-created one — we
+ * never re-insert, so deleting a default in the template editor sticks. This
+ * DB is shared with the notifications-service; re-seeding by id would let one
+ * Worker resurrect a template the operator deleted in the other.
+ */
 async function seedDefaultTemplates(db: D1Database): Promise<void> {
 	const existing = await db
-		.prepare("SELECT id FROM email_templates")
-		.all<{ id: string }>();
-	const have = new Set((existing.results ?? []).map((r) => r.id));
-	const now = Date.now();
+		.prepare("SELECT id FROM email_templates LIMIT 1")
+		.first<{ id: string }>();
+	if (existing) return;
 
+	const now = Date.now();
 	for (const t of DEFAULT_TEMPLATES) {
-		if (have.has(t.id)) continue;
 		await db
 			.prepare(
 				`INSERT INTO email_templates (id, name, subject, html, text, variables, created_at, updated_at)
