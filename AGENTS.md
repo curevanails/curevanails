@@ -24,10 +24,9 @@ pnpm build            # astro build (compiles the Cloudflare Worker)
 pnpm typecheck        # astro check
 pnpm deploy           # astro build && wrangler deploy (main curevanails site)
 pnpm deploy:getready  # build & deploy the standalone getready waitlist-landing Worker (design: docs/DESIGN.md)
-pnpm deploy:admin     # build & deploy the standalone admin recruit-dashboard Worker
-pnpm deploy:notify    # build & deploy the standalone notify email Worker (docs/notify/)
+pnpm deploy:admin     # build & deploy the admin console + email Worker (recruit, waitlist, /mail)
 pnpm test:e2e         # build + preview the Worker, run the Playwright E2E suite (docs/TESTING.md)
-pnpm test:e2e:notify  # build + preview the notify Worker, run its E2E suite (e2e/notify/)
+pnpm test:e2e:mail    # build + preview the admin Worker, run the email-dashboard E2E suite (e2e/mail/)
 ```
 
 The EmDash content admin is at `http://localhost:4321/_emdash/admin`.
@@ -77,9 +76,9 @@ This template ships with `.mcp.json`, `.cursor/mcp.json`, and `.vscode/mcp.json`
 
 Project docs in `docs/` (index: [`docs/README.md`](docs/README.md)):
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — **start here.** The whole platform in Mermaid diagrams: the four Workers, shared D1/R2/KV, auth, the recruit application + email flows, CI/CD, and the D1 data model.
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — **start here.** The whole platform in Mermaid diagrams: the three Workers, shared D1/R2/KV, auth, the recruit application + email flows, CI/CD, and the D1 data model.
 - [`docs/RECRUIT.md`](docs/RECRUIT.md) — the `/recruit/apply` Hiring Form field contract (fields, validation, D1 columns, R2 layout, the multi-Worker topology). Update it whenever the form changes.
-- [`docs/notify/`](docs/notify/README.md) — the **notify** email Worker: dashboard, SES send, scheduled campaigns, SNS webhook, unsubscribe (formerly the `notifications-service` repo).
+- [`docs/mail/`](docs/mail/README.md) — the email system (dashboard at `/mail`, SES send, scheduled campaigns, SNS webhook, unsubscribe). Now hosted on the `admin` Worker; formerly the standalone `notifications-service` repo / `notify` Worker.
 - [`docs/ADMIN.md`](docs/ADMIN.md) — the recruit admin dashboard, auth, and endpoints.
 - [`docs/TESTING.md`](docs/TESTING.md) — the Playwright E2E suite (`e2e/`): how to run it, structure, and conventions.
 - [`docs/DESIGN.md`](docs/DESIGN.md), [`docs/EMAIL.md`](docs/EMAIL.md) — the getready landing design and email sending.
@@ -108,9 +107,10 @@ A blog with posts, pages, categories, tags, full-text search, and RSS. Designed 
 | Category    | `/category/[slug]` | Posts filtered by category                                                                             |
 | Tag         | `/tag/[slug]`      | Posts filtered by tag                                                                                  |
 | RSS         | `/rss.xml`         | Generated feed                                                                                         |
-| Careers     | `/recruit`         | Careers page + talent list; full application at `/recruit/apply` (POSTs to `/api/recruit`)             |
-| Admin login | `/admin/login`     | Styled login form for the recruit dashboard                                                            |
+| Careers     | `/recruit`         | Careers page; full application at `/recruit/apply` (POSTs to `/api/recruit`)                           |
+| Admin login | `/admin/login`     | Styled login form for the admin console                                                                |
 | Admin       | `/admin`           | Recruit dashboard — lists `job_applications`, résumé downloads (auth-gated)                            |
+| Email       | `/admin/mail`      | Email dashboard — compose/send, templates, logs, settings, recruit alerts (auth-gated)                |
 
 ## Recruit & Admin
 
@@ -122,20 +122,24 @@ password-protected dashboard reviews them. **Guides: the form field contract is
 [`docs/ADMIN.md`](docs/ADMIN.md); the E2E coverage is
 [`docs/TESTING.md`](docs/TESTING.md).** Key points for editing:
 
-- **Four Workers, one codebase.** `getready`, `admin`, and `notify` reuse this
-  code under different Worker names (= subdomains), selected by a `*_STANDALONE`
-  var read in `src/middleware.ts`. The build must be driven by the matching
-  wrangler config via `WRANGLER_CONFIG` (the `deploy:getready` / `deploy:admin` /
-  `deploy:notify` scripts do this), not by `wrangler deploy -c`. All four share
-  the same D1 (+ R2). **`notify`** (`NOTIFY_STANDALONE`, `wrangler.notify.jsonc`)
-  is the email service: it serves the email dashboard at its root (`/`,
-  `/settings`, `/recruit-alerts`, gated) plus `/api/email/*`, the public
-  `/api/webhooks/ses` SNS receiver, and `/unsubscribe/*`. Its pages live at
-  `src/pages/notify/*`; it also has a **Cron Trigger** (`*/5 * * * *`) that fires
-  `runDueCampaigns()` via the `scheduled` handler in `src/worker.ts`. See
-  [`docs/notify/`](docs/notify/README.md). The in-app `/admin/email` section was
-  retired — `src/middleware.ts` redirects any `/email` or `/admin/email` path to
-  the notify service.
+- **Three Workers, one codebase.** `getready` and `admin` reuse this code under
+  different Worker names (= subdomains), selected by a `*_STANDALONE` var read in
+  `src/middleware.ts`. The build must be driven by the matching wrangler config
+  via `WRANGLER_CONFIG` (the `deploy:getready` / `deploy:admin` scripts do this),
+  not by `wrangler deploy -c`. All three share the same D1 (+ R2).
+- **Email lives on the `admin` Worker** (the standalone notify service was
+  retired — everything is on `admin.curevanails.com`). The email dashboard is
+  served under `/mail` (admin Worker) or `/admin/mail` (main Worker), gated by
+  the same admin session, with `/settings` + `/recruit-alerts` sub-pages and the
+  admin-gated `/api/email/*` + `/api/settings` endpoints. The public halves — the
+  `/api/webhooks/ses` SNS receiver and the token-based `/unsubscribe/*` page —
+  stay open. The dashboard pages physically live at `src/pages/notify/*` (direct
+  `/notify/*` access is blocked; reachable only via the `/mail` rewrite), and
+  base-aware links come from `src/utils/email-nav.ts`. The `admin` Worker also
+  carries the **Cron Trigger** (`*/5 * * * *`, `wrangler.admin.jsonc`) that fires
+  `runDueCampaigns()` via the `scheduled` handler in `src/worker.ts`. AWS SNS must
+  post SES events to `https://admin.curevanails.com/api/webhooks/ses`. See
+  [`docs/mail/`](docs/mail/README.md).
 - **Auth is form-based with a signed cookie**, not HTTP Basic Auth.
   `src/utils/admin-auth.ts` mints an HMAC-SHA256 token (keyed by
   `ADMIN_PASSWORD`, 12 h TTL); `src/middleware.ts` verifies it on every

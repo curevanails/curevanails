@@ -24,7 +24,7 @@ test.afterAll(async ({ browser }) => {
 	const ctx = await browser.newContext();
 	const page = await ctx.newPage();
 	await login(page);
-	await page.goto("/settings");
+	await page.goto("/mail/settings");
 	await page.fill("#recruit_notify_to", "");
 	await page.click('button[type="submit"]');
 	await ctx.close();
@@ -32,13 +32,13 @@ test.afterAll(async ({ browser }) => {
 
 test.describe("settings", () => {
 	test("renders the recruit-alerts recipient field", async ({ page }) => {
-		await page.goto("/settings");
+		await page.goto("/mail/settings");
 		await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
 		await expect(page.locator("#recruit_notify_to")).toBeVisible();
 	});
 
 	test("saving a recipient persists across a reload", async ({ page }) => {
-		await page.goto("/settings");
+		await page.goto("/mail/settings");
 		await page.fill("#recruit_notify_to", "zz-e2e-notify@example.com");
 		await page.click('button[type="submit"]');
 
@@ -48,7 +48,7 @@ test.describe("settings", () => {
 	});
 
 	test("normalises multiple addresses and reports the count", async ({ page }) => {
-		await page.goto("/settings");
+		await page.goto("/mail/settings");
 		await page.fill("#recruit_notify_to", "a@example.com,  b@example.com");
 		await page.click('button[type="submit"]');
 
@@ -57,7 +57,7 @@ test.describe("settings", () => {
 	});
 
 	test("rejects an invalid address", async ({ page }) => {
-		await page.goto("/settings");
+		await page.goto("/mail/settings");
 		await page.fill("#recruit_notify_to", "not-an-email");
 		await page.click('button[type="submit"]');
 
@@ -65,7 +65,7 @@ test.describe("settings", () => {
 	});
 
 	test("blank turns alerts off", async ({ page }) => {
-		await page.goto("/settings");
+		await page.goto("/mail/settings");
 		await page.fill("#recruit_notify_to", "");
 		await page.click('button[type="submit"]');
 		await expect(page.getByText(/alerts are now OFF/i)).toBeVisible();
@@ -74,7 +74,7 @@ test.describe("settings", () => {
 
 test.describe("recruit alerts list", () => {
 	test("renders the alerts page", async ({ page }) => {
-		await page.goto("/recruit-alerts");
+		await page.goto("/mail/recruit-alerts");
 		await expect(page.getByRole("heading", { name: "Recruit alerts" })).toBeVisible();
 		// Either the empty state or a table — both are valid depending on data.
 		const hasTable = await page.locator("table").count();
@@ -84,11 +84,11 @@ test.describe("recruit alerts list", () => {
 
 	test("reflects the configured recipient banner", async ({ page }) => {
 		// Set a recipient, then the alerts page should name it.
-		await page.goto("/settings");
+		await page.goto("/mail/settings");
 		await page.fill("#recruit_notify_to", "banner-check@example.com");
 		await page.click('button[type="submit"]');
 
-		await page.goto("/recruit-alerts");
+		await page.goto("/mail/recruit-alerts");
 		await expect(page.getByText("banner-check@example.com")).toBeVisible();
 	});
 });

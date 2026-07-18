@@ -83,13 +83,22 @@ test.describe("auth gate", () => {
 		);
 	});
 
-	for (const path of ["/admin", "/admin/talent", "/admin/waitlist"]) {
+	for (const path of ["/admin", "/admin/waitlist", "/admin/mail"]) {
 		test(`unauthenticated ${path} is not served`, async ({ request }) => {
 			const res = await request.get(path, { maxRedirects: 0 });
 			expect(res.status()).toBe(302);
 			expect(res.headers().location).toBe("/admin/login");
 		});
 	}
+
+	test("unauthenticated /api/email/send is gated (admin-only)", async ({ request }) => {
+		const res = await request.post("/api/email/send", {
+			data: { templateId: "x", audience: "all" },
+			maxRedirects: 0,
+		});
+		expect(res.status()).toBe(302);
+		expect(res.headers().location).toBe("/admin/login");
+	});
 
 	test("unauthenticated /admin/file does not stream uploads", async ({ request }) => {
 		const res = await request.get("/admin/file?key=recruit/whatever/resume/x.pdf", {
@@ -292,5 +301,33 @@ test.describe("status & notes (/admin/update)", () => {
 			headers: { "content-type": "text/plain" },
 		});
 		expect(res.status()).toBe(400);
+	});
+});
+
+test.describe("email dashboard (folded in from notify)", () => {
+	test("signed-in admin reaches the email dashboard at /admin/mail", async ({ page }) => {
+		await login(page);
+		await page.goto("/admin/mail");
+		// The notify dashboard renders (not a 404 / redirect back to login).
+		// It has both a header <h1> and a page <h2> "Email dashboard" — assert the
+		// first so the strict-mode locator doesn't trip on the two matches.
+		await expect(page.getByRole("heading", { name: "Email dashboard" }).first()).toBeVisible();
+		await expect(page).toHaveURL(/\/admin\/mail$/);
+	});
+
+	test("dashboard nav links are prefixed for the /admin/mail mount", async ({ page }) => {
+		await login(page);
+		await page.goto("/admin/mail");
+		// Base-aware links (src/utils/email-nav.ts) must point under /admin/mail,
+		// not at the notify Worker's root, so navigation stays in the admin session.
+		await expect(page.locator('a[href="/admin/mail/settings"]').first()).toBeVisible();
+		await expect(page.locator('a[href="/admin/mail/recruit-alerts"]').first()).toBeVisible();
+	});
+
+	test("settings sub-page loads under the admin session", async ({ page }) => {
+		await login(page);
+		await page.goto("/admin/mail/settings");
+		await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
+		await expect(page).toHaveURL(/\/admin\/mail\/settings$/);
 	});
 });

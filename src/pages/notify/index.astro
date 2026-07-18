@@ -1,9 +1,14 @@
 ---
 import { env } from "cloudflare:workers";
 import { ensureEmailSchema, type LogStatus } from "../../utils/email-db";
+import { emailNav } from "../../utils/email-nav";
 
 // Server-rendered, never cached. Gated by the admin auth in src/middleware.ts.
 export const prerender = false;
+
+// Nav links adapt to where this dashboard is mounted (notify.* root, admin
+// `/email`, or main `/admin/email`). See src/utils/email-nav.ts.
+const nav = emailNav();
 
 interface TemplateRow {
 	id: string;
@@ -348,10 +353,10 @@ const templatesForClient = templates.map((t) => ({
 				<div>
 					<p class="px-3 mb-3 text-[11px] font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">Recruit</p>
 					<div class="space-y-1">
-						<a href="/recruit-alerts" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
+						<a href={nav.recruitAlerts} class="nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
 							<span class="material-symbols-outlined text-xl">badge</span>Recruit alerts
 						</a>
-						<a href="/settings" class="nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
+						<a href={nav.settings} class="nav-link flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-brand-50 hover:text-brand-500 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
 							<span class="material-symbols-outlined text-xl">settings</span>Settings
 						</a>
 					</div>
@@ -375,7 +380,7 @@ const templatesForClient = templates.map((t) => ({
 					</span>
 					{sesConfigured ? "SES connected" : "SES not configured"}
 				</div>
-				<a href="/logout" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
+				<a href={nav.logout} class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white transition">
 					<span class="material-symbols-outlined text-xl">logout</span>Sign out
 				</a>
 			</div>
@@ -408,7 +413,7 @@ const templatesForClient = templates.map((t) => ({
 							<span class="material-symbols-outlined text-base">add</span><span class="hidden sm:inline">New template</span>
 						</button>
 						<div class="w-px h-6 bg-gray-200 dark:bg-gray-700 mx-1"></div>
-						<a href="/logout" title="Sign out" class="grid h-10 w-10 place-items-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 dark:bg-white/[0.03] dark:text-gray-400 dark:hover:bg-white/[0.06] transition">
+						<a href={nav.logout} title="Sign out" class="grid h-10 w-10 place-items-center rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 hover:text-gray-700 dark:bg-white/[0.03] dark:text-gray-400 dark:hover:bg-white/[0.06] transition">
 							<span class="material-symbols-outlined text-lg">logout</span>
 						</a>
 					</div>

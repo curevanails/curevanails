@@ -77,11 +77,12 @@ jobs:
         env:
           CI: "true"
 
-      # The notify Worker suite builds + previews the notify config
-      # (NOTIFY_STANDALONE) on its own port. No AWS SES secrets are provided, so
-      # no test can dispatch a real email. Reuses the same .dev.vars.
-      - name: Run notify E2E tests
-        run: pnpm test:e2e:notify
+      # The email-dashboard suite builds + previews the admin Worker
+      # (ADMIN_STANDALONE) on its own port and drives the dashboard at /mail. No
+      # AWS SES secrets are provided, so no test can dispatch a real email.
+      # Reuses the same .dev.vars.
+      - name: Run mail (email dashboard) E2E tests
+        run: pnpm test:e2e:mail
         env:
           CI: "true"
 
@@ -122,18 +123,18 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # This codebase runs as FOUR Workers off different wrangler configs,
+      # This codebase runs as THREE Workers off different wrangler configs,
       # sharing the same D1 + R2. Each script sets WRANGLER_CONFIG so both the
       # astro build and `wrangler deploy` target the matching config. Deploy all
-      # four so a push to main updates the whole surface, not just the main site.
+      # three so a push to main updates the whole surface, not just the main site.
+      # The `admin` Worker now also hosts email (dashboard at /mail, the SES send
+      # + campaign cron, and the SNS webhook) — the standalone notify Worker was
+      # retired.
       - name: Deploy main site (curevanails)
         run: pnpm deploy
 
       - name: Deploy getready waitlist Worker
         run: pnpm deploy:getready
 
-      - name: Deploy admin dashboard Worker
+      - name: Deploy admin console + email Worker
         run: pnpm deploy:admin
-
-      - name: Deploy notify email Worker
-        run: pnpm deploy:notify

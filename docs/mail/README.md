@@ -1,10 +1,15 @@
-# notify (email service)
+# Email service (the `/mail` dashboard)
 
-> **Now part of the `curevanails` codebase.** This was formerly the standalone
-> `notifications-service` repo; it is now the **notify** Worker built from this
-> repo via `wrangler.notify.jsonc` (`pnpm deploy:notify`). Source lives under
-> `src/pages/notify/*`, `src/pages/api/email/*`, and `src/utils/email/*`. The
-> paths below (`src/...`) are relative to the repo root.
+> **Hosted on the `admin` Worker, in the `curevanails` codebase.** This was
+> formerly the standalone `notifications-service` repo (then the `notify`
+> Worker); both were retired. Email now lives on `admin.curevanails.com`: the
+> dashboard at `/mail` (gated by the admin session), the SES send + campaign
+> cron, and the SNS webhook — all deployed via `pnpm deploy:admin`. Source lives
+> under `src/pages/notify/*` (served via the `/mail` rewrite),
+> `src/pages/api/email/*`, and `src/utils/email/*`. The paths below (`src/...`)
+> are relative to the repo root. Some sections below still describe the old
+> standalone Worker's root URLs (`/`, `/login`) — on `admin` these are `/mail`
+> and the shared admin login.
 
 Transactional / campaign email for CureVà. Sends templated emails (welcome,
 opening announcement, discount codes) to the **waitlist** and tracks

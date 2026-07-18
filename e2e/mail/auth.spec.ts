@@ -2,10 +2,11 @@ import { expect, test } from "@playwright/test";
 import { ADMIN_PASSWORD, ADMIN_USERNAME, login } from "./helpers";
 
 /**
- * The auth gate (src/middleware.ts). The dashboard can trigger real sends and
- * exposes subscriber data, so `/` and every `/api/email/*` action require a
- * valid signed session cookie. Public: `/login`, `/logout`, `/unsubscribe/*`,
- * and the `/api/webhooks/*` SNS receiver.
+ * The auth gate (src/middleware.ts) for the email dashboard, now served on the
+ * admin Worker under `/mail`. The dashboard can trigger real sends and exposes
+ * subscriber data, so `/mail[/*]` and every `/api/email/*` action require a valid
+ * signed session cookie. Public: `/login`, `/logout`, `/unsubscribe/*`, and the
+ * `/api/webhooks/*` SNS receiver.
  */
 
 test.skip(
@@ -14,8 +15,8 @@ test.skip(
 );
 
 test.describe("gate — protected surfaces", () => {
-	test("unauthenticated / redirects to the login form", async ({ page }) => {
-		await page.goto("/");
+	test("unauthenticated /mail shows the login form", async ({ page }) => {
+		await page.goto("/mail");
 		await expect(page).toHaveURL(/\/login$/);
 		await expect(page.getByRole("heading", { name: "Sign in" })).toBeVisible();
 	});
@@ -45,10 +46,12 @@ test.describe("gate — protected surfaces", () => {
 	// "ignore"` serves `/settings/` from the `/settings` route, so the gate must
 	// match both forms or it can be bypassed (regression guard).
 	for (const path of [
-		"/settings",
-		"/settings/",
-		"/recruit-alerts",
-		"/recruit-alerts/",
+		"/mail",
+		"/mail/",
+		"/mail/settings",
+		"/mail/settings/",
+		"/mail/recruit-alerts",
+		"/mail/recruit-alerts/",
 	]) {
 		test(`unauthenticated ${path} redirects to the login form`, async ({ request }) => {
 			const res = await request.get(path, { maxRedirects: 0 });
@@ -96,17 +99,18 @@ test.describe("credentials", () => {
 				url: page.url(),
 			},
 		]);
-		await page.goto("/");
+		await page.goto("/mail");
 		await expect(page).toHaveURL(/\/login$/);
 	});
 
 	test("valid credentials sign in; logout ends the session", async ({ page }) => {
 		await login(page);
-		await expect(page).toHaveURL(/\/$/);
+		await page.goto("/mail");
+		await expect(page).toHaveURL(/\/mail$/);
 		await expect(page.locator("h1", { hasText: "Email dashboard" })).toBeVisible();
 
 		await page.goto("/logout");
-		await page.goto("/");
+		await page.goto("/mail");
 		await expect(page).toHaveURL(/\/login$/);
 	});
 });
