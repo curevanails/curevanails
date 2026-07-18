@@ -7,6 +7,8 @@ import {
 	POSITION_OPTIONS,
 	ensureApplicationsSchema,
 } from "../../utils/recruit-db";
+import { rateLimit } from "../../utils/rate-limit";
+import { sendRecruitEmails } from "../../utils/recruit-emails";
 
 // Server-rendered endpoint — never prerender.
 export const prerender = false;
@@ -35,6 +37,11 @@ const PHONE_ALLOWED_RE = /^[\d\s()+.\-]+$/;
 const RESUME_EXT_RE = /\.(pdf|docx?)$/i;
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
 const MAX_WHY_LENGTH = 1000;
+const MAX_NAME_LENGTH = 120;
+const MAX_EMAIL_LENGTH = 254;
+// C0 controls + DEL — used to reject newlines/control chars in free-text fields
+// that flow into the recruiter alert email.
+const CONTROL_CHARS_RE = /[\u0000-\u001f\u007f]/;
 
 function letterCount(s: string): number {
 	return (s.match(/\p{L}/gu) ?? []).length;
@@ -73,6 +80,23 @@ function isFile(v: FormDataEntryValue | null): v is File {
 	return v instanceof File && v.size > 0;
 }
 
+/**
+ * True for a routable public client IP. Cloudflare always sets `CF-Connecting-IP`
+ * to the real client address for public traffic, so loopback/private/link-local
+ * values only appear in local dev/preview — we skip rate-limiting those rather
+ * than lump every local caller into one shared bucket.
+ */
+function isPublicClientIp(ip: string | null): ip is string {
+	if (!ip) return false;
+	const v = ip.startsWith("::ffff:") ? ip.slice(7) : ip; // unwrap IPv4-mapped IPv6
+	if (v === "::1" || v.startsWith("127.")) return false; // loopback
+	if (v.startsWith("10.") || v.startsWith("192.168.")) return false; // private
+	if (/^172\.(1[6-9]|2\d|3[01])\./.test(v)) return false; // private 172.16/12
+	if (v.startsWith("169.254.") || v.toLowerCase().startsWith("fe80:")) return false; // link-local
+	if (/^f[cd][0-9a-f]{2}:/i.test(v)) return false; // unique-local IPv6
+	return true;
+}
+
 async function uploadFile(bucket: R2Bucket, prefix: string, file: File) {
 	const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
 	const key = `${prefix}/${crypto.randomUUID()}-${safe}`;
@@ -85,6 +109,25 @@ async function uploadFile(bucket: R2Bucket, prefix: string, file: File) {
 export const POST: APIRoute = async ({ request }) => {
 	const db = env.DB as D1Database;
 	const bucket = env.MEDIA as R2Bucket;
+
+	// Rate-limit this public upload endpoint by client IP (5 / 10 min / IP). It
+	// writes an R2 object + a D1 row per call, so without this it can be scripted
+	// to flood storage. `CF-Connecting-IP` is set by Cloudflare's edge and can't
+	// be spoofed by the client.
+	const ip = request.headers.get("CF-Connecting-IP");
+	if (isPublicClientIp(ip)) {
+		const kv = (env as unknown as { SESSION?: KVNamespace }).SESSION;
+		const limit = await rateLimit(kv, `recruit:${ip}`, 5, 600);
+		if (!limit.ok) {
+			return json(
+				{
+					ok: false,
+					error: "Too many submissions from this network. Please try again later.",
+				},
+				429,
+			);
+		}
+	}
 
 	let form: FormData;
 	try {
@@ -114,14 +157,18 @@ export const POST: APIRoute = async ({ request }) => {
 
 	// Contact information
 	if (!firstName) errors.first_name = "First name is required.";
+	else if (firstName.length > MAX_NAME_LENGTH || CONTROL_CHARS_RE.test(firstName))
+		errors.first_name = "Enter a valid first name.";
 	else if (/\d/.test(firstName)) errors.first_name = "Name can't contain numbers.";
 	else if (letterCount(firstName) < 1) errors.first_name = "Enter your first name.";
 
 	if (!lastName) errors.last_name = "Last name is required.";
+	else if (lastName.length > MAX_NAME_LENGTH || CONTROL_CHARS_RE.test(lastName))
+		errors.last_name = "Enter a valid last name.";
 	else if (/\d/.test(lastName)) errors.last_name = "Name can't contain numbers.";
 	else if (letterCount(lastName) < 1) errors.last_name = "Enter your last name.";
 
-	if (email && !EMAIL_RE.test(email))
+	if (email && (email.length > MAX_EMAIL_LENGTH || !EMAIL_RE.test(email)))
 		errors.email = "Enter a valid email address.";
 
 	if (!phone) errors.phone = "Phone number is required.";
@@ -216,6 +263,28 @@ export const POST: APIRoute = async ({ request }) => {
 	} catch (err) {
 		console.error("recruit insert failed", err);
 		return json({ ok: false, error: "Failed to save application." }, 500);
+	}
+
+	// Best-effort transactional emails (recruiter alert + candidate ack). The
+	// application is already saved, so a failed/unconfigured send never affects
+	// the applicant's result — swallow everything.
+	try {
+		await sendRecruitEmails(db, env as unknown as Record<string, unknown>, {
+			id,
+			firstName,
+			lastName,
+			email: email || null,
+			phone,
+			positions,
+			currentStatus,
+			graduationDate,
+			background,
+			employmentType,
+			portfolioLink: portfolioLink || null,
+			whyCureva: whyCureva || null,
+		});
+	} catch (err) {
+		console.error("recruit emails failed", err);
 	}
 
 	return json({ ok: true, id });

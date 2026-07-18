@@ -1,6 +1,6 @@
 import { env } from "cloudflare:workers";
 import { defineMiddleware } from "astro:middleware";
-import { SESSION_COOKIE, verifySessionToken } from "./utils/admin-auth";
+import { SESSION_COOKIE, resolveSessionSecret, verifySessionToken } from "./utils/admin-auth";
 
 /**
  * Standalone-Worker routing + the recruit admin gate.
@@ -19,6 +19,10 @@ import { SESSION_COOKIE, verifySessionToken } from "./utils/admin-auth";
  * `/admin/*` URLs 308-redirect to their clean equivalent, and the old in-app
  * email section redirects to the standalone notify service.
  *
+ * Auth: verified with a dedicated `SESSION_SECRET` when set (falling back to
+ * `ADMIN_PASSWORD`), so a captured cookie can't be used to brute-force the login
+ * password offline. See src/utils/admin-auth.ts.
+ *
  * Note: Astro v6 removed `Astro.locals.runtime.env`; read Worker vars via the
  * `cloudflare:workers` module instead. Reading the env can throw in some adapter
  * paths, so every access is wrapped — a throw here must never 500 the request.
@@ -33,6 +37,11 @@ function workerVar(name: string): string | undefined {
 
 function isStandalone(flag: string): boolean {
 	return workerVar(flag) === "true";
+}
+
+/** The secret used to verify session cookies (SESSION_SECRET, else ADMIN_PASSWORD). */
+function signingSecret(password: string): string {
+	return resolveSessionSecret(password, workerVar("SESSION_SECRET"));
 }
 
 /** Email management moved to the standalone notify service. */
@@ -57,7 +66,10 @@ function isEmailPath(p: string): boolean {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
-	const { pathname } = context.url;
+	// Normalize a trailing slash so it can't flip a route between the admin gate
+	// and a public exemption (Astro's default `trailingSlash: "ignore"` serves
+	// both `/admin/login` and `/admin/login/`).
+	const pathname = context.url.pathname.replace(/\/+$/, "") || "/";
 	const password = workerVar("ADMIN_PASSWORD");
 
 	// Email management moved to the notify service — redirect on every Worker.
@@ -84,7 +96,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 			if (ADMIN_PUBLIC.has(seg)) return next(target); // login/logout self-manage auth
 
 			const token = context.cookies.get(SESSION_COOKIE)?.value;
-			if (!(await verifySessionToken(token, password))) {
+			if (!(await verifySessionToken(token, signingSecret(password)))) {
 				return context.redirect("/login", 302);
 			}
 			return next(target);
@@ -100,7 +112,7 @@ export const onRequest = defineMiddleware(async (context, next) => {
 		if (!password) return new Response("Not found", { status: 404 });
 		if (pathname === "/admin/login" || pathname === "/admin/logout") return next();
 		const token = context.cookies.get(SESSION_COOKIE)?.value;
-		if (!(await verifySessionToken(token, password))) {
+		if (!(await verifySessionToken(token, signingSecret(password)))) {
 			return context.redirect("/admin/login", 302);
 		}
 		return next();

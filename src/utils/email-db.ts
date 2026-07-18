@@ -105,6 +105,7 @@ export async function ensureEmailSchema(db: D1Database): Promise<void> {
 	await ensureWaitlistSchema(db);
 
 	await seedDefaultTemplates(db);
+	await ensureSystemTemplates(db);
 }
 
 // ---- Default templates ----------------------------------------------------
@@ -162,19 +163,111 @@ const DEFAULT_TEMPLATES: SeedTemplate[] = [
 	},
 ];
 
-/** Insert the default templates if they don't already exist (by id). */
+/**
+ * Seed the default templates, but only on a *fresh* table. Once any template
+ * exists — whether a seeded default, an edited one, or a user-created one — we
+ * never re-insert, so deleting a default in the template editor sticks. This
+ * DB is shared with the notifications-service; re-seeding by id would let one
+ * Worker resurrect a template the operator deleted in the other.
+ */
 async function seedDefaultTemplates(db: D1Database): Promise<void> {
 	const existing = await db
-		.prepare("SELECT id FROM email_templates")
-		.all<{ id: string }>();
-	const have = new Set((existing.results ?? []).map((r) => r.id));
-	const now = Date.now();
+		.prepare("SELECT id FROM email_templates LIMIT 1")
+		.first<{ id: string }>();
+	if (existing) return;
 
+	const now = Date.now();
 	for (const t of DEFAULT_TEMPLATES) {
-		if (have.has(t.id)) continue;
 		await db
 			.prepare(
 				`INSERT INTO email_templates (id, name, subject, html, text, variables, created_at, updated_at)
+				 VALUES (?, ?, ?, ?, NULL, ?, ?, ?)`,
+			)
+			.bind(t.id, t.name, t.subject, t.html, JSON.stringify(t.variables), now, now)
+			.run();
+	}
+}
+
+// ---- System templates -----------------------------------------------------
+// App-owned transactional templates that must ALWAYS exist for a feature to
+// work — unlike the marketing DEFAULT_TEMPLATES, which the operator manages and
+// may delete. These are ensured by id on every schema check (INSERT OR IGNORE),
+// so the recruit-alert email always has a body to render. Both Workers share
+// one D1 and both ensure these, so the definition is kept identical.
+
+const SYSTEM_TEMPLATES: SeedTemplate[] = [
+	{
+		id: "tpl-recruit-alert",
+		name: "Recruit alert (new application)",
+		subject: "New application: {{candidate_name}} — {{positions}}",
+		variables: [
+			"candidate_name",
+			"positions",
+			"email",
+			"phone",
+			"current_status",
+			"background",
+			"employment_type",
+			"graduation_date",
+			"portfolio_link",
+			"why_cureva",
+			"applied_at",
+			"dashboard_url",
+		],
+		html: `<div style="font-family:'DM Sans',Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;color:#0d1e22;background:#f0fbff">
+  <p style="margin:0 0 4px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#3a656e;font-weight:600">CureVà · New application</p>
+  <h1 style="margin:0 0 4px;color:#0d1e22;font-size:26px">{{candidate_name}}</h1>
+  <p style="margin:0 0 24px;font-size:16px;color:#3a656e;font-weight:600">{{positions}}</p>
+  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:15px;line-height:1.5">
+    {{#if email}}<tr><td style="padding:8px 0;color:#6b7280;width:150px">Email</td><td style="padding:8px 0"><a href="mailto:{{email}}" style="color:#3a656e">{{email}}</a></td></tr>{{/if}}
+    <tr><td style="padding:8px 0;color:#6b7280;width:150px">Phone</td><td style="padding:8px 0"><a href="tel:{{phone}}" style="color:#3a656e">{{phone}}</a></td></tr>
+    <tr><td style="padding:8px 0;color:#6b7280">Current status</td><td style="padding:8px 0">{{current_status}}</td></tr>
+    <tr><td style="padding:8px 0;color:#6b7280">Background</td><td style="padding:8px 0">{{background}}</td></tr>
+    <tr><td style="padding:8px 0;color:#6b7280">Employment type</td><td style="padding:8px 0">{{employment_type}}</td></tr>
+    {{#if graduation_date}}<tr><td style="padding:8px 0;color:#6b7280">Graduation</td><td style="padding:8px 0">{{graduation_date}}</td></tr>{{/if}}
+    {{#if portfolio_link}}<tr><td style="padding:8px 0;color:#6b7280">Portfolio</td><td style="padding:8px 0"><a href="{{portfolio_link}}" style="color:#3a656e">{{portfolio_link}}</a></td></tr>{{/if}}
+    {{#if applied_at}}<tr><td style="padding:8px 0;color:#6b7280">Applied</td><td style="padding:8px 0">{{applied_at}}</td></tr>{{/if}}
+  </table>
+  {{#if why_cureva}}<div style="margin-top:24px">
+    <p style="margin:0 0 6px;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:.5px">Why CureVà</p>
+    <blockquote style="margin:0;padding:14px 18px;border-left:3px solid #3a656e;background:#dff1f7;border-radius:8px;font-size:15px;line-height:1.6;color:#0d1e22">{{why_cureva}}</blockquote>
+  </div>{{/if}}
+  {{#if dashboard_url}}<p style="margin-top:28px">
+    <a href="{{dashboard_url}}" style="display:inline-block;background:#3a656e;color:#ffffff;text-decoration:none;font-weight:600;font-size:15px;padding:12px 22px;border-radius:10px">Review in dashboard →</a>
+  </p>{{/if}}
+  <p style="margin-top:28px;font-size:12px;color:#94a3b8">Internal recruiting notification — no unsubscribe. Reply to reach the candidate{{#if email}} at {{email}}{{/if}}.</p>
+</div>`,
+	},
+	{
+		id: "tpl-recruit-ack",
+		name: "Application received (candidate)",
+		subject: "We've received your application — CureVà",
+		variables: ["candidate_name", "first_name", "positions"],
+		html: `<div style="font-family:'DM Sans',Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px;color:#0d1e22;background:#f0fbff">
+  <div style="background:#ffffff;border-radius:18px;padding:32px 30px;border:1px solid #dbeef3">
+    <p style="margin:0 0 6px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#3a656e;font-weight:600">CureVà · Careers</p>
+    <h1 style="margin:0 0 16px;color:#0d1e22;font-size:24px">Thank you, {{first_name}} 💛</h1>
+    <p style="margin:0 0 14px;font-size:16px;line-height:1.6">We've received your application{{#if positions}} for <strong>{{positions}}</strong>{{/if}} and we're genuinely glad you're interested in joining the CureVà team.</p>
+    <p style="margin:0 0 14px;font-size:16px;line-height:1.6">Our team will review it carefully and <strong>reach out to you soon</strong> about next steps. There's nothing you need to do in the meantime.</p>
+    <p style="margin:0 0 4px;font-size:16px;line-height:1.6">Warmly,</p>
+    <p style="margin:0;font-size:16px;line-height:1.6;font-weight:600;color:#3a656e">The CureVà team</p>
+  </div>
+  <p style="margin-top:18px;text-align:center;font-size:12px;color:#94a3b8">This is a confirmation that your application was received. Please don't reply to this message.</p>
+</div>`,
+	},
+];
+
+/**
+ * Ensure every system template exists, by id, without disturbing operator
+ * edits. INSERT OR IGNORE is a no-op when the row is already present, so this is
+ * safe to run on every schema check and from either Worker.
+ */
+async function ensureSystemTemplates(db: D1Database): Promise<void> {
+	const now = Date.now();
+	for (const t of SYSTEM_TEMPLATES) {
+		await db
+			.prepare(
+				`INSERT OR IGNORE INTO email_templates (id, name, subject, html, text, variables, created_at, updated_at)
 				 VALUES (?, ?, ?, ?, NULL, ?, ?, ?)`,
 			)
 			.bind(t.id, t.name, t.subject, t.html, JSON.stringify(t.variables), now, now)

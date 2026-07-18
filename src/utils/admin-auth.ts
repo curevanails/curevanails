@@ -33,6 +33,33 @@ async function sign(secret: string, data: string): Promise<string> {
 	return bufToBase64Url(sig);
 }
 
+/**
+ * The secret used to sign/verify session tokens.
+ *
+ * Prefer a dedicated `SESSION_SECRET` so the token-signing key is NOT the same
+ * value the admin types at login: a token is `<expiry>.<HMAC(secret, expiry)>`,
+ * so if the signing key were the login password, anyone who captured one cookie
+ * could brute-force the password offline. Falls back to `ADMIN_PASSWORD` when
+ * `SESSION_SECRET` is unset so existing deployments keep working unchanged.
+ */
+let warnedSessionSecretFallback = false;
+
+export function resolveSessionSecret(
+	adminPassword: string,
+	sessionSecret: string | undefined,
+): string {
+	if (sessionSecret && sessionSecret.length > 0) return sessionSecret;
+	if (!warnedSessionSecretFallback) {
+		warnedSessionSecretFallback = true;
+		console.warn(
+			"SESSION_SECRET is not set — signing session cookies with ADMIN_PASSWORD. " +
+				"Set a dedicated high-entropy SESSION_SECRET so a captured cookie cannot be " +
+				"used to brute-force the login password offline.",
+		);
+	}
+	return adminPassword;
+}
+
 /** Length-safe string comparison to avoid leaking via timing. */
 function safeEqual(a: string, b: string): boolean {
 	if (a.length !== b.length) return false;
