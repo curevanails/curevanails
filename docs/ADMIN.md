@@ -79,6 +79,31 @@ On submit the endpoint:
 > numbers, uploaded documents). It is gated by authentication on **every**
 > Worker — see [Auth](#3-authentication).
 
+### URLs on the standalone `admin` Worker (clean, no `/admin` prefix)
+
+The pages live at `src/pages/admin/*`, but on **admin.curevanails.com** the
+middleware serves them at the **root** — the whole Worker *is* the admin:
+
+| Page | Clean URL (admin Worker) | Underlying route |
+| --- | --- | --- |
+| Dashboard | `/` | `/admin` |
+| Talent list | `/talent` | `/admin/talent` |
+| Waitlist | `/waitlist` | `/admin/waitlist` |
+| Login / logout | `/login`, `/logout` | `/admin/login`, `/admin/logout` |
+| Résumé download | `/file?key=…` | `/admin/file` |
+| Status/notes update | `POST /update` | `/admin/update` |
+
+- **Legacy `/admin/*` URLs 308-redirect to their clean form** (e.g.
+  `/admin/talent` → `/talent`), so old bookmarks and links keep working.
+- **Email management is retired here and redirects to the notify service:**
+  `/admin/email` (and `/email`) → `https://notify.curevanails.com/`. This
+  redirect fires on every Worker.
+- On the **main** `curevanails` Worker the admin still resolves at `/admin/*`
+  (gated) — the clean-URL rewrites are specific to the standalone admin Worker.
+- Implemented in `src/middleware.ts`; the clean paths are served with
+  `next("/admin/<seg>")` (a forward rewrite that does not re-enter middleware, so
+  the strip-redirect can't loop).
+
 | File                            | Purpose                                                              |
 | ------------------------------- | ------------------------------------------------------------------- |
 | `src/pages/admin/index.astro`   | Dashboard — lists all applications (newest first) as cards          |

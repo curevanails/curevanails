@@ -5,20 +5,23 @@ import { SESSION_COOKIE, verifySessionToken } from "./utils/admin-auth";
 /**
  * Standalone-Worker routing + the recruit admin gate.
  *
- * Two Workers run this same codebase off different wrangler configs:
+ * Three Workers run this same codebase off different wrangler configs:
  *
- *  - `getready`  (GETREADY_STANDALONE="true")  → serves /getready at its root.
- *  - `admin`     (ADMIN_STANDALONE="true")     → serves the recruit admin at /.
+ *  - `getready`    (GETREADY_STANDALONE="true") → serves /getready at its root.
+ *  - `admin`       (ADMIN_STANDALONE="true")    → serves the recruit admin at /,
+ *                                                  with CLEAN URLs (no /admin prefix).
+ *  - `curevanails` (neither flag)               → public site; the admin still
+ *                                                  resolves at /admin/* (gated).
  *
- * On the main `curevanails` Worker neither flag is set, so the root rewrites are
- * no-ops and /getready is reachable at its normal path.
+ * On the standalone `admin` Worker the whole thing IS the admin, so the pages —
+ * which physically live at `src/pages/admin/*` — are exposed at the root:
+ * `/`, `/talent`, `/waitlist`, `/file`, `/update`, `/login`, `/logout`. Legacy
+ * `/admin/*` URLs 308-redirect to their clean equivalent, and the old in-app
+ * email section redirects to the standalone notify service.
  *
  * Note: Astro v6 removed `Astro.locals.runtime.env`; read Worker vars via the
- * `cloudflare:workers` module instead. Reading the env can throw inside
- * EmDash's anonymous fast path (where the adapter's removed
- * `Astro.locals.runtime.env` getter is what `env` resolves to), so every
- * access is wrapped in try/catch and falls back to "not set". A throw here must
- * never 500 the whole request.
+ * `cloudflare:workers` module instead. Reading the env can throw in some adapter
+ * paths, so every access is wrapped — a throw here must never 500 the request.
  */
 function workerVar(name: string): string | undefined {
 	try {
@@ -32,51 +35,78 @@ function isStandalone(flag: string): boolean {
 	return workerVar(flag) === "true";
 }
 
+/** Email management moved to the standalone notify service. */
+const NOTIFY_URL = "https://notify.curevanails.com/";
+
 /**
- * The admin area exposes applicant PII (names, phones, emails, license
- * numbers, uploaded documents), so it is gated on EVERY Worker — including the
- * main site, where `/admin` also resolves because the codebase is shared.
- *
- * Auth is form-based: `/admin/login` and `/admin/logout` are public; every
- * other admin path requires a valid session cookie, and unauthenticated
- * requests are redirected to the login form. Credentials come from secrets set
- * with `wrangler secret put`:
- *   ADMIN_PASSWORD  (required — if unset, the admin area returns 404 and is
- *                    effectively disabled, so the main site never leaks it)
- *   ADMIN_USERNAME  (optional — defaults to "admin")
+ * Clean admin routes on the standalone admin Worker → the real `/admin/<seg>`
+ * pages. `email` is intentionally absent (it redirects to the notify service).
  */
+const ADMIN_PAGES = new Set(["talent", "waitlist", "file", "update", "login", "logout"]);
+/** These manage their own auth (no session cookie required). */
+const ADMIN_PUBLIC = new Set(["login", "logout"]);
+
+/** Any spelling of the retired in-app email section. */
+function isEmailPath(p: string): boolean {
+	return (
+		p === "/email" ||
+		p.startsWith("/email/") ||
+		p === "/admin/email" ||
+		p.startsWith("/admin/email/")
+	);
+}
+
 export const onRequest = defineMiddleware(async (context, next) => {
-	const path = context.url.pathname;
-	const adminStandalone = isStandalone("ADMIN_STANDALONE");
-	const isAdminArea =
-		path === "/admin" ||
-		path.startsWith("/admin/") ||
-		(adminStandalone && path === "/");
+	const { pathname } = context.url;
+	const password = workerVar("ADMIN_PASSWORD");
 
-	if (isAdminArea) {
-		const password = workerVar("ADMIN_PASSWORD");
-		// No password configured → pretend the admin area doesn't exist.
-		if (!password) {
-			return new Response("Not found", { status: 404 });
+	// Email management moved to the notify service — redirect on every Worker.
+	if (isEmailPath(pathname)) {
+		return Response.redirect(NOTIFY_URL, 302);
+	}
+
+	// ===== Standalone admin Worker: serve the admin at CLEAN root URLs =====
+	if (isStandalone("ADMIN_STANDALONE")) {
+		// Legacy `/admin/*` → clean equivalent (method + query preserved via 308).
+		if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+			const clean =
+				(pathname === "/admin" ? "/" : pathname.slice("/admin".length)) + context.url.search;
+			return context.redirect(clean, 308);
 		}
 
-		// The login form and logout endpoint manage their own auth.
-		if (path === "/admin/login" || path === "/admin/logout") {
-			return next();
+		// Clean admin routes → serve the underlying /admin/* page via a forward
+		// rewrite (next(path) does NOT re-run this middleware, so no strip loop).
+		const seg = pathname === "/" ? "" : pathname.slice(1);
+		if (pathname === "/" || ADMIN_PAGES.has(seg)) {
+			if (!password) return new Response("Not found", { status: 404 });
+
+			const target = (pathname === "/" ? "/admin" : `/admin/${seg}`) + context.url.search;
+			if (ADMIN_PUBLIC.has(seg)) return next(target); // login/logout self-manage auth
+
+			const token = context.cookies.get(SESSION_COOKIE)?.value;
+			if (!(await verifySessionToken(token, password))) {
+				return context.redirect("/login", 302);
+			}
+			return next(target);
 		}
 
-		const token = context.cookies.get(SESSION_COOKIE)?.value;
-		const authed = await verifySessionToken(token, password);
-		if (!authed) {
-			return context.redirect("/admin/login", 302);
-		}
-
-		// On the admin Worker the root serves the dashboard.
-		if (adminStandalone && path === "/") return context.rewrite("/admin");
+		// Any other path (blog, recruit form, static assets) — serve unchanged.
 		return next();
 	}
 
-	if (isStandalone("GETREADY_STANDALONE") && path === "/") {
+	// ===== Non-standalone Workers (main site, getready): admin gate at /admin/* =====
+	const isAdminArea = pathname === "/admin" || pathname.startsWith("/admin/");
+	if (isAdminArea) {
+		if (!password) return new Response("Not found", { status: 404 });
+		if (pathname === "/admin/login" || pathname === "/admin/logout") return next();
+		const token = context.cookies.get(SESSION_COOKIE)?.value;
+		if (!(await verifySessionToken(token, password))) {
+			return context.redirect("/admin/login", 302);
+		}
+		return next();
+	}
+
+	if (isStandalone("GETREADY_STANDALONE") && pathname === "/") {
 		return context.rewrite("/getready");
 	}
 
