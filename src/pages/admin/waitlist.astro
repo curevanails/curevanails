@@ -6,6 +6,7 @@ import {
 	type WaitlistStatus,
 	ensureWaitlistSchema,
 } from "../../utils/waitlist-db";
+import AdminSidebar from "../../components/AdminSidebar.astro";
 
 // Server-rendered, never cached — shows PII (emails, phones) and is gated by
 // the auth check in src/middleware.ts.
@@ -111,6 +112,7 @@ const STAT_CARDS: { key: string; label: string; ring: string; dot: string; icon:
 		</style>
 		<script is:inline id="tailwind-config">
 			tailwind.config = {
+				darkMode: "class",
 				theme: {
 					extend: {
 						colors: {
@@ -140,40 +142,7 @@ const STAT_CARDS: { key: string; label: string; ring: string; dot: string; icon:
 		</script>
 	</head>
 	<body class="font-sans text-gray-800">
-		<!-- Mobile backdrop -->
-		<div id="sidebar-backdrop" class="fixed inset-0 z-40 hidden bg-gray-900/40 lg:hidden"></div>
-
-		<!-- Sidebar -->
-		<aside id="sidebar" class="fixed inset-y-0 left-0 z-50 flex w-[290px] flex-col border-r border-gray-200 bg-white px-5 py-6 transition-transform duration-300 ease-in-out lg:translate-x-0">
-			<div class="mb-8 flex items-center gap-3 px-1">
-				<div class="grid h-10 w-10 place-items-center rounded-xl bg-brand-500 text-lg font-bold text-white">C</div>
-				<div>
-					<p class="text-sm font-semibold leading-none text-gray-800">CureVà Admin</p>
-					<p class="mt-1 text-xs text-gray-500">Recruit &amp; waitlist</p>
-				</div>
-			</div>
-
-			<p class="mb-3 px-3 text-xs font-medium uppercase tracking-wider text-gray-400">Menu</p>
-			<nav class="flex flex-col gap-1">
-				<a href="/admin" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-900">
-					<span class="material-symbols-outlined text-xl">badge</span>Recruit
-				</a>
-				<a href="/admin/waitlist" aria-current="page" class="flex items-center gap-3 rounded-lg bg-brand-50 px-3 py-2.5 text-sm font-medium text-brand-600">
-					<span class="material-symbols-outlined text-xl">group</span>Waitlist
-				</a>
-				<a href="/admin/mail" class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-900">
-					<span class="material-symbols-outlined text-xl">mail</span>Email
-				</a>
-			</nav>
-
-			<a
-				href="/admin/logout"
-				class="mt-auto flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50 hover:text-gray-900"
-			>
-				<span class="material-symbols-outlined text-xl">logout</span>
-				Sign out
-			</a>
-		</aside>
+		<AdminSidebar active="waitlist" />
 
 		<!-- Content shell -->
 		<div class="lg:ml-[290px]">
@@ -478,16 +447,7 @@ const STAT_CARDS: { key: string; label: string; ring: string; dot: string; icon:
 
 			recomputeCounts();
 
-			// Sidebar mobile drawer
-			(function initSidebar() {
-				const sidebar = document.getElementById("sidebar");
-				const backdrop = document.getElementById("sidebar-backdrop");
-				const toggle = document.getElementById("sidebar-toggle");
-				const open = () => { sidebar?.classList.add("open"); backdrop?.classList.remove("hidden"); };
-				const close = () => { sidebar?.classList.remove("open"); backdrop?.classList.add("hidden"); };
-				toggle?.addEventListener("click", () => (sidebar?.classList.contains("open") ? close() : open()));
-				backdrop?.addEventListener("click", close);
-			})();
+			// Sidebar mobile drawer is wired by the shared AdminSidebar component.
 		</script>
 	</body>
 </html>

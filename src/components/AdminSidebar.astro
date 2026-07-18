@@ -1,0 +1,155 @@
+---
+/**
+ * Shared admin console sidebar — one consistent navigation across the whole
+ * admin surface (Recruit, Waitlist, and the Email dashboard). Email is an
+ * expandable group whose sub-items live "under" it, so there is no separate
+ * email sidebar.
+ *
+ * Links are base-aware: on the standalone `admin` Worker the console is at clean
+ * roots (`/`, `/waitlist`, `/mail`); on the main Worker it is under `/admin/*`.
+ * See src/middleware.ts + src/utils/email-nav.ts.
+ *
+ * `active` highlights the current item and auto-opens the Email group. The email
+ * dashboard's in-page sections (compose/campaigns/…) are anchor links; their
+ * active state is handled by the dashboard's own scroll-spy on `.nav-link`.
+ */
+import { env } from "cloudflare:workers";
+
+type Active =
+	| "recruit"
+	| "waitlist"
+	| "mail"
+	| "mail-recruit-alerts"
+	| "mail-settings";
+
+interface Props {
+	active: Active;
+}
+const { active } = Astro.props;
+
+function workerVar(name: string): string | undefined {
+	try {
+		return (env as unknown as Record<string, string | undefined>)[name];
+	} catch {
+		return undefined;
+	}
+}
+// Admin base: "" on the standalone admin Worker (clean URLs), "/admin" elsewhere.
+const B = workerVar("ADMIN_STANDALONE") === "true" ? "" : "/admin";
+const recruitHref = B || "/";
+const waitlistHref = `${B}/waitlist`;
+const mailBase = `${B}/mail`;
+const logoutHref = `${B}/logout`;
+
+const emailOpen = active.startsWith("mail");
+
+const linkBase =
+	"flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition";
+const linkInactive =
+	"text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white";
+const linkActive = "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400";
+const subBase =
+	"nav-link flex items-center gap-3 rounded-lg py-2 pl-9 pr-3 text-[13px] font-medium transition";
+const subInactive =
+	"text-gray-500 hover:bg-gray-50 hover:text-brand-600 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white";
+const subActive = "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400";
+
+const emailItems = [
+	{ label: "Compose", icon: "send", href: `${mailBase}#compose` },
+	{ label: "Campaigns", icon: "schedule", href: `${mailBase}#campaigns` },
+	{ label: "Templates", icon: "description", href: `${mailBase}#templates` },
+	{ label: "Analytics", icon: "monitoring", href: `${mailBase}#analytics` },
+	{ label: "Activity", icon: "history", href: `${mailBase}#activity` },
+	{ label: "Suppressed", icon: "block", href: `${mailBase}#suppressed` },
+	{ label: "Recruit alerts", icon: "badge", href: `${mailBase}/recruit-alerts`, key: "mail-recruit-alerts" },
+	{ label: "Settings", icon: "settings", href: `${mailBase}/settings`, key: "mail-settings" },
+];
+---
+
+<!-- Mobile backdrop -->
+<div id="sidebar-backdrop" class="fixed inset-0 z-40 hidden bg-gray-900/40 lg:hidden"></div>
+
+<aside
+	id="sidebar"
+	class="fixed inset-y-0 left-0 z-50 flex w-[290px] flex-col border-r border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900"
+>
+	<!-- Brand -->
+	<div class="mb-2 flex items-center gap-3 px-6 py-5">
+		<div class="grid h-10 w-10 place-items-center rounded-xl bg-brand-500 text-lg font-bold text-white">C</div>
+		<div>
+			<p class="text-sm font-semibold leading-none text-gray-800 dark:text-white/90">CureVà Admin</p>
+			<p class="mt-1 text-xs text-gray-500 dark:text-gray-500">Recruit, waitlist &amp; email</p>
+		</div>
+	</div>
+
+	<p class="mb-2 px-6 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Menu</p>
+	<nav class="flex-1 space-y-1 overflow-y-auto px-4">
+		<a href={recruitHref} class={`${linkBase} ${active === "recruit" ? linkActive : linkInactive}`} aria-current={active === "recruit" ? "page" : undefined}>
+			<span class="material-symbols-outlined text-xl">badge</span>Recruit
+		</a>
+		<a href={waitlistHref} class={`${linkBase} ${active === "waitlist" ? linkActive : linkInactive}`} aria-current={active === "waitlist" ? "page" : undefined}>
+			<span class="material-symbols-outlined text-xl">group</span>Waitlist
+		</a>
+
+		<!-- Email: expandable group -->
+		<details class="email-group" open={emailOpen}>
+			<summary class={`${linkBase} cursor-pointer list-none ${emailOpen ? "text-brand-600 dark:text-brand-400" : linkInactive}`}>
+				<span class="material-symbols-outlined text-xl">mail</span>
+				<span class="flex-1">Email</span>
+				<span class="chev material-symbols-outlined text-lg text-gray-400 transition-transform">expand_more</span>
+			</summary>
+			<div class="mt-1 space-y-0.5">
+				{emailItems.map((item) => (
+					<a href={item.href} class={`${subBase} ${item.key && active === item.key ? subActive : subInactive}`}>
+						<span class="material-symbols-outlined text-lg">{item.icon}</span>{item.label}
+					</a>
+				))}
+			</div>
+		</details>
+	</nav>
+
+	<div class="border-t border-gray-200 px-4 py-4 dark:border-gray-800">
+		<a href={logoutHref} class={`${linkBase} ${linkInactive}`}>
+			<span class="material-symbols-outlined text-xl">logout</span>Sign out
+		</a>
+	</div>
+</aside>
+
+<style>
+	/* Mobile drawer: hidden off-canvas by default, `.open` slides it in. */
+	@media (max-width: 1023px) {
+		#sidebar {
+			transform: translateX(-100%);
+			transition: transform 0.3s ease;
+		}
+		#sidebar.open {
+			transform: translateX(0);
+		}
+	}
+	/* Native disclosure marker off; rotate the chevron when open. */
+	.email-group > summary::-webkit-details-marker {
+		display: none;
+	}
+	.email-group[open] > summary .chev {
+		transform: rotate(180deg);
+	}
+</style>
+
+<script is:inline>
+	(function () {
+		function toggle() {
+			document.getElementById("sidebar")?.classList.toggle("open");
+			document.getElementById("sidebar-backdrop")?.classList.toggle("hidden");
+		}
+		// Expose a global so inline onclick="sidebarToggle()" (email dashboard) works.
+		window.sidebarToggle = toggle;
+		// The header toggle button (#sidebar-toggle) is rendered AFTER this
+		// component, so wire it once the DOM is parsed.
+		function wire() {
+			document.getElementById("sidebar-toggle")?.addEventListener("click", toggle);
+			document.getElementById("sidebar-backdrop")?.addEventListener("click", toggle);
+		}
+		if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", wire);
+		else wire();
+	})();
+</script>

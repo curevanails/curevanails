@@ -3,6 +3,7 @@ import { env } from "cloudflare:workers";
 import { listRecruitEmails, recruitKind } from "../../utils/recruit-notifications";
 import { RECRUIT_NOTIFY_TO, getSetting, parseRecipients } from "../../utils/app-settings";
 import { emailNav } from "../../utils/email-nav";
+import AdminSidebar from "../../components/AdminSidebar.astro";
 
 // Server-rendered, auth-gated by src/middleware.ts (path listed as protected).
 export const prerender = false;
@@ -49,6 +50,10 @@ const badge: Record<string, string> = {
 		</script>
 		<script is:inline src="https://cdn.tailwindcss.com?plugins=forms"></script>
 		<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+		<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+		<style is:inline>
+			.material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20; vertical-align: middle; }
+		</style>
 		<script is:inline id="tailwind-config">
 			tailwind.config = {
 				darkMode: "class",
@@ -65,7 +70,15 @@ const badge: Record<string, string> = {
 		</script>
 	</head>
 	<body class="min-h-screen bg-gray-50 font-sans text-gray-800 antialiased dark:bg-gray-950 dark:text-gray-200">
-		<main class="mx-auto max-w-4xl px-4 py-10 sm:py-14">
+		<AdminSidebar active="mail-recruit-alerts" />
+		<div class="lg:pl-[290px]">
+			<div class="lg:hidden flex items-center gap-3 border-b border-gray-200 bg-white px-4 py-3 dark:border-gray-800 dark:bg-gray-900">
+				<button id="sidebar-toggle" type="button" aria-label="Toggle menu" class="grid h-10 w-10 place-items-center rounded-lg border border-gray-200 text-gray-500 dark:border-gray-700 dark:text-gray-400">
+					<span class="material-symbols-outlined">menu</span>
+				</button>
+				<span class="text-sm font-semibold text-gray-700 dark:text-gray-200">Recruit alerts</span>
+			</div>
+			<main class="mx-auto max-w-4xl px-4 py-10 sm:py-14">
 			<a href={nav.home} class="inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-brand-500">
 				← Back to dashboard
 			</a>
@@ -127,6 +140,7 @@ const badge: Record<string, string> = {
 					</div>
 				)}
 			</section>
-		</main>
+			</main>
+		</div>
 	</body>
 </html>
