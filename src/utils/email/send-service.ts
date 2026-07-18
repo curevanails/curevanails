@@ -66,10 +66,12 @@ export async function sendOne(
 		.bind(logId, recipient.id, template.id, recipient.email)
 		.run();
 
+	const unsubscribeUrl = buildUnsubscribeUrl(baseUrl, recipient.unsubscribe_token);
+
 	const variables: Record<string, unknown> = {
 		name: recipient.name ?? "there",
 		email: recipient.email,
-		unsubscribe_url: buildUnsubscribeUrl(baseUrl, recipient.unsubscribe_token),
+		unsubscribe_url: unsubscribeUrl,
 		...(recipient.discount_code ? { discount_code: recipient.discount_code } : {}),
 		...extraVars,
 	};
@@ -83,6 +85,7 @@ export async function sendOne(
 			html: rendered.html,
 			text: rendered.text,
 			logId,
+			unsubscribeUrl,
 		});
 		await db
 			.prepare(
@@ -131,4 +134,56 @@ export async function sendCampaign(
 	}
 
 	return { total: opts.recipients.length, sent, failed };
+}
+
+export type Audience = "all" | "waiting" | "invited" | "redeemed";
+
+/**
+ * Resolve a template + an audience of active subscribers and send to all of
+ * them. Shared by the immediate `POST /api/email/send` and the scheduled
+ * campaign runner, so both behave identically. Returns either a send summary
+ * or a human-readable error (template missing / no recipients).
+ */
+export async function sendCampaignByAudience(
+	client: SESv2Client,
+	db: D1Database,
+	opts: {
+		templateId: string;
+		audience: Audience;
+		baseUrl: string;
+		extraVars: Record<string, unknown>;
+	},
+): Promise<{ summary: SendSummary } | { error: string }> {
+	const template = await db
+		.prepare("SELECT id, subject, html, text FROM email_templates WHERE id = ?")
+		.bind(opts.templateId)
+		.first<CampaignTemplate>();
+	if (!template) return { error: "Template not found." };
+
+	const res =
+		opts.audience === "all"
+			? await db
+					.prepare(
+						`SELECT id, email, NULL AS name, unsubscribe_token, discount_code
+						 FROM waitlist WHERE email_status = 'active'`,
+					)
+					.all<Recipient>()
+			: await db
+					.prepare(
+						`SELECT id, email, NULL AS name, unsubscribe_token, discount_code
+						 FROM waitlist WHERE email_status = 'active' AND status = ?`,
+					)
+					.bind(opts.audience)
+					.all<Recipient>();
+
+	const recipients = res.results ?? [];
+	if (recipients.length === 0) return { error: "No active recipients matched." };
+
+	const summary = await sendCampaign(client, db, {
+		template,
+		recipients,
+		baseUrl: opts.baseUrl,
+		extraVars: opts.extraVars,
+	});
+	return { summary };
 }

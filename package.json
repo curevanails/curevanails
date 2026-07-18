@@ -14,9 +14,11 @@
     "deploy": "astro build && wrangler deploy",
     "deploy:getready": "WRANGLER_CONFIG=wrangler.getready.jsonc astro build && wrangler deploy",
     "deploy:admin": "WRANGLER_CONFIG=wrangler.admin.jsonc astro build && wrangler deploy",
+    "deploy:notify": "WRANGLER_CONFIG=wrangler.notify.jsonc astro build && wrangler deploy",
     "typecheck": "astro check",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:notify": "playwright test --config playwright.notify.config.ts"
   },
   "dependencies": {
     "@astrojs/cloudflare": "^13.5.3",

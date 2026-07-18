@@ -77,6 +77,51 @@ export const onRequest = defineMiddleware(async (context, next) => {
 		return Response.redirect(NOTIFY_URL, 302);
 	}
 
+	// ===== Standalone notify Worker: email dashboard at CLEAN root URLs =====
+	// Serves the email dashboard (`/`), settings, recruit-alerts, and the
+	// `/api/email/*` + `/api/settings*` action endpoints — all gated by the
+	// signed session cookie. Public: /login, /logout, /unsubscribe/*, and the
+	// SNS `/api/webhooks/*` receiver. The pages physically live at
+	// `src/pages/notify/*`; clean root URLs are rewritten onto them.
+	if (isStandalone("NOTIFY_STANDALONE")) {
+		const seg = pathname === "/" ? "" : pathname.slice(1);
+		// Clean page routes that map to a physical `/notify/<seg>` page.
+		const NOTIFY_PAGES = new Set(["settings", "recruit-alerts", "login", "logout"]);
+		const isPageRoute = pathname === "/" || NOTIFY_PAGES.has(seg);
+		// Paths that require a valid session (dashboard PII + send actions).
+		const needsAuth =
+			pathname === "/" ||
+			pathname === "/settings" ||
+			pathname === "/recruit-alerts" ||
+			pathname.startsWith("/api/email/") ||
+			pathname.startsWith("/api/settings");
+
+		if (needsAuth) {
+			if (!password) return new Response("Not found", { status: 404 });
+			const token = context.cookies.get(SESSION_COOKIE)?.value;
+			if (!(await verifySessionToken(token, signingSecret(password)))) {
+				return context.redirect("/login", 302);
+			}
+		}
+
+		// Clean URL → its underlying /notify/* page (forward rewrite; next(path)
+		// does NOT re-run this middleware, so there is no rewrite loop).
+		if (isPageRoute) {
+			const target = (pathname === "/" ? "/notify" : `/notify/${seg}`) + context.url.search;
+			return next(target);
+		}
+
+		// The recruit admin dashboard is NOT part of the notify service — hide it
+		// here so notify.* never serves recruit PII (it lives on the admin Worker).
+		if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+			return new Response("Not found", { status: 404 });
+		}
+
+		// API endpoints (/api/email/*, /api/webhooks/*), /unsubscribe/*, static
+		// assets, 404s — serve unchanged.
+		return next();
+	}
+
 	// ===== Standalone admin Worker: serve the admin at CLEAN root URLs =====
 	if (isStandalone("ADMIN_STANDALONE")) {
 		// Legacy `/admin/*` → clean equivalent (method + query preserved via 308).

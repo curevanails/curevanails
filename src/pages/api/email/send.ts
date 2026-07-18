@@ -9,8 +9,8 @@ import {
 	type Recipient,
 } from "../../../utils/email/send-service";
 
-// Server-rendered, never prerendered. Lives under /admin so it is gated by the
-// signed-cookie auth in src/middleware.ts.
+// Server-rendered, never prerendered. Behind the auth gate in middleware.ts
+// (protected prefix: /api/email/*).
 export const prerender = false;
 
 const Body = z.object({

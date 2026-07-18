@@ -1,8 +1,8 @@
 /**
  * Tiny key/value settings store in D1, shared across the CureVà Workers (they
- * all point at the same `curevanails` database). Edited on the notify dashboard
- * (notifications-service → Settings); read here by /api/recruit to decide who
- * receives the "new application" alert. Lazy-created — no migration step.
+ * all point at the same `curevanails` database). Edited here on the notify
+ * dashboard; read by the main site's /api/recruit to decide who gets a
+ * "new application" alert. Lazy-created — no migration step.
  */
 
 export const APP_SETTINGS_SCHEMA = `
@@ -46,4 +46,11 @@ export function parseRecipients(raw: string | null | undefined): string[] {
 		.split(/[,;\s]+/)
 		.map((s) => s.trim())
 		.filter(Boolean);
+}
+
+const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+
+/** True when every parsed entry is a syntactically valid address (empty is ok). */
+export function recipientsValid(raw: string): boolean {
+	return parseRecipients(raw).every((e) => EMAIL_RE.test(e));
 }

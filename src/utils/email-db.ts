@@ -86,6 +86,25 @@ CREATE TABLE IF NOT EXISTS suppression_list (
   added_at  INTEGER NOT NULL
 )`;
 
+const CREATE_CAMPAIGNS = `
+CREATE TABLE IF NOT EXISTS email_campaigns (
+  id            TEXT PRIMARY KEY,
+  template_id   TEXT NOT NULL,
+  audience      TEXT NOT NULL,
+  variables     TEXT,
+  scheduled_at  INTEGER NOT NULL,
+  status        TEXT NOT NULL DEFAULT 'scheduled',
+  created_at    INTEGER NOT NULL,
+  sent_at       INTEGER,
+  total         INTEGER,
+  sent          INTEGER,
+  failed        INTEGER,
+  error_message TEXT
+)`;
+
+const CREATE_CAMPAIGNS_INDEX = `
+CREATE INDEX IF NOT EXISTS idx_campaigns_due ON email_campaigns(status, scheduled_at)`;
+
 /**
  * Create the email tables and seed default templates. Also ensures the
  * `waitlist` table (the subscriber list) exists with its email columns +
@@ -98,6 +117,8 @@ export async function ensureEmailSchema(db: D1Database): Promise<void> {
 		db.prepare(CREATE_LOGS),
 		db.prepare(CREATE_LOGS_INDEX),
 		db.prepare(CREATE_SUPPRESSION),
+		db.prepare(CREATE_CAMPAIGNS),
+		db.prepare(CREATE_CAMPAIGNS_INDEX),
 	]);
 
 	// The subscriber list IS the waitlist table — ensure it (and its
@@ -165,10 +186,9 @@ const DEFAULT_TEMPLATES: SeedTemplate[] = [
 
 /**
  * Seed the default templates, but only on a *fresh* table. Once any template
- * exists — whether a seeded default, an edited one, or a user-created one — we
- * never re-insert, so deleting a default in the template editor sticks. This
- * DB is shared with the notifications-service; re-seeding by id would let one
- * Worker resurrect a template the operator deleted in the other.
+ * exists — whether a seeded default, an edited one, or a user-created one —
+ * we never re-insert, so deleting a default in the template editor sticks
+ * (otherwise it would silently reappear on the next page load).
  */
 async function seedDefaultTemplates(db: D1Database): Promise<void> {
 	const existing = await db
