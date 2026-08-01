@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS waitlist (
   claimed_at    TEXT,
   notes         TEXT,
   unsubscribe_token TEXT,
-  email_status  TEXT NOT NULL DEFAULT 'active'
+  email_status  TEXT NOT NULL DEFAULT 'active',
+  ack_email_sent_at TEXT
 )`;
 
 const CREATE_EMAIL_INDEX = `
@@ -82,6 +83,10 @@ export async function ensureWaitlistSchema(db: D1Database): Promise<void> {
 			.run();
 	}
 
+	if (!columns.has("ack_email_sent_at")) {
+		await db.prepare("ALTER TABLE waitlist ADD COLUMN ack_email_sent_at TEXT").run();
+	}
+
 	await db.prepare(CREATE_EMAIL_INDEX).run();
 
 	// Back-fill unsubscribe tokens for any rows created before the column existed.
@@ -93,6 +98,25 @@ export async function ensureWaitlistSchema(db: D1Database): Promise<void> {
 			.prepare("UPDATE waitlist SET unsubscribe_token = ? WHERE id = ?")
 			.bind(newUnsubscribeToken(), row.id)
 			.run();
+	}
+}
+
+/**
+ * Stamp the welcome email as delivered to SES. NULL means "not sent" — SES isn't
+ * configured, the address is suppressed, or the send failed (the failure itself
+ * is in `email_logs`). Best-effort: never let a failed stamp break the send path.
+ */
+export async function markWelcomeEmailSent(
+	db: D1Database,
+	id: string,
+): Promise<void> {
+	try {
+		await db
+			.prepare("UPDATE waitlist SET ack_email_sent_at = ? WHERE id = ?")
+			.bind(new Date().toISOString(), id)
+			.run();
+	} catch (err) {
+		console.error("waitlist: failed to stamp ack_email_sent_at", err);
 	}
 }
 

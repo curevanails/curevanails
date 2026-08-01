@@ -15,6 +15,7 @@
  */
 
 import { ensureEmailSchema } from "./email-db";
+import { markAckEmailSent } from "./recruit-db";
 import { createSesClient, sesCredentialsFromEnv } from "./email/ses-client";
 import { sendOne, type CampaignTemplate, type Recipient } from "./email/send-service";
 import { RECRUIT_NOTIFY_TO, getSetting, parseRecipients } from "./app-settings";
@@ -122,6 +123,9 @@ export async function sendRecruitEmails(
 					baseUrl: PUBLIC_SITE_URL,
 					extraVars: vars,
 				});
+				// Only stamped once SES accepted the message, so the dashboard flag
+				// means "we really did thank them", not "we tried".
+				await markAckEmailSent(db, app.id);
 			} catch (err) {
 				console.error("recruit ack send failed", err);
 			}
