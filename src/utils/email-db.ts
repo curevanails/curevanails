@@ -149,12 +149,42 @@ const DEFAULT_TEMPLATES: SeedTemplate[] = [
 		id: "tpl-welcome",
 		name: "Welcome to the waitlist",
 		subject: "You're on the CureVà list ✨",
-		variables: ["name", "unsubscribe_url"],
-		html: `<div style="font-family:'DM Sans',Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px;color:#0d1e22">
-  <h1 style="color:#3a656e;font-size:28px">Welcome, {{name}}.</h1>
-  <p style="font-size:16px;line-height:1.6">Thank you for joining the CureVà waitlist. We're building a premium beauty &amp; wellness lounge around stillness — five Zero Gravity chairs, pregnancy-safe formulas, and a space designed to lower your cortisol the moment you walk in.</p>
-  <p style="font-size:16px;line-height:1.6">We'll be in touch with opening news and an early-bird perk before our September 2026 launch.</p>
-  ${UNSUB_FOOTER}
+		// `first_name` is optional — the waitlist form only collects email and
+		// phone today, so the greeting falls back to a name-free headline rather
+		// than the "Welcome, there." that `name`'s default produced.
+		variables: ["first_name", "unsubscribe_url"],
+		html: `<div style="margin:0;padding:0;background:#f0fbff">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0">You're on the CureVà waitlist — opening news and an early-bird perk are on the way.</div>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f0fbff">
+    <tr><td align="center" style="padding:32px 16px">
+      <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:560px">
+        <tr><td style="padding:0 0 20px;text-align:center">
+          <span style="font-family:'DM Sans',Arial,sans-serif;font-size:20px;font-weight:700;letter-spacing:3px;color:#3a656e">CUREVÀ</span>
+        </td></tr>
+        <tr><td style="background:#ffffff;border:1px solid #dbeef3;border-radius:18px;padding:36px 32px;font-family:'DM Sans',Arial,sans-serif;color:#0d1e22">
+          <p style="margin:0 0 8px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:#3a656e;font-weight:700">Waitlist confirmed</p>
+          <h1 style="margin:0 0 18px;font-size:27px;line-height:1.25;color:#0d1e22;font-weight:700">{{#if first_name}}You're on the list, {{first_name}}.{{else}}You're on the list.{{/if}}</h1>
+          <p style="margin:0 0 16px;font-size:16px;line-height:1.65;color:#41484a">Thank you for joining the CureVà waitlist. We're building a premium beauty &amp; wellness lounge around one idea: stillness.</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:0 0 22px;background:#f0fbff;border-radius:12px">
+            <tr><td style="padding:18px 20px;font-family:'DM Sans',Arial,sans-serif">
+              <p style="margin:0 0 10px;font-size:15px;line-height:1.5;color:#0d1e22"><span style="color:#3a656e">✦</span>&nbsp; Five Zero Gravity chairs</p>
+              <p style="margin:0 0 10px;font-size:15px;line-height:1.5;color:#0d1e22"><span style="color:#3a656e">✦</span>&nbsp; Pregnancy-safe formulas</p>
+              <p style="margin:0;font-size:15px;line-height:1.5;color:#0d1e22"><span style="color:#3a656e">✦</span>&nbsp; A space designed to lower your cortisol the moment you walk in</p>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 6px;font-size:13px;letter-spacing:1px;text-transform:uppercase;color:#3a656e;font-weight:700">What happens next</p>
+          <p style="margin:0 0 24px;font-size:16px;line-height:1.65;color:#41484a">We'll be in touch with opening news and an <strong style="color:#0d1e22">early-bird perk</strong> before our September 2026 launch. Nothing for you to do until then.</p>
+          <div style="border-top:1px solid #e8f4f7;padding-top:20px">
+            <p style="margin:0;font-size:16px;line-height:1.6;color:#41484a">See you soon,</p>
+            <p style="margin:0;font-size:16px;line-height:1.6;font-weight:700;color:#3a656e">The CureVà team</p>
+          </div>
+        </td></tr>
+        <tr><td style="padding:20px 8px 0;text-align:center;font-family:'DM Sans',Arial,sans-serif">
+          <p style="margin:0;font-size:12px;line-height:1.6;color:#8ba3a9">You're receiving this because you joined the CureVà waitlist.<br /><a href="{{unsubscribe_url}}" style="color:#3a656e">Unsubscribe</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
 </div>`,
 	},
 	{
