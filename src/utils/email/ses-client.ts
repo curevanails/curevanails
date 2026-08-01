@@ -7,7 +7,12 @@ import { isSuppressed } from "./suppression";
  * hardcoded. The From address is fixed to the verified CureVà identity.
  */
 
-export const FROM_ADDRESS = "CureVà <hello@cureva.vn>";
+/**
+ * Sender identity. The domain here must be a **verified SES identity** or the
+ * send is rejected outright — this was `hello@cureva.vn`, a domain that was
+ * never verified, while the account has `curevanails.com` verified instead.
+ */
+export const FROM_ADDRESS = "CureVà <hello@curevanails.com>";
 
 /**
  * SES Configuration Set, from the `SES_CONFIGURATION_SET` var. Optional, and
