@@ -1,14 +1,28 @@
 import { SESv2Client, SendEmailCommand, type MessageHeader } from "@aws-sdk/client-sesv2";
+import { env } from "cloudflare:workers";
 import { isSuppressed } from "./suppression";
 
 /**
  * AWS SES (v2) sending. Region + credentials come from Worker secrets — never
- * hardcoded. The From address and Configuration Set are fixed to the verified
- * CureVà identity.
+ * hardcoded. The From address is fixed to the verified CureVà identity.
  */
 
 export const FROM_ADDRESS = "CureVà <hello@cureva.vn>";
-export const CONFIGURATION_SET = "cureva-main";
+
+/**
+ * SES Configuration Set, from the `SES_CONFIGURATION_SET` var. Optional, and
+ * empty by default: SES rejects the whole send with "Configuration set <x> does
+ * not exist" when the name doesn't resolve, so hardcoding one meant a set that
+ * was never created in AWS blocked *every* email.
+ *
+ * Set it once the set exists in SES. It is what makes SES publish
+ * delivery/bounce/complaint events to SNS, so `/api/webhooks/ses` — and the
+ * automatic suppression of bounced addresses that depends on it — only work
+ * while this is configured.
+ */
+export const CONFIGURATION_SET =
+	(env as unknown as { SES_CONFIGURATION_SET?: string }).SES_CONFIGURATION_SET?.trim() ??
+	"";
 
 /**
  * Absolute public origin, used as the last-resort base for unsubscribe links
@@ -107,7 +121,7 @@ export async function sendEmail(
 					...(headers.length ? { Headers: headers } : {}),
 				},
 			},
-			ConfigurationSetName: CONFIGURATION_SET,
+			...(CONFIGURATION_SET ? { ConfigurationSetName: CONFIGURATION_SET } : {}),
 			EmailTags: [{ Name: "log_id", Value: params.logId }],
 		}),
 	);

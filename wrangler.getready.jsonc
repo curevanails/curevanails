@@ -11,6 +11,11 @@
 	// (`/`) of this Worker. See src/middleware.ts.
 	"vars": {
 		"GETREADY_STANDALONE": "true",
+		// SES Configuration Set name. Optional and empty by default — SES rejects
+		// the entire send when the named set doesn't exist, so this stays blank
+		// until the set is actually created in AWS. Setting it is what makes SES
+		// publish delivery/bounce/complaint events to SNS for /api/webhooks/ses.
+		"SES_CONFIGURATION_SET": "",
 	},
 	"d1_databases": [
 		{
