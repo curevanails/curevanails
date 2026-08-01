@@ -102,7 +102,8 @@ CREATE TABLE IF NOT EXISTS job_applications (
   why_cureva      TEXT,
   contact_consent INTEGER NOT NULL DEFAULT 0,
   status          TEXT NOT NULL DEFAULT 'new',
-  notes           TEXT
+  notes           TEXT,
+  ack_email_sent_at TEXT
 )`;
 
 /**
@@ -143,6 +144,31 @@ export async function ensureApplicationsSchema(db: D1Database): Promise<void> {
 	}
 	if (!columns.has("notes")) {
 		await db.prepare("ALTER TABLE job_applications ADD COLUMN notes TEXT").run();
+	}
+	if (!columns.has("ack_email_sent_at")) {
+		await db
+			.prepare("ALTER TABLE job_applications ADD COLUMN ack_email_sent_at TEXT")
+			.run();
+	}
+}
+
+/**
+ * Stamp the thank-you email as delivered to SES. NULL means "not sent" — either
+ * the applicant left the optional email blank, SES isn't configured, or the send
+ * failed (the failure itself is in `email_logs`). Best-effort: a failed stamp
+ * must never break the send path, so this swallows its own errors.
+ */
+export async function markAckEmailSent(
+	db: D1Database,
+	id: string,
+): Promise<void> {
+	try {
+		await db
+			.prepare("UPDATE job_applications SET ack_email_sent_at = ? WHERE id = ?")
+			.bind(new Date().toISOString(), id)
+			.run();
+	} catch (err) {
+		console.error("recruit: failed to stamp ack_email_sent_at", err);
 	}
 }
 

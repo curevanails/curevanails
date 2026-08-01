@@ -22,6 +22,8 @@ interface WaitlistRow {
 	discount_code: string | null;
 	claimed_at: string | null;
 	notes: string | null;
+	/** ISO timestamp of the welcome email; NULL = never sent. */
+	ack_email_sent_at: string | null;
 }
 
 // Tailwind classes per status (Play CDN ships the full default palette).
@@ -252,6 +254,15 @@ const STAT_CARDS: { key: string; label: string; ring: string; dot: string; icon:
 															<a class="block text-xs text-gray-500 hover:text-brand-500 mt-0.5" href={`tel:${e.phone.replace(/[^+\d]/g, "")}`} onclick="event.stopPropagation()">{e.phone}</a>
 														) : (
 															<span class="block text-xs text-gray-400 mt-0.5">No phone</span>
+														)}
+														{e.ack_email_sent_at ? (
+															<span class="mt-1 inline-flex items-center gap-1 rounded-md bg-emerald-50 text-emerald-700 px-1.5 py-0.5 text-[11px]" title={`Welcome email sent ${fmtDate(e.ack_email_sent_at)} ${fmtTime(e.ack_email_sent_at)}`}>
+																<span class="material-symbols-outlined text-[13px]">mark_email_read</span>Welcome sent
+															</span>
+														) : (
+															<span class="mt-1 inline-flex items-center gap-1 rounded-md bg-amber-50 text-amber-700 px-1.5 py-0.5 text-[11px]" title="No welcome email recorded for this subscriber">
+																<span class="material-symbols-outlined text-[13px]">unsubscribe</span>Not sent
+															</span>
 														)}
 													</td>
 													<td class="px-5 py-3.5 align-middle">

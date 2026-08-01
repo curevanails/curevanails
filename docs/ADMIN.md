@@ -70,6 +70,7 @@ On submit the endpoint:
 | `why_cureva`          | Short "Why would you like to work at CURE VÀ?" answer (nullable) |
 | `contact_consent`     | `1` if the applicant agreed to be contacted about future opportunities |
 | `status`, `notes`     | Staff-managed pipeline status + recruiter notes  |
+| `ack_email_sent_at`   | ISO timestamp of the thank-you email to the applicant; **NULL = never sent**. Written only after SES accepts the message. Surfaced in the dashboard's Contact column as a "Thank-you sent" / "Not sent" chip. |
 
 ---
 

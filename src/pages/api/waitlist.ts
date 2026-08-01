@@ -7,6 +7,7 @@ import {
 	normalizePhone,
 } from "../../utils/waitlist-db";
 import { rateLimit } from "../../utils/rate-limit";
+import { sendWaitlistWelcome } from "../../utils/waitlist-emails";
 
 // Server-rendered endpoint — never prerender.
 export const prerender = false;
@@ -20,6 +21,9 @@ export const prerender = false;
  * Upserts a row into the D1 `waitlist` table (deduped by normalized email).
  * Capture-only: no discount code is generated yet — see
  * `src/utils/waitlist-db.ts`.
+ *
+ * On a successful signup it also fires the `tpl-welcome` email (best-effort) and
+ * stamps `waitlist.ack_email_sent_at` — see `src/utils/waitlist-emails.ts`.
  */
 
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
@@ -113,6 +117,11 @@ export const POST: APIRoute = async ({ request }) => {
 	const phoneNorm = normalizePhone(phone);
 	const cleanSource = (source || "getready").slice(0, MAX_SOURCE_LEN);
 
+	// The row we should welcome, decided inside the persist block and acted on
+	// after it — so a slow SES call can't delay the D1 write.
+	let welcome: { id: string; unsubscribeToken: string } | null = null;
+	let alreadyJoined = false;
+
 	// --- Persist to D1 (idempotent on email) ---
 	try {
 		await ensureWaitlistSchema(db);
@@ -121,11 +130,18 @@ export const POST: APIRoute = async ({ request }) => {
 		// on the list. (An upsert's `changes` count can't distinguish a fresh
 		// insert from a no-op update, so we don't rely on it.)
 		const existing = await db
-			.prepare("SELECT id FROM waitlist WHERE email_norm = ?")
+			.prepare(
+				"SELECT id, unsubscribe_token, ack_email_sent_at FROM waitlist WHERE email_norm = ?",
+			)
 			.bind(emailNorm)
-			.first<{ id: string }>();
+			.first<{
+				id: string;
+				unsubscribe_token: string | null;
+				ack_email_sent_at: string | null;
+			}>();
 
 		if (existing) {
+			alreadyJoined = true;
 			// Already joined — refresh phone/source, keep the original join time.
 			// An email-only signup must not blank out a phone we already have.
 			if (phone) {
@@ -141,29 +157,56 @@ export const POST: APIRoute = async ({ request }) => {
 					.bind(cleanSource, emailNorm)
 					.run();
 			}
-			return json({ ok: true, alreadyJoined: true });
+			// Re-submitting must not re-send the welcome. The one exception is a
+			// member who never actually received it (row predates the email, or the
+			// send failed) — `ack_email_sent_at` is what makes that safe to retry.
+			if (!existing.ack_email_sent_at) {
+				welcome = {
+					id: existing.id,
+					unsubscribeToken: existing.unsubscribe_token ?? "",
+				};
+			}
+		} else {
+			const id = crypto.randomUUID();
+			const unsubscribeToken = newUnsubscribeToken();
+
+			await db
+				.prepare(
+					`INSERT INTO waitlist (id, created_at, email, phone, email_norm, phone_norm, source, unsubscribe_token)
+					 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+				)
+				.bind(
+					id,
+					new Date().toISOString(),
+					email,
+					phone,
+					emailNorm,
+					phoneNorm,
+					cleanSource,
+					unsubscribeToken,
+				)
+				.run();
+
+			welcome = { id, unsubscribeToken };
 		}
-
-		await db
-			.prepare(
-				`INSERT INTO waitlist (id, created_at, email, phone, email_norm, phone_norm, source, unsubscribe_token)
-				 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-			)
-			.bind(
-				crypto.randomUUID(),
-				new Date().toISOString(),
-				email,
-				phone,
-				emailNorm,
-				phoneNorm,
-				cleanSource,
-				newUnsubscribeToken(),
-			)
-			.run();
-
-		return json({ ok: true, alreadyJoined: false });
 	} catch (err) {
 		console.error("waitlist insert failed", err);
 		return json({ ok: false, error: "Failed to save your spot." }, 500);
 	}
+
+	// Best-effort welcome email. The subscriber is already saved, so a failed or
+	// unconfigured send never affects their result — swallow everything.
+	if (welcome) {
+		try {
+			await sendWaitlistWelcome(db, env as unknown as Record<string, unknown>, {
+				id: welcome.id,
+				email,
+				unsubscribeToken: welcome.unsubscribeToken,
+			});
+		} catch (err) {
+			console.error("waitlist welcome failed", err);
+		}
+	}
+
+	return json({ ok: true, alreadyJoined });
 };

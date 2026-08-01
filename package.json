@@ -28,7 +28,6 @@
     "@emdash-cms/plugin-webhook-notifier": "^0.2.0",
     "astro": "^6.3.0",
     "emdash": "^0.16.1",
-    "handlebars": "^4.7.9",
     "nanoid": "^5.1.11",
     "react": "19.2.4",
     "react-dom": "19.2.4",

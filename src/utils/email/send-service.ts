@@ -43,6 +43,44 @@ function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Record a send that never reached SES — missing credentials, a missing
+ * template, a schema failure. `sendOne` logs its own attempts, but these abort
+ * *before* it runs, which previously left no trace anywhere: no log row, no
+ * stamp, nothing in the dashboard. An automatic email that silently does
+ * nothing is indistinguishable from one that was never wired up, so record the
+ * reason as a `failed` row and let the dashboard show it.
+ *
+ * Best-effort by design — this is the error path, and it must never throw.
+ */
+export async function logSendSkipped(
+	db: D1Database,
+	opts: {
+		templateId: string;
+		recipientId: string;
+		email: string;
+		reason: string;
+	},
+): Promise<void> {
+	try {
+		await db
+			.prepare(
+				`INSERT INTO email_logs (id, subscriber_id, template_id, email, status, error_message)
+				 VALUES (?, ?, ?, ?, 'failed', ?)`,
+			)
+			.bind(
+				newId(),
+				opts.recipientId,
+				opts.templateId,
+				opts.email,
+				opts.reason.slice(0, 500),
+			)
+			.run();
+	} catch (err) {
+		console.error("failed to log a skipped send", err);
+	}
+}
+
 /** Render, log, and send a single email. Throws on send failure (the caller logs). */
 export async function sendOne(
 	client: SESv2Client,

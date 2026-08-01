@@ -18,12 +18,78 @@ into the existing CureVà admin — no separate app.
 ## Key idea: the subscriber list **is** the `waitlist` table
 
 The public getready form already populates `waitlist`. We extended that table
-with two columns instead of creating a second subscriber store:
+with a few columns instead of creating a second subscriber store:
 
 - `unsubscribe_token` — unique, unguessable token for the opt-out link (set at
   signup; back-filled for older rows by `ensureWaitlistSchema`)
 - `email_status` — `active` | `unsubscribed` | `bounced` | `complained`
   (independent of the pipeline `status` of waiting/invited/redeemed)
+- `ack_email_sent_at` — ISO timestamp of the automatic welcome email; **NULL =
+  never sent**. See "Automatic transactional sends" below.
+
+## Automatic transactional sends
+
+Two public forms send their own email the moment someone submits, with no
+operator action. Both are best-effort — the row is persisted first and every
+email error is swallowed, so a failed or unconfigured send never affects the
+visitor's result — and both stamp an `ack_email_sent_at` column on success, so
+staff can see at a glance who has actually been thanked.
+
+| Form | Endpoint | Template | Sent when | Stamped on |
+| --- | --- | --- | --- | --- |
+| Job application | `POST /api/recruit` | `tpl-recruit-ack` | The applicant filled in the optional email field | `job_applications.ack_email_sent_at` |
+| Waitlist signup | `POST /api/waitlist` | `tpl-welcome` | A new email joins — **or** an existing row still has `ack_email_sent_at IS NULL` | `waitlist.ack_email_sent_at` |
+
+The waitlist retry rule is what keeps re-submissions from re-sending: once the
+stamp is set, joining again with the same address updates the row but sends
+nothing. Rows that predate this feature (or whose send failed) get the welcome
+on their next submission.
+
+`/api/recruit` additionally sends `tpl-recruit-alert` to the recruiters in the
+`recruit_notify_to` setting. That one is not stamped — it goes to staff, not the
+applicant.
+
+Both paths go through the shared `sendOne()`, so every attempt appears in
+`email_logs` with its `status` and `error_message`. When `ack_email_sent_at` is
+NULL, `email_logs` says why: no row at all means SES isn't configured (missing
+`AWS_REGION` / `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`), a `failed` row
+carries the reason (commonly a suppression-list hit).
+
+## Template syntax
+
+Templates are **not** rendered by Handlebars. Handlebars compiles by generating
+JavaScript and running it through `new Function()`, which Cloudflare Workers
+refuses ("Code generation from strings disallowed for this context"), and
+templates live in D1 where operators edit them, so build-time precompilation
+isn't possible either. `template-render.ts` interprets them instead.
+
+The supported syntax is verified against Handlebars by a 52-case parity suite:
+
+| Syntax | Meaning |
+| --- | --- |
+| `{{name}}` | value, HTML-escaped |
+| `{{{name}}}` | value, raw |
+| `{{user.email}}` | dotted path |
+| `{{#if x}}…{{else}}…{{/if}}` | conditional, nestable |
+| `{{#unless x}}…{{/unless}}` | negated conditional |
+| `{{! … }}` | comment, dropped |
+
+Missing variables render empty and an empty array is falsy, both matching
+Handlebars. The subject and plain-text body render unescaped; HTML escapes. Any
+**other** block helper throws, so a dashboard typo becomes a recorded send
+failure instead of a silently mangled email.
+
+## SES configuration
+
+| Setting | Where | Notes |
+| --- | --- | --- |
+| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Worker **secrets** | Required. Must be set on **every** Worker that serves a public form, not just `admin` — `/api/recruit` and `/api/waitlist` run on `curevanails` and `getready` too. |
+| `SES_CONFIGURATION_SET` | Worker **var** | Optional, empty by default. SES rejects the entire send when the named set doesn't exist, so don't set it until the set exists in AWS. Setting it is what makes SES publish delivery/bounce/complaint events to SNS — `/api/webhooks/ses` and automatic bounce suppression only work while it is configured. |
+| `SES_TOPIC_ARN` | Worker **var** | The SNS topic the configuration set publishes to. The webhook fails closed without it. |
+| From address | `FROM_ADDRESS` in `ses-client.ts` | Its domain must be a verified SES identity. |
+
+While the AWS account is in the SES **sandbox**, recipients must also be
+verified identities and sending is capped (200/day, 1/sec).
 
 ## Tables (D1, lazy-created — no migration step)
 
@@ -122,7 +188,10 @@ The public `POST /api/waitlist` is rate-limited to **5 signups / 10 min / IP**
 | File | Purpose |
 | --- | --- |
 | `src/utils/email-db.ts` | email tables + default-template seeding |
-| `src/utils/waitlist-db.ts` | subscriber schema (`unsubscribe_token`, `email_status`) |
+| `src/utils/email/template-render.ts` | template interpreter (see "Template syntax") |
+| `src/utils/waitlist-db.ts` | subscriber schema (`unsubscribe_token`, `email_status`, `ack_email_sent_at`) |
+| `src/utils/waitlist-emails.ts` | automatic `tpl-welcome` send on signup |
+| `src/utils/recruit-emails.ts` | automatic `tpl-recruit-alert` + `tpl-recruit-ack` on application |
 | `src/utils/email/ses-client.ts` | SES send + suppression precheck |
 | `src/utils/email/template-render.ts` | Handlebars render + unsubscribe URL |
 | `src/utils/email/suppression.ts` | suppression check / add |

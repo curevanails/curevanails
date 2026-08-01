@@ -13,6 +13,22 @@ export default defineConfig({
 	// the adapter at the standalone config so the build deploys the `getready`
 	// Worker (getready.curevanails-tech.workers.dev) instead.
 	adapter: cloudflare({ configPath: process.env.WRANGLER_CONFIG }),
+	// AWS SDK v3 picks its Node/browser flavour two different ways: `@aws-sdk/core`
+	// swaps via modern `exports` conditions (Vite honours it → browser build),
+	// while `@aws-sdk/client-sesv2` swaps `runtimeConfig` via the legacy top-level
+	// `browser` field, which Vite ignores in SSR. The halves then disagree:
+	// client-sesv2 bundles the Node `runtimeConfig`, which calls
+	// `emitWarningIfUnsupportedVersion(process.version)` — a symbol the browser
+	// build of `@aws-sdk/core` exports as `Symbol.for("node-only")`, not a
+	// function. Every SES client construction died with
+	// "emitWarningIfUnsupportedVersion is not a function", so no email ever sent.
+	// This alias is AWS's documented Vite fix: force the browser runtimeConfig so
+	// both halves agree.
+	vite: {
+		resolve: {
+			alias: [{ find: /^\.\/runtimeConfig$/, replacement: "./runtimeConfig.browser" }],
+		},
+	},
 	image: {
 		layout: "constrained",
 		responsiveStyles: true,

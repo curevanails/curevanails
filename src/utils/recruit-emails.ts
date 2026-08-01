@@ -15,8 +15,14 @@
  */
 
 import { ensureEmailSchema } from "./email-db";
+import { markAckEmailSent } from "./recruit-db";
 import { createSesClient, sesCredentialsFromEnv } from "./email/ses-client";
-import { sendOne, type CampaignTemplate, type Recipient } from "./email/send-service";
+import {
+	logSendSkipped,
+	sendOne,
+	type CampaignTemplate,
+	type Recipient,
+} from "./email/send-service";
 import { RECRUIT_NOTIFY_TO, getSetting, parseRecipients } from "./app-settings";
 
 /** Canonical admin dashboard (the standalone `admin` Worker serves it at root). */
@@ -63,11 +69,23 @@ export async function sendRecruitEmails(
 	await ensureEmailSchema(db);
 
 	// SES not configured (secrets unset) → nothing to send. The application is
-	// already saved; skip quietly.
+	// already saved. Record why against the candidate's address, so a silently
+	// unconfigured environment is visible in the dashboard instead of looking
+	// like the feature was never built.
 	let client: ReturnType<typeof createSesClient>;
 	try {
 		client = createSesClient(sesCredentialsFromEnv(env));
-	} catch {
+	} catch (err) {
+		const reason = err instanceof Error ? err.message : "SES not configured";
+		console.warn("recruit emails skipped — SES not configured", err);
+		if (app.email) {
+			await logSendSkipped(db, {
+				templateId: "tpl-recruit-ack",
+				recipientId: app.id,
+				email: app.email,
+				reason,
+			});
+		}
 		return;
 	}
 
@@ -122,6 +140,9 @@ export async function sendRecruitEmails(
 					baseUrl: PUBLIC_SITE_URL,
 					extraVars: vars,
 				});
+				// Only stamped once SES accepted the message, so the dashboard flag
+				// means "we really did thank them", not "we tried".
+				await markAckEmailSent(db, app.id);
 			} catch (err) {
 				console.error("recruit ack send failed", err);
 			}
