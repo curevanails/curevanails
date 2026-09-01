@@ -495,14 +495,47 @@ test.describe("coming-soon", () => {
 		await expect(dialog).toBeHidden();
 	});
 
-	test("Escape closes it without leaking the scroll lock", async ({ page }) => {
+	test("it is a required choice — Escape and the backdrop do not dismiss it", async ({
+		page,
+	}) => {
+		await page.goto("/coming-soon", { waitUntil: "load" });
+		const dialog = page.locator("#ask");
+		await expect(dialog).toBeVisible({ timeout: 10000 });
+
+		await page.keyboard.press("Escape");
+		await page.waitForTimeout(400);
+		await expect(dialog, "Escape dismissed a required choice").toBeVisible();
+
+		// a click on the <dialog> element itself is a click on the backdrop
+		await page.evaluate(() => {
+			const d = document.getElementById("ask")!;
+			const r = d.getBoundingClientRect();
+			d.dispatchEvent(
+				new MouseEvent("click", { bubbles: true, clientX: r.left + 2, clientY: r.top + 2 }),
+			);
+		});
+		await page.waitForTimeout(400);
+		await expect(dialog, "the backdrop dismissed a required choice").toBeVisible();
+
+		// and there are exactly two ways out, both of which go somewhere
+		await expect(page.locator(".ask-opt")).toHaveCount(2);
+		await expect(page.locator(".ask-skip")).toHaveCount(0);
+	});
+
+	test("on a phone it fills the screen", async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 844 });
 		await page.goto("/coming-soon", { waitUntil: "load" });
 		await expect(page.locator("#ask")).toBeVisible({ timeout: 10000 });
-		await page.keyboard.press("Escape");
-		await expect(page.locator("#ask")).toBeHidden();
-		await expect
-			.poll(() => page.evaluate(() => document.body.classList.contains("lock")))
-			.toBe(false);
+
+		const box = await page.evaluate(() => {
+			const r = document.getElementById("ask")!.getBoundingClientRect();
+			return { w: r.width, h: r.height, vw: innerWidth, vh: innerHeight,
+				stacked: getComputedStyle(document.querySelector(".ask-opts")!).gridTemplateColumns };
+		});
+		expect(box.w).toBeCloseTo(box.vw, 0);
+		expect(box.h).toBeGreaterThanOrEqual(box.vh - 1);
+		// the two options stack rather than squeezing side by side
+		expect(box.stacked.split(" ").length).toBe(1);
 	});
 
 	test("it stays shut for a visitor who arrived with a hash", async ({ page }) => {

@@ -132,7 +132,19 @@ import CursorGround from "../components/vh/CursorGround.astro";
   color:hsl(var(--popover-foreground));
   box-shadow:inset 0 0 0 1px var(--border-hairline),var(--sh-d)}
 .ask-in{padding:clamp(1.5rem,4vw,2.4rem)}
-.ask h2{font-size:clamp(1.45rem,3.2vw,2rem);margin-bottom:.6rem}
+/* ON A PHONE IT IS THE WHOLE SCREEN. A 34rem card floating on a 390px
+   viewport leaves a strip of the page showing round its edges, which
+   invites a tap on something that is not one of the two answers — and this
+   dialog has exactly two answers. 100dvh, not 100vh: vh is the tall
+   viewport on iOS, so the footer would sit under the browser chrome. */
+@media (max-width:639px){
+  .ask{inset:0;width:100%;max-width:none;height:100dvh;max-height:none;
+    border-radius:0;box-shadow:none;display:grid;align-content:center}
+  .ask-in{padding:1.6rem 1.4rem max(1.6rem,env(safe-area-inset-bottom))}
+  .ask-opts{grid-template-columns:1fr}
+  .ask-opt{padding:1.25rem 1.2rem}
+}
+.ask h2{font-size:clamp(1.45rem,3.2vw,2rem);margin:.9rem 0 .6rem}
 .ask h2 em{color:hsl(var(--accent))}
 .ask-say{font-size:.9rem;color:hsl(var(--muted-foreground))}
 .ask-opts{display:grid;gap:.7rem;margin-top:1.6rem}
@@ -145,11 +157,6 @@ import CursorGround from "../components/vh/CursorGround.astro";
 .ask-opt:hover{box-shadow:inset 0 0 0 1.4px hsl(var(--accent))}
 .ask-opt b{font-size:.98rem;font-weight:700;color:hsl(var(--foreground))}
 .ask-opt span{font-size:.82rem;line-height:1.5;color:hsl(var(--muted-foreground))}
-.ask-skip{margin-top:1.2rem;text-align:center}
-.ask-skip button{border:0;background:transparent;cursor:pointer;font:inherit;
-  font-size:.78rem;font-weight:700;color:hsl(var(--muted-foreground));
-  padding:.4em .6em;transition:color .3s var(--ease)}
-.ask-skip button:hover{color:hsl(var(--foreground))}
 </style>
 </head>
 <body>
@@ -235,22 +242,21 @@ import CursorGround from "../components/vh/CursorGround.astro";
 <!-- ══ first visit: which door? ═══════════════════════════════════════ -->
 <dialog class="ask" id="ask" data-nocursor aria-labelledby="askH">
   <div class="ask-in">
+    <span class="eyebrow">Opening December 2026</span>
     <h2 id="askH">What brings you to <em>Cure Và?</em></h2>
-    <p class="ask-say">We&rsquo;re opening in December, and there are two ways in. Pick either
-      &mdash; you can always see both.</p>
+    <p class="ask-say">Point us the right way and we&rsquo;ll take you straight there.</p>
 
     <div class="ask-opts">
       <button class="ask-opt" type="button" data-go="waitlist">
         <b>I&rsquo;m booking a visit</b>
-        <span>Join the waiting list for priority booking when we open.</span>
+        <span>Join the waiting list &mdash; priority booking the day we open.</span>
       </button>
       <a class="ask-opt" href="/recruit" data-go="careers">
-        <b>I&rsquo;m looking for a role</b>
+        <b>I&rsquo;m here about a role</b>
         <span>See the open roles and apply to the founding team.</span>
       </a>
     </div>
 
-    <p class="ask-skip"><button type="button" data-go="close">Just looking, thanks</button></p>
   </div>
 </dialog>
 
@@ -300,25 +306,38 @@ import CursorGround from "../components/vh/CursorGround.astro";
     document.body.classList.add('lock');
   }
 
+  /* ── THIS DIALOG IS A REQUIRED CHOICE ──────────────────────────────
+     It does not close on the backdrop and it does not close on Escape.
+     `cancel` is the event Escape fires on a <dialog>; preventing it is the
+     only supported way to refuse the dismissal, and it also covers the
+     platform's own close-request gestures. The two options are the only
+     ways out, and both of them go somewhere.
+
+     The accessibility trade this makes, stated plainly: a modal that
+     cannot be dismissed is normally wrong. It is defensible HERE because
+     it is a choice, not a wall — both options are real, both are reachable
+     by keyboard, focus starts inside the dialog, and neither answer costs
+     the visitor anything. It would not be defensible for anything the
+     visitor could reasonably want to refuse. */
+  dlg.addEventListener('cancel', function (e) { e.preventDefault(); });
+
   /* Release the lock on the dialog's own `close` EVENT, never inside a
-     button handler — Escape closes natively and never reaches a button, so
-     the lock would leak and the page would stay unscrollable. */
+     button handler — the dialog can close by routes a button never sees,
+     and the lock would leak and leave the page unscrollable. */
   dlg.addEventListener('close', function () {
     document.body.classList.remove('lock');
-    if (!remembered()) remember('skipped');
   });
 
   dlg.addEventListener('click', function (e) {
-    /* a click that lands on the <dialog> itself is a click on the backdrop */
-    if (e.target === dlg) { dlg.close(); return; }
-
+    /* a click on the <dialog> itself is a click on the backdrop — ignored,
+       deliberately: see the note above */
     var el = e.target.closest('[data-go]');
     if (!el) return;
     var go = el.getAttribute('data-go');
     if (go === 'careers') { remember('careers'); return; }   // let the anchor navigate
 
     e.preventDefault();
-    remember(go === 'close' ? 'skipped' : 'guest');
+    remember('guest');
     dlg.close();
 
     if (go === 'waitlist') {
