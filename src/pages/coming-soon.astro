@@ -150,7 +150,14 @@ html.ask-open{overflow:hidden}
    viewport on iOS, so the footer would sit under the browser chrome. */
 @media (max-width:639px){
   .ask{inset:0;width:100%;max-width:none;height:100dvh;max-height:none;
-    border-radius:0;box-shadow:none;display:grid;align-content:center}
+    border-radius:0;box-shadow:none}
+  /* `display` ONLY on [open] — this line shipped a full-screen panel that
+     never went away. An author `display` on a <dialog> beats the UA's
+     `dialog:not([open]){display:none}` at ANY specificity, because author
+     rules outrank the UA sheet outright. Declaring `display:grid` on `.ask`
+     therefore kept the dialog laid out after close(), covering the page on
+     every screen under 640px. Regression-tested in e2e/design.spec.ts. */
+  .ask[open]{display:grid;align-content:center}
   .ask-in{padding:1.6rem 1.4rem max(1.6rem,env(safe-area-inset-bottom))}
   .ask-opts{grid-template-columns:1fr}
   .ask-opt{padding:1.25rem 1.2rem}

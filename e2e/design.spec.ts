@@ -679,3 +679,77 @@ test.describe("apply page", () => {
 		expect(btn.properties).not.toContain("transform");
 	});
 });
+
+/* ═══════════════════════════════════════════════════════════════════════
+   9 · An overlay that is closed must actually be GONE
+   ───────────────────────────────────────────────────────────────────────
+   This shipped. The mobile rule for the visitor dialog set `display:grid`
+   on `.ask` rather than on `.ask[open]`, and an author `display` on a
+   <dialog> overrides the UA's `dialog:not([open]){display:none}` at any
+   specificity — so under 640px the dialog stayed laid out over the page
+   after it was dismissed, and the whole page looked replaced by a panel.
+
+   Every earlier check missed it for the same reason: they closed the
+   overlay and then measured the PAGE, which was perfectly fine, and never
+   asked whether the closed overlay was still on screen. 639px is in the
+   list because that is the last pixel the media query applies at.
+   ═══════════════════════════════════════════════════════════════════════ */
+test.describe("closed overlays leave the screen", () => {
+	for (const width of [1440, 900, 700, 639, 500, 390]) {
+		test(`the visitor dialog is gone once closed at ${width}px`, async ({ page }) => {
+			await page.setViewportSize({ width, height: 844 });
+			await page.goto("/coming-soon", { waitUntil: "load" });
+			const dialog = page.locator("#ask");
+			await expect(dialog).toBeVisible({ timeout: 10000 });
+
+			await page.locator('.ask-opt[data-go="waitlist"]').click();
+
+			const after = await page.evaluate(() => {
+				const d = document.getElementById("ask")!;
+				const r = d.getBoundingClientRect();
+				return { open: (d as HTMLDialogElement).open, display: getComputedStyle(d).display,
+					w: Math.round(r.width), h: Math.round(r.height) };
+			});
+			expect(after.open).toBe(false);
+			expect(after.display, `a closed dialog is still rendering at ${width}px`).toBe("none");
+			expect(after.w * after.h, "a closed dialog still occupies the screen").toBe(0);
+			await expect(dialog).toBeHidden();
+
+			// and the page underneath must be reachable again
+			await expect
+				.poll(() => page.evaluate(() => document.documentElement.classList.contains("ask-open")))
+				.toBe(false);
+		});
+	}
+
+	for (const width of [1440, 390]) {
+		test(`the month picker is gone once closed at ${width}px`, async ({ page }) => {
+			await page.setViewportSize({ width, height: 900 });
+			await page.goto("/recruit/apply", { waitUntil: "load" });
+			await settle(page);
+			await page.evaluate(() =>
+				document.getElementById("graduation_date")!.scrollIntoView({ block: "center", behavior: "instant" }),
+			);
+			await page.locator(".js-monthbtn").click();
+			await expect(page.locator("#gradPop")).toBeVisible();
+			await page.keyboard.press("Escape");
+
+			// The panel exits over 160ms with `transition-behavior: allow-discrete`,
+			// so `display` legitimately stays set until that finishes — poll rather
+			// than racing it. What must not happen is it settling on anything but
+			// `none`, which is the failure this whole section exists for.
+			await expect
+				.poll(
+					() => page.evaluate(() => getComputedStyle(document.getElementById("gradPop")!).display),
+					{ timeout: 2000, message: `a closed popover is still rendering at ${width}px` },
+				)
+				.toBe("none");
+
+			const box = await page.evaluate(() => {
+				const r = document.getElementById("gradPop")!.getBoundingClientRect();
+				return Math.round(r.width) * Math.round(r.height);
+			});
+			expect(box, "a closed popover still occupies the screen").toBe(0);
+		});
+	}
+});
