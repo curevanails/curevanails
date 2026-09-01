@@ -91,6 +91,16 @@ const { entries: pages } = await getEmDashCollection("pages");
 
 // Build public page context for plugin contributions
 // SEO data is passed here and rendered securely by EmDashHead
+/* SEO defaults. EmDashHead emits the OG/Twitter block from this context,
+   but only for what it is given — and no page was passing a canonical or a
+   social image, so every content page shipped without either. A page with
+   no canonical is a page whose ranking is split across every URL that can
+   reach it (trailing slash, query string, the workers.dev host), and one
+   with no og:image previews as a bare link. */
+const origin = Astro.site ?? new URL("https://curevanails.com");
+const resolvedCanonical = canonical ?? new URL(Astro.url.pathname, origin).href;
+const resolvedImage = image ?? new URL("/og.jpg", origin).href;
+
 const pageCtx = createPublicPageContext({
 	Astro,
 	kind: content ? "content" : "custom",
@@ -98,10 +108,10 @@ const pageCtx = createPublicPageContext({
 	title: fullTitle,
 	pageTitle: pageTitle ?? title,
 	description,
-	canonical,
-	image,
+	canonical: resolvedCanonical,
+	image: resolvedImage,
 	content,
-	seo: { ogImage: image, robots },
+	seo: { ogImage: resolvedImage, robots },
 	articleMeta: { publishedTime, modifiedTime, author },
 	siteName: siteTitle,
 });
@@ -146,6 +156,13 @@ const NAV = [
 		  [data-r]{opacity:1!important;transform:none!important;clip-path:none!important}
 		  #pre{display:none!important}
 		</style></noscript>
+
+		<link rel="canonical" href={resolvedCanonical} />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:image" content={resolvedImage} />
+		<meta property="og:image" content={resolvedImage} />
+		<meta property="og:url" content={resolvedCanonical} />
+		<meta property="og:locale" content="en_US" />
 
 		<EmDashHead page={pageCtx} />
 	</head>

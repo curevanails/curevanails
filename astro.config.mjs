@@ -7,6 +7,12 @@ import emdash from "emdash/astro";
 
 export default defineConfig({
 	output: "server",
+	// The canonical origin. Without it `Astro.site` is undefined and every
+	// canonical link, og:url and sitemap entry would have to be relative —
+	// which search engines treat as a different page per host, and which
+	// makes the three Workers (curevanails / getready / admin) look like
+	// three copies of the same site.
+	site: "https://curevanails.com",
 	// `configPath` lets a single codebase build into more than one Worker.
 	// The default build (`astro build`) auto-detects `wrangler.jsonc` → the main
 	// `curevanails` site. Setting WRANGLER_CONFIG=wrangler.getready.jsonc points

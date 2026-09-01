@@ -26,6 +26,7 @@ import "../styles/version-h.css";
 import runtimeUrl from "../../design/version-h/js/runtime.js?url";
 import WaitlistForm from "../components/vh/WaitlistForm.astro";
 import CursorGround from "../components/vh/CursorGround.astro";
+import Seo from "../components/vh/Seo.astro";
 ---
 
 <!doctype html>
@@ -37,6 +38,53 @@ import CursorGround from "../components/vh/CursorGround.astro";
 <meta name="color-scheme" content="dark">
 <title>Cure Và — Opening December 2026</title>
 <meta name="description" content="Cure Và — a private, gender-inclusive nail and beauty lounge built around stillness. Opening December 2026 at Legacy Village, Sugar House UT.">
+<Seo
+  title="Cure Và — Opening December 2026"
+  description="Cure Và — a private, gender-inclusive nail and beauty lounge built around stillness. Opening December 2026 at Legacy Village, Sugar House UT."
+/>
+
+<!-- The studio itself. This is the page a search for "nail salon Sugar
+     House" should land on, so it carries the LocalBusiness record: name,
+     address, phone, hours and the opening date. `BeautySalon` is the
+     schema.org type for exactly this. -->
+<script type="application/ld+json" is:inline set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "BeautySalon",
+  name: "Cure Và",
+  description: "A private, gender-inclusive nail and beauty lounge built around stillness — waterless nail care, clean products and the signature Zero Gravity ritual.",
+  url: "https://curevanails.com/",
+  image: "https://curevanails.com/og.jpg",
+  telephone: "+1-801-425-3581",
+  email: "hello@cureva.co",
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "Legacy Village",
+    addressLocality: "Sugar House",
+    addressRegion: "UT",
+    addressCountry: "US",
+  },
+  openingHoursSpecification: [{
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+    opens: "09:00", closes: "19:00",
+  }],
+  areaServed: "Salt Lake City, Utah",
+  knowsAbout: ["Waterless manicure","Pedicure","Facials","Lash lift","Brow shaping"],
+  slogan: "Enhance what's already beautiful.",
+  foundingDate: "2026-12-01",
+})} />
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Cure Và",
+  url: "https://curevanails.com/",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: { "@type": "EntryPoint", urlTemplate: "https://curevanails.com/search?q={search_term_string}" },
+    "query-input": "required name=search_term_string",
+  },
+})} />
 
 <!-- The only external request this system makes. Guard it: a second one is
      a regression, not a feature. -->

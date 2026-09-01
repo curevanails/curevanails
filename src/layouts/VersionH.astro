@@ -24,6 +24,7 @@
 import "../styles/version-h.css";
 import runtimeUrl from "../../design/version-h/js/runtime.js?url";
 import CursorGround from "../components/vh/CursorGround.astro";
+import Seo from "../components/vh/Seo.astro";
 
 interface Props {
 	title: string;
@@ -36,6 +37,12 @@ interface Props {
 	prog?: boolean;
 	/** Marks the current section in the menu panel. */
 	current?: string;
+	/** Social card image. Defaults to the brand card. */
+	ogImage?: string;
+	/** Point at the page this one is a variant of — see Seo.astro. */
+	canonicalPath?: string;
+	/** Keep it out of the index without hiding it from visitors. */
+	noindex?: boolean;
 }
 
 const {
@@ -46,6 +53,9 @@ const {
 	menu = true,
 	prog = true,
 	current,
+	ogImage,
+	canonicalPath,
+	noindex = false,
 } = Astro.props;
 
 const fullTitle = title === "Cure Và" ? title : `${title} — Cure Và`;
@@ -72,6 +82,8 @@ const NAV = [
 <meta name="color-scheme" content="dark">
 <title>{fullTitle}</title>
 <meta name="description" content={description}>
+<Seo title={fullTitle} description={description} image={ogImage}
+  canonicalPath={canonicalPath} noindex={noindex} />
 
 <!-- The only external request this system makes. Guard it: a second one is
      a regression, not a feature. -->

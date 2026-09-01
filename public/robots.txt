@@ -1,0 +1,22 @@
+# Cure Và — https://curevanails.com
+#
+# Cloudflare prepends its own managed content-signal block above this.
+# Everything below is ours.
+
+User-agent: *
+Allow: /
+
+# The CMS, the admin console, the email dashboard and the API are not
+# content. /unsubscribe carries a secret token in the URL and must never be
+# crawled or indexed.
+Disallow: /_emdash/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /notify
+Disallow: /notify/
+Disallow: /mail
+Disallow: /mail/
+Disallow: /api/
+Disallow: /unsubscribe/
+
+Sitemap: https://curevanails.com/sitemap.xml

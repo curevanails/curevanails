@@ -28,6 +28,53 @@ export const prerender = false;
 import VersionH from "../layouts/VersionH.astro";
 import RoleAccordion from "../components/vh/RoleAccordion.astro";
 
+/* Google Jobs reads JobPosting and shows these in a dedicated results
+   panel — for a studio hiring four roles in one city that is the highest-
+   value structured data on the whole site.
+
+   `validThrough` and `datePosted` are required for the rich result to
+   appear at all, and a posting past its validThrough is dropped. These are
+   derived from the December opening rather than hard-coded, so they do not
+   silently expire. */
+const OPENING = new Date("2026-12-01T00:00:00Z");
+const POSTED = "2026-08-01";
+const VALID_THROUGH = OPENING.toISOString().slice(0, 10);
+
+const JOB_POSTINGS = [
+	{ title: "Nail Technician", openings: 2, description: "Natural-nail work in a waterless studio. We're looking for someone who takes pride in their work, enjoys creating meaningful connections with clients, and wants to grow with a team that's redefining the salon experience. Licensed, or eligible for Utah licensure." },
+	{ title: "Esthetician", openings: 2, description: "Facials and skin therapy delivered reclined, alongside nail care. We're looking for someone who genuinely enjoys helping others feel confident and values a calm, welcoming environment. Licensed, or eligible for Utah licensure." },
+	{ title: "Lash & Brow Specialist", openings: 1, description: "Lash and brow work for a studio that favours natural enhancement. Patient, reliable and detail-oriented, committed to delivering a thoughtful experience. Licensed, or eligible for Utah licensure." },
+	{ title: "Cosmetologist", openings: 1, description: "A generalist role in a wellness-focused studio. We're looking for someone who enjoys working with people, embraces learning new techniques, and wants to help shape the culture as we open. Licensed, or eligible for Utah licensure." },
+].map((r) => ({
+	"@context": "https://schema.org",
+	"@type": "JobPosting",
+	title: r.title,
+	description: r.description,
+	datePosted: POSTED,
+	validThrough: VALID_THROUGH,
+	employmentType: ["FULL_TIME", "PART_TIME"],
+	totalJobOpenings: r.openings,
+	directApply: true,
+	hiringOrganization: {
+		"@type": "Organization",
+		name: "Cure Và",
+		sameAs: "https://curevanails.com",
+		logo: "https://curevanails.com/og.jpg",
+	},
+	jobLocation: {
+		"@type": "Place",
+		address: {
+			"@type": "PostalAddress",
+			streetAddress: "Legacy Village",
+			addressLocality: "Sugar House",
+			addressRegion: "UT",
+			addressCountry: "US",
+		},
+	},
+	applicantLocationRequirements: { "@type": "Country", name: "US" },
+	url: "https://curevanails.com/recruit/apply",
+}));
+
 const MATERIALS = [
 	{ n: "01 — Walls", t: "Rounded plaster, 7′ high, with travertine baseboards." },
 	{ n: "02 — Cabinetry", t: "Walnut millwork with contrast stitching and rope pulls." },
@@ -42,6 +89,11 @@ const MATERIALS = [
 	nav="paper"
 	current="/recruit"
 >
+	<Fragment slot="head">
+		{JOB_POSTINGS.map((job) => (
+			<script type="application/ld+json" is:inline set:html={JSON.stringify(job)} />
+		))}
+	</Fragment>
 
 <!-- ══ hero ══════════════════════════════════════════════════════════ -->
 <section class="sec sec--first on-light" id="team" aria-labelledby="teamH">

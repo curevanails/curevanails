@@ -753,3 +753,141 @@ test.describe("closed overlays leave the screen", () => {
 		});
 	}
 });
+
+/* ═══════════════════════════════════════════════════════════════════════
+   10 · SEO
+   ───────────────────────────────────────────────────────────────────────
+   Before this, the standalone documents (/coming-soon and everything on
+   VersionH.astro) emitted a <title> and a description and nothing else —
+   no canonical, no og:url, no og:image — and the content pages passed
+   neither a canonical nor an image into EmDashHead, so it had none to
+   emit. The sitemap was an empty <sitemapindex>: not one URL was being
+   offered to a crawler.
+   ═══════════════════════════════════════════════════════════════════════ */
+const ORIGIN = "https://curevanails.com";
+
+test.describe("SEO", () => {
+	for (const pg of PAGES.filter((p) => p.name !== "404")) {
+		test(`${pg.name} carries a complete head`, async ({ page }) => {
+			await page.goto(pg.path, { waitUntil: "load" });
+
+			const head = await page.evaluate(() => {
+				const meta = (sel: string) =>
+					document.querySelector(sel)?.getAttribute("content")?.trim() ?? null;
+				return {
+					title: document.title.trim(),
+					description: meta('meta[name="description"]'),
+					canonical: document.querySelector("link[rel=canonical]")?.getAttribute("href") ?? null,
+					ogTitle: meta('meta[property="og:title"]'),
+					ogDesc: meta('meta[property="og:description"]'),
+					ogImage: meta('meta[property="og:image"]'),
+					ogUrl: meta('meta[property="og:url"]'),
+					twCard: meta('meta[name="twitter:card"]'),
+					h1: document.querySelectorAll("h1").length,
+					lang: document.documentElement.lang,
+				};
+			});
+
+			expect(head.title.length, "title is empty").toBeGreaterThan(10);
+			expect(head.title.length, "title will be truncated in results").toBeLessThan(70);
+			expect(head.description, "no meta description").toBeTruthy();
+			expect(head.description!.length).toBeGreaterThan(50);
+			expect(head.description!.length, "description will be truncated").toBeLessThan(200);
+
+			expect(head.canonical, "no canonical").toBeTruthy();
+			expect(head.canonical!.startsWith(ORIGIN), `canonical is not absolute: ${head.canonical}`).toBe(true);
+
+			expect(head.ogTitle, "no og:title").toBeTruthy();
+			expect(head.ogDesc, "no og:description").toBeTruthy();
+			expect(head.ogImage, "no og:image — the link previews as bare text").toBeTruthy();
+			expect(head.ogImage!.startsWith("http"), "og:image must be absolute").toBe(true);
+			expect(head.ogUrl, "no og:url").toBeTruthy();
+			expect(head.twCard).toBe("summary_large_image");
+
+			expect(head.h1, "a page needs exactly one h1").toBe(1);
+			expect(head.lang).toBe("en");
+		});
+	}
+
+	test("the duplicate holding pages point at one canonical", async ({ page }) => {
+		// /waitlist and /getready make the same offer as /coming-soon. Three
+		// URLs competing for one query is how a small site buries itself.
+		for (const path of ["/waitlist", "/getready"]) {
+			await page.goto(path, { waitUntil: "load" });
+			const canonical = await page.evaluate(
+				() => document.querySelector("link[rel=canonical]")?.getAttribute("href"),
+			);
+			expect(canonical, `${path} should canonical to /coming-soon`).toBe(`${ORIGIN}/coming-soon`);
+		}
+	});
+
+	test("/early-access is kept out of the index", async ({ page }) => {
+		// It carries invented journal posts with invented dates, an invented
+		// testimonial and an unconfirmed partner list, and it says "Now open"
+		// while the studio opens in December. None of that belongs in Google.
+		await page.goto("/early-access", { waitUntil: "load" });
+		const robots = await page.evaluate(
+			() => document.querySelector('meta[name="robots"]')?.getAttribute("content"),
+		);
+		expect(robots).toContain("noindex");
+	});
+
+	test("/recruit publishes its four roles as JobPosting", async ({ page }) => {
+		await page.goto("/recruit", { waitUntil: "load" });
+		const jobs = await page.evaluate(() =>
+			[...document.querySelectorAll('script[type="application/ld+json"]')]
+				.map((s) => {
+					try { return JSON.parse(s.textContent || "{}"); } catch { return {}; }
+				})
+				.filter((j) => j["@type"] === "JobPosting"),
+		);
+		expect(jobs, "Google Jobs needs JobPosting to show these at all").toHaveLength(4);
+		for (const job of jobs) {
+			// the fields Google requires, or the rich result never appears
+			for (const field of ["title", "description", "datePosted", "hiringOrganization", "jobLocation"]) {
+				expect(job[field], `JobPosting "${job.title}" is missing ${field}`).toBeTruthy();
+			}
+			expect(new Date(job.validThrough).getTime(), "an expired posting is dropped").toBeGreaterThan(Date.now());
+		}
+	});
+
+	test("/coming-soon publishes the studio as a LocalBusiness", async ({ page }) => {
+		await page.goto("/coming-soon", { waitUntil: "load" });
+		const biz = await page.evaluate(() =>
+			[...document.querySelectorAll('script[type="application/ld+json"]')]
+				.map((s) => { try { return JSON.parse(s.textContent || "{}"); } catch { return {}; } })
+				.find((j) => j["@type"] === "BeautySalon"),
+		);
+		expect(biz, "a local salon with no LocalBusiness record cannot rank locally").toBeTruthy();
+		expect(biz.address?.addressLocality).toBe("Sugar House");
+		expect(biz.telephone).toBeTruthy();
+		expect(biz.openingHoursSpecification?.length).toBeGreaterThan(0);
+	});
+
+	test("the sitemap lists real URLs and contradicts nothing", async ({ request }) => {
+		const res = await request.get("/sitemap.xml");
+		expect(res.status()).toBe(200);
+		const xml = await res.text();
+		expect(xml).toContain("<urlset");
+
+		const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+		expect(locs.length, "the sitemap is empty").toBeGreaterThan(3);
+		expect(locs).toContain(`${ORIGIN}/coming-soon`);
+		expect(locs).toContain(`${ORIGIN}/recruit`);
+
+		// a sitemap must not list a page that canonicals elsewhere or is noindex
+		for (const excluded of ["/waitlist", "/getready", "/early-access", "/admin", "/unsubscribe"]) {
+			expect(locs.some((l) => l.includes(excluded)), `${excluded} must not be in the sitemap`).toBe(false);
+		}
+	});
+
+	test("robots.txt protects what should not be crawled", async ({ request }) => {
+		const res = await request.get("/robots.txt");
+		expect(res.status()).toBe(200);
+		const txt = await res.text();
+		for (const path of ["/_emdash/", "/admin", "/api/", "/unsubscribe/"]) {
+			expect(txt, `${path} is crawlable`).toContain(`Disallow: ${path}`);
+		}
+		expect(txt).toContain("Sitemap:");
+	});
+});
