@@ -1,0 +1,218 @@
+---
+/**
+ * The Cure Và version-H document shell — nav, full-screen menu, footer,
+ * preloader, grain, progress rail and cursor, wired to this site's real
+ * routes.
+ *
+ * This is `design/version-h/html/_page.html` as an Astro layout. The chrome
+ * markup is that template's, unchanged; the only thing rewritten is where
+ * the links point, because the template's `/#manifesto`, `/#ritual`,
+ * `/#menu` and `/#member` are anchors on a one-page landing site that this
+ * repo does not have. Dead anchors in the primary navigation would have
+ * been the first thing a visitor hit.
+ *
+ * `/coming-soon` deliberately does NOT use this layout: it is the one page
+ * that must stay byte-for-byte the standalone build, so it carries its own
+ * document. Everything else lives here.
+ *
+ * CHROME RULES — see design/version-h/GUIDE.md §1:
+ *   · a page opening on a paper section needs nav="paper" AND `.sec--first`
+ *     on that section, or the cream wordmark is invisible on paper
+ *   · a page opening on a night section needs nav="dark" and `.sec--first`
+ *   · only a page opening on a full-bleed photograph omits `.sec--first`
+ */
+import "../styles/version-h.css";
+import runtimeUrl from "../../design/version-h/js/runtime.js?url";
+
+interface Props {
+	title: string;
+	description?: string;
+	/** "paper" for a page that opens on a light section — see the note above. */
+	nav?: "paper" | "dark" | "none";
+	footer?: boolean;
+	menu?: boolean;
+	/** The scroll rail. Off on pages that are one screen tall. */
+	prog?: boolean;
+	/** Marks the current section in the menu panel. */
+	current?: string;
+}
+
+const {
+	title,
+	description = "Cure Và — a calm, non-toxic nail and skin studio at Legacy Village, Sugar House UT. Opening December 2026.",
+	nav = "dark",
+	footer = true,
+	menu = true,
+	prog = true,
+	current,
+} = Astro.props;
+
+const fullTitle = title === "Cure Và" ? title : `${title} — Cure Và`;
+const navClass = nav === "paper" ? "nav nav--paper" : "nav";
+
+/* One list, read by both the bar and the panel — GUIDE.md's point that a
+   section added to the page is added to the navigation in exactly one
+   place. The bar shows the first three; the panel shows all of them. */
+const NAV = [
+	{ href: "/coming-soon", label: "The studio" },
+	{ href: "/recruit", label: "Careers" },
+	{ href: "/recruit/apply", label: "Apply" },
+	{ href: "/posts", label: "Journal" },
+	{ href: "/search", label: "Search" },
+];
+---
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content={nav === "paper" ? "#F7F4EC" : "#0B1410"}>
+<meta name="color-scheme" content="dark">
+<title>{fullTitle}</title>
+<meta name="description" content={description}>
+
+<!-- The only external request this system makes. Guard it: a second one is
+     a regression, not a feature. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..700,0..100,0..1;1,9..144,300..700,0..100,0..1&family=Manrope:wght@300..800&display=swap">
+
+<noscript><style>
+  /* The reveals are opacity:0 until the runtime's observer adds `.in`. With
+     scripting off nothing ever does, and every page would render as an empty
+     ground — which is why this block is not optional. It restores the
+     system's own rule: what loads is what there is.
+     Costs nothing when scripts run: <noscript> is inert then. */
+  [data-r]{opacity:1!important;transform:none!important;clip-path:none!important}
+  #pre{display:none!important}
+</style></noscript>
+
+<slot name="head" />
+</head>
+<body>
+
+<!-- ══ preloader ══════════════════════════════════════════════════════
+     Hides itself in CSS at 2.4s whether or not the script runs, so a
+     failed script can never leave a visitor at a closed curtain. The
+     runtime only ever hides it EARLIER. ═══════════════════════════════ -->
+<div id="pre" role="status" aria-label="Loading">
+  <div class="contour" aria-hidden="true"></div>
+  <div class="pre-in">
+    <span class="pre-mark" aria-hidden="true"></span>
+    <div class="pre-w"><span>cure và</span></div>
+    <span class="pre-rule" aria-hidden="true"></span>
+    <div class="pre-sub">Nail therapy · Sugar House</div>
+  </div>
+</div>
+
+<div id="grain" aria-hidden="true"></div>
+{prog && <div id="prog" aria-hidden="true"></div>}
+<div id="cur" aria-hidden="true"><b>view</b></div>
+
+{nav !== "none" && (
+  <nav class={navClass} id="nav" aria-label="Primary">
+    <div class="bar">
+      <a class="mark" href="/" aria-label="Cure Và — home">
+        <span class="mark-ring" aria-hidden="true"></span>
+        <b>cure và</b><i>Nail Therapy</i>
+      </a>
+      <ul class="links">
+        {NAV.slice(0, 3).map((item) => (
+          <li><a href={item.href} aria-current={current === item.href ? "page" : undefined}>{item.label}</a></li>
+        ))}
+      </ul>
+      <a class="btn cta" href="/recruit/apply" data-mag>Apply now</a>
+      {menu && (
+        <button class="burger" id="burger" type="button" aria-expanded="false"
+          aria-controls="menuPanel"><span class="lbl">Menu</span>
+          <span class="bars" aria-hidden="true"><i></i><i></i></span></button>
+      )}
+    </div>
+  </nav>
+)}
+
+{menu && (
+  <div id="menuPanel" aria-hidden="true">
+    <div></div>
+    <div class="mp-in">
+      <nav aria-label="Sections">
+        <ul class="mp-list">
+          {NAV.map((item, i) => (
+            <li><a href={item.href} style={`--d:${60 + i * 50}ms`}
+              aria-current={current === item.href ? "page" : undefined}>{item.label}</a></li>
+          ))}
+        </ul>
+      </nav>
+      <div class="mp-side">
+        <div class="fr fr--drift"><img src="/img/d-hero-hands.webp" width="1500" height="844"
+          decoding="async" loading="lazy" alt="Two hands resting, nails bare and shaped"></div>
+        <div class="mp-meta">
+          <div><b>Opening</b>December 2026</div>
+          <div><b>Where</b>Legacy Village, Sugar House UT</div>
+          <div><b>Call</b><a href="tel:+18014253581">+1 801 425 3581</a></div>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+<main id="top">
+  <slot />
+</main>
+
+{footer && (
+  <footer class="foot">
+    <div class="wrap">
+      <div class="foot-grid">
+        <div>
+          <a class="mark" href="/" aria-label="Cure Và — home">
+            <span class="mark-ring" aria-hidden="true"></span><b>cure và</b></a>
+          <p class="lede" style="margin-top:1rem;font-size:.92rem">Healthy nails, radiant
+            skin, and a room built for five.</p>
+        </div>
+        <div>
+          <h4>Studio</h4>
+          <address>Legacy Village<br>Sugar House, UT<br>
+            <a href="tel:+18014253581">+1 801 425 3581</a><br>
+            Mon–Sat, 9:00 AM – 7:00 PM</address>
+        </div>
+        <div>
+          <h4>Explore</h4>
+          <ul>
+            <li><a href="/recruit">Careers</a></li>
+            <li><a href="/recruit/apply">Apply</a></li>
+            <li><a href="/posts">Journal</a></li>
+            <li><a href="/search">Search</a></li>
+          </ul>
+        </div>
+        <div>
+          <h4>Contact</h4>
+          <ul>
+            <li><a href="mailto:hello@cureva.co">hello@cureva.co</a></li>
+            <li><a href="mailto:careers@cureva.co">careers@cureva.co</a></li>
+          </ul>
+          {/* the inline size is deliberate: `.foot a` is (0,1,1) and beats
+              `.btn--sm` at (0,1,0). See design/version-h/DESIGN-SYSTEM.md §5. */}
+          <p style="margin-top:1rem"><a class="btn btn--outline btn--sm" href="/recruit/apply" data-mag
+            style="font-size:.74rem;padding:.85em 1.3em">Apply now</a></p>
+        </div>
+      </div>
+
+      <div class="bigmark" aria-hidden="true">
+        <b>c</b><b>u</b><b>r</b><b>e</b><b>&nbsp;</b><b>v</b><b>à</b>
+      </div>
+
+      <div class="foot-legal">
+        <div class="l"><span>© 2026 Cure Và. All rights reserved.</span></div>
+        <div class="l"><a href="/posts">Journal</a><a href="/search">Search</a>
+          <a href="/coming-soon">Opening</a></div>
+      </div>
+    </div>
+  </footer>
+)}
+
+<script src={runtimeUrl} is:inline></script>
+<slot name="body-end" />
+</body>
+</html>

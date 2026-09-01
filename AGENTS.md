@@ -38,8 +38,8 @@ After a change, verify end-to-end before committing:
 
 1. `pnpm build` succeeds (the Cloudflare adapter compiles the Worker).
 2. `pnpm typecheck` passes.
-3. `/` renders the CureVà landing page with its own teal/DM Sans design system (not the blog theme).
-4. Booking CTAs (**Book now** in the header, **Book your visit** in the hero) open the Mangomint popup; they fall back to `https://booking.mangomint.com/463532` if the widget script hasn't loaded. Booking must be enabled in the Mangomint account for the popup to appear.
+3. `/` 302s to `/coming-soon`, which renders the version-H holding page. **`/coming-soon` must stay pixel-identical to the standalone build** — run `node design/version-h/build/parity.js` (needs `pnpm preview` and the design-system build; see "Design system" below).
+4. Booking CTAs on `/early-access` (**Book now**, **Book your visit**) open the Mangomint popup; they fall back to `https://booking.mangomint.com/463532` if the widget script hasn't loaded. Booking must be enabled in the Mangomint account for the popup to appear.
 5. Blog routes respond: `/posts`, a single post, `/search`, `/rss.xml`.
 6. `/_emdash/admin` loads.
 7. If you touched recruit/admin: `/recruit` renders the form; `/admin` redirects to `/admin/login` when signed out; logging in shows the dashboard. (See [`docs/ADMIN.md`](docs/ADMIN.md).) Run `pnpm test:e2e` — the Playwright suite in `e2e/` covers the apply form and the admin dashboard end-to-end (see [`docs/TESTING.md`](docs/TESTING.md)).
@@ -52,9 +52,13 @@ After a change, verify end-to-end before committing:
 | `src/live.config.ts`     | EmDash loader registration (boilerplate -- don't modify)                           |
 | `seed/seed.json`         | Schema definition + demo content (collections, fields, taxonomies, menus, widgets) |
 | `emdash-env.d.ts`        | Generated types for collections (auto-regenerated on dev server start)             |
-| `src/layouts/Base.astro` | Base layout with EmDash wiring (menus, search, page contributions)                 |
+| `src/layouts/Base.astro` | Content-page layout: version-H chrome + EmDash wiring (menus, search, contributions) |
 | `src/pages/`             | Astro pages -- all server-rendered                                                 |
-| `src/pages/index.astro`  | **CureVà landing page** -- standalone, does NOT use `Base.astro` (see "Homepage")  |
+| `src/pages/index.astro`  | 302s to `/coming-soon`. The site root is the holding page, not a landing page      |
+| `design/version-h/`      | **The design system** — the whole public site runs on it (see "Design system")     |
+| `src/styles/version-h.css` | The six system layers, in load order. The only stylesheet a page imports         |
+| `src/styles/version-h-content.css` | This repo's editorial layer — articles, post lists, search, archives     |
+| `src/layouts/VersionH.astro` | Version-H shell for the marketing pages                                       |
 | `src/middleware.ts`      | Standalone-Worker root rewrites (`getready`/`admin`) + the admin auth gate         |
 | `src/pages/recruit.astro` + `src/pages/api/recruit.ts` | Job application form + intake endpoint (writes D1 `job_applications` + R2 `recruit/`) |
 | `src/pages/admin/`       | Recruit dashboard (`index.astro`), `login.astro`, `logout.ts`, `file.ts` (R2 download) |
@@ -93,13 +97,21 @@ Project docs in `docs/` (index: [`docs/README.md`](docs/README.md)):
 
 ## This Template
 
-A blog with posts, pages, categories, tags, full-text search, and RSS. Designed for personal writing, technical writing, indie newsletters, and anything where the writing is the product. Editorial-tech aesthetic: confident sans-serif, restrained accent, real article structure with bylines and reading time.
+Started life as an EmDash blog template. It is now the **Cure Và** site: a
+pre-launch marketing site (holding page, careers, waiting list) plus a Journal
+built on the EmDash CMS, all on one design system — see "Design system" below.
+The blog machinery (posts, pages, categories, tags, full-text search, RSS) is
+intact and still EmDash's; only its skin changed.
 
 ## Pages
 
 | Page        | Path               | What it shows                                                                                          |
 | ----------- | ------------------ | ------------------------------------------------------------------------------------------------------ |
-| Home        | `/`                | **CureVà landing page** (standalone — see "Homepage" below). Marketing sections, not blog content      |
+| Home        | `/`                | 302 → `/coming-soon`                                                                                   |
+| Coming soon | `/coming-soon`     | The version-H holding page + waitlist form. **Pixel-locked to the standalone build**                   |
+| Get ready   | `/getready`        | Waiting-list landing; also the root of the standalone `getready` Worker                                |
+| Waitlist    | `/waitlist`        | Waiting-list holding page (near-duplicate of `/getready` — see PORTING.md)                             |
+| Early access| `/early-access`    | The full editorial homepage layout. Loads the Mangomint booking widget                                 |
 | All posts   | `/posts`           | Article count, full post list with excerpts and tag chips                                              |
 | Post detail | `/posts/[slug]`    | Featured image, title, body, left meta column (authors + date), right TOC + search + categories gutter |
 | Search      | `/search`          | Full-text search UI                                                                                    |
@@ -107,7 +119,7 @@ A blog with posts, pages, categories, tags, full-text search, and RSS. Designed 
 | Category    | `/category/[slug]` | Posts filtered by category                                                                             |
 | Tag         | `/tag/[slug]`      | Posts filtered by tag                                                                                  |
 | RSS         | `/rss.xml`         | Generated feed                                                                                         |
-| Careers     | `/recruit`         | Careers page; full application at `/recruit/apply` (POSTs to `/api/recruit`)                           |
+| Careers     | `/recruit`         | Careers page (version-H design, original copy); full application at `/recruit/apply` (POSTs to `/api/recruit`) |
 | Admin login | `/admin/login`     | Styled login form for the admin console                                                                |
 | Admin       | `/admin`           | Recruit dashboard — lists `job_applications`, résumé downloads (auth-gated)                            |
 | Email       | `/admin/mail`      | Email dashboard — compose/send, templates, logs, settings, recruit alerts (auth-gated)                |
@@ -156,30 +168,76 @@ password-protected dashboard reviews them. **Guides: the form field contract is
   to the `recruit/` key prefix.
 - Local-dev admin credentials live in `.dev.vars` (gitignored).
 
-## Homepage (CureVà landing page)
+## Design system — Cure Và version H
 
-`src/pages/index.astro` is a **standalone marketing landing page** for the CureVà beauty lounge. It deliberately does **not** use `Base.astro` — it renders its own `<html>`, `<head>`, header, footer, fonts, and design system. The rest of the site (`/posts`, `/pages`, `/category`, `/tag`, `/search`) is still the blog template on `Base.astro` and the `theme.css` design tokens below.
+**The entire public site runs on one design system: version H**, imported
+from the `cureva-ui` repo and living in [`design/version-h/`](design/version-h/).
+Read [`design/version-h/PORTING.md`](design/version-h/PORTING.md) first — it
+records what was copied verbatim, what had to change, and what is still open.
 
-Because the two design systems are separate, the homepage does not inherit the blog's Inter font, `#0066cc` accent, or CSS variables. Editing `theme.css` will not affect the homepage, and editing the homepage will not affect the blog pages.
+- **The system is upstream's, byte for byte.** `design/version-h/css/01-tokens.css`
+  → `05-chrome.css` + `page-variants.css` and `design/version-h/js/runtime.js`
+  are unmodified copies. **Do not edit them here.** Change them in `cureva-ui`,
+  re-run its `extract.py`, and re-copy.
+- **Load order is the contract**: 01 → 02 → 03 → 04 → 05 → page-variants →
+  the page's own CSS. [`src/styles/version-h.css`](src/styles/version-h.css)
+  `@import`s the six in order and is the only thing a page imports.
+- **This repo's own layer** is
+  [`src/styles/version-h-content.css`](src/styles/version-h-content.css) —
+  articles, post lists, search and archives. Version H is a marketing site and
+  ships no article template, so those are written here, in its idiom.
+- **Fonts: one Google Fonts `<link>`** (Fraunces + Manrope), and it is the only
+  external request the system makes. There is no `fonts:` block in
+  `astro.config.mjs` any more. `/early-access` knowingly breaks this by loading
+  the Mangomint booking widget — see the note at the top of that file.
+- **Photography** is the brand's 28 WebP assets in `public/img/`, served at
+  `/img/…`, which is exactly where `build-page.py` stamps them.
 
-**How it's built:**
+### The rules that are load-bearing
 
-- **Tailwind via the Play CDN** (`<script src="https://cdn.tailwindcss.com?...">`), configured inline through the `#tailwind-config` block. There is no Tailwind build step, no `tailwind.config.js`, and no PostCSS — utility classes resolve in the browser at runtime. The CDN prints a "not for production" console warning; converting to a compiled Tailwind setup is a known future step.
-- **Fonts:** DM Sans (body + headings) and Material Symbols Outlined (icons), both loaded from Google Fonts in the page `<head>`.
-- **Palette:** a teal Material-3 token set defined in the inline Tailwind config (`primary #3a656e`, `background #f0fbff`, `primary-container`, `tertiary-container`, `surface-*`, etc.). Colours are referenced as Tailwind classes like `text-primary`, `bg-primary-container`, `text-on-surface-variant`.
-- **Custom Tailwind tokens** also defined inline: spacing (`section-padding`, `margin-mobile`/`margin-desktop`, `gutter`, `container-max`), border radii, and the `display-lg` / `headline-lg` / `body-md` / `label-md` type scale used via `font-*` + `text-*` classes.
+These are not preferences. Each is a bug that already happened once.
 
-**Editing rules (important for Astro):**
+- **A component reads tokens and NEVER names a colour.** Not a hex, not
+  `rgb()`, not `color-mix()`, not a brand alias like `var(--sage)`. Only
+  `hsl(var(--token))`. That is what lets one rule work on night and on paper.
+- **Tokens are bare HSL channels** (`144.8 26.7% 66.3%`), never colours — the
+  only form that allows `hsl(var(--ring) / .25)`.
+- **Every token is defined on `:root` AND re-themed under `.on-light`.**
+- On a light ground `--card` is **white** (raised) and `--muted` is paper-2
+  (recessed). Backwards makes a themed page look unthemed.
+- **Motion is transform and opacity**, and a position is never animated in the
+  same `transition` as a scale — use the separate `translate` / `scale`
+  properties.
+- **A page that opens on a paper section needs `nav="paper"` AND `.sec--first`**
+  on that section, or the cream wordmark is invisible on paper.
+- Inside a `<dialog>`, put `data-nocursor` on an ancestor.
+- **Pages work with JavaScript off.** `[data-r]` reveals are `opacity:0` until
+  the runtime marks them, so every document carries the `<noscript>` block that
+  restores them. Do not remove it.
 
-- Any `<script>` in this page must keep `is:inline` (the Tailwind CDN, the `tailwind.config` block, and the behaviour script). Without it Astro tries to bundle them, which breaks the global `tailwind.config` object and the `onclick="switchTab(...)"` handlers (they rely on `switchTab` being a global).
-- The `.material-symbols-outlined` / `.blob-bg` CSS lives in an `is:global` `<style>` block so it also applies to the persona-tab list items injected at runtime by `switchTab`.
-- The persona tabs ("Designed for your life") swap content via the inline `tabs` object. All four personas currently point at the same interior image URL — the original design used placeholder IDs that would 404 on click.
+### Layouts
 
-**Still placeholder / not wired up:**
+| Layout | For |
+| --- | --- |
+| [`src/layouts/VersionH.astro`](src/layouts/VersionH.astro) | marketing pages — `/recruit`, `/recruit/apply`, `/getready`, `/waitlist`, `/early-access` |
+| [`src/layouts/Base.astro`](src/layouts/Base.astro) | content pages — Journal, articles, archives, search, static pages. Keeps every EmDash integration point (`EmDashHead`, `EmDashBodyStart/End`, `WidgetArea`, `LiveSearch`, menus). Pass `ground="paper"` for reading surfaces. |
+| [`src/pages/coming-soon.astro`](src/pages/coming-soon.astro) | carries its own document — it is the one page that must stay pixel-identical to the standalone build |
 
-- All images are temporary Google `aida-public` URLs that will eventually expire — replace with real assets.
-- Nav links, footer links, the "Book now" / "View Openings" buttons, and the newsletter form are static (`href="#"`, no form action).
-- **"From the Journal"** is three hard-coded cards. It is the obvious candidate to wire to the real `posts` collection (`getEmDashCollection("posts", { limit: 3 })`) — not yet done.
+Shared pieces: [`src/components/vh/RoleAccordion.astro`](src/components/vh/RoleAccordion.astro)
+(the four open roles, used by `/recruit` and `/recruit/apply`) and
+[`src/components/vh/WaitlistForm.astro`](src/components/vh/WaitlistForm.astro)
+(the `/api/waitlist` form, used by `/getready` and `/waitlist`).
+
+### Verifying a design change
+
+```bash
+python3 design/version-h/build/build-page.py html/coming-soon.html design/version-h/dist/soon/
+node design/version-h/build/smoke.js      # the standalone templates
+node design/version-h/build/parity.js     # /coming-soon vs that build, pixel for pixel
+```
+
+`parity.js` needs `pnpm preview` running (`ASTRO_URL` overrides the default
+`localhost:4321`). It fails on any pixel difference.
 
 ## Schema
 
@@ -193,39 +251,50 @@ Site settings have `title` and `tagline` -- both render in the header / footer.
 
 ## Visual character
 
-> Applies to the **blog pages** (`/posts`, `/pages`, `/category`, `/tag`, `/search`) on `Base.astro`. The homepage has its own separate design system — see "Homepage" above.
+> One system, site-wide. See "Design system" above for the rules.
 
-Single typeface: **Inter** on `--font-sans`, used for everything including headings (with tighter letter-spacing on h1/h2). **JetBrains Mono** on `--font-mono` for inline code and code blocks. Body and headings share the same family; weight and size carry the hierarchy.
+Two families: **Fraunces** for anything editorial — every heading, every
+`.post-title`, the wordmark — run optically large and barely soft
+(`"opsz" 144, "SOFT" 12, "WONK" 0`). **Manrope** for everything else. The
+`<em>` inside a heading opens the axes up (`"SOFT" 40, "WONK" 1`) and that
+italic turn is how every headline on the site resolves; a heading without one
+reads as unfinished.
 
-The accent is `#0066cc` -- used for links, the post-card title hover, and the search input focus ring. There's also a secondary text colour (`--color-text-secondary`) and a `--color-muted` for meta info. Don't add a second accent.
+The ground is **night** (`#0B1410`) by default with **paper** (`#F7F4EC`)
+sections alternating through it, cream (`#FCF5D6`) as the call-to-action fill
+and sage (`#92C0A5`) as the accent and focus colour. Alternate the grounds —
+four dark sections in a row read as one long section.
 
-The article layout is the standout feature: a three-column reading view with a left meta column (author bylines, date), centred 680px body column, and a right gutter for search, table of contents, and categories. Don't flatten that into one column on desktop -- the layout signals "this is something to read".
+The article layout keeps its three-column reading view: a left meta column for
+bylines and date, a centred 680px body column, and a right gutter for the
+table of contents. Don't flatten it on desktop — it signals "this is something
+to read".
 
 ## Customisation
 
-`src/styles/theme.css` is the only file to edit for visual changes. Every CSS variable from `Base.astro` is listed there as a commented default -- uncomment and change to override. The dark mode palette is defined inside `Base.astro` itself; light-mode overrides in `theme.css` won't affect dark mode. To customise dark mode, add `@media (prefers-color-scheme: dark)` and `:root.dark` rules in `theme.css`.
+Colour, radius, elevation and easing all live in
+`design/version-h/css/01-tokens.css` — **19 semantic tokens, defined twice**
+(`:root` for night, `.on-light` for paper). That file is a verbatim copy of
+upstream, so a change belongs in `cureva-ui` and comes back here through
+`extract.py`. Anything page-specific goes in that page's own `<style is:global>`,
+composed from `hsl(var(--token))`.
 
-Fonts are configured in `astro.config.mjs` under `fonts:`. To swap the body face, change the `name:` for the entry bound to `cssVariable: "--font-sans"`. Good alternatives: Geist, IBM Plex Sans, Söhne (if you have a licence), Public Sans. If you want a serif-bodied blog, swap to a humanist serif like Source Serif, Crimson Pro, or Lora -- but then also raise `--font-size-base` to `1.0625rem` for readability.
-
-CSS variables worth knowing:
-
-- `--color-accent`, `--color-accent-hover`, `--color-on-accent`, `--color-accent-ring`
-- `--color-bg`, `--color-bg-subtle`, `--color-surface`, `--color-text`, `--color-text-secondary`, `--color-muted`, `--color-border`, `--color-border-subtle`
-- `--font-sans`, `--font-mono`
-- `--tracking-tight` / `--tracking-snug` / `--tracking-wide` / `--tracking-wider` -- letter-spacing tokens used across headings and meta labels
-- `--content-width` (680px) -- article body column
-- `--wide-width` (1200px) -- max container
-- `--gutter-width` (200px) -- right sidebar (TOC) on article pages
-- `--meta-col-width` (180px) -- left meta column on article pages
-- `--avatar-size-{xs,sm,md,lg}` -- byline avatar sizes at different scales
+`src/styles/theme.css` is gone — it themed the old blog design, which no longer
+exists.
 
 ## What not to do
 
-> These rules are about the **blog pages** design language. The homepage intentionally breaks from them (teal palette, DM Sans, multiple surface colours).
-
-- Don't add a second accent colour or coloured section backgrounds. The page should be black, white, and one blue.
-- Don't replace Inter with a display sans (Bebas, Anton, etc.). Headings rely on weight contrast, not novelty faces.
-- Don't collapse the article gutter on desktop -- it's part of the reading experience.
-- Don't use stock blog copy ("Welcome to my blog", "Stay tuned for more"). Write a real tagline that says what this blog is about.
-- Don't seed the home page with three identical placeholder posts. If you only have one real post, show one real post.
-- Don't enable comments without a plan to moderate them. The template doesn't ship a comments system by default for a reason.
+- **Don't name a colour outside `01-tokens.css`.** Not in a component, not in a
+  page's CSS. `hsl(var(--token))` only. It is what makes the theme real rather
+  than decorative, and `build-page.py` guard 6 fails a build that breaks it.
+- **Don't edit anything under `design/version-h/css/` or `js/`.** They are
+  byte-for-byte upstream; edit `cureva-ui` and re-copy.
+- **Don't add a second external request.** One Google Fonts link. `/early-access`
+  is the one documented exception.
+- **Don't remove the `<noscript>` block** from a layout — without it the page
+  renders as an empty ground for anyone without JavaScript.
+- Don't put a `.sec` class on anything that isn't a section shell; it carries
+  up to 12.5rem of block padding. (`/recruit/apply` renames its field groups
+  `.ap-grp` for exactly this reason.)
+- Don't flatten the article gutter on desktop.
+- Don't use stock blog copy, and don't seed the Journal with placeholder posts.

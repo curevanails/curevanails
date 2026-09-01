@@ -1,0 +1,169 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Cure Và · version H — the shadcn/ui primitives, at D's measurements
+   ───────────────────────────────────────────────────────────────────────
+   EXTRACTED, NOT REWRITTEN. This is byte-for-byte the CSS running at
+   /version-h/. If you change it here, change it in
+   landing-page-h.template.html too — or better, make that file the
+   source and re-run version-h/build/extract.py.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ═══ shadcn/ui component layer ═════════════════════════════════════════
+   The kit's primitives, written straight in CSS against the tokens above.
+
+   shadcn ships React files that render Tailwind utilities. What is being
+   adopted here is the part of it that survives having neither: the token
+   contract, the parts a component is built from, the variant × size axes,
+   and the rule that makes all of it work. There is no npm in this project
+   and no bundler — build-h.py is a string substituter — so these are
+   ordinary classes carrying shadcn's names and shadcn's structure.
+
+   WHAT IS NOT ADOPTED IS THE LOOK. shadcn's stock shape language — the
+   rounded rectangle, the 14px medium label, the bordered field — is a
+   default, not a requirement, and this brand already has one: D's pill,
+   D's 700-weight .83rem label, D's underlined field. Every measurement in
+   this block is D's, unchanged through G and into H. The kit supplies the
+   architecture; the design stays the design.
+
+   The rule every rule below keeps: NOTHING HERE NAMES A COLOUR. Every
+   value is a token. That is the test for whether a theme is real rather
+   than decorative — recolour the block above and this block follows
+   without being opened — and it is what lets ONE rule replace each of the
+   light/dark pairs D had to write by hand.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Button ───────────────────────────────────────────────────────────
+   variant: (default) · secondary · outline · ghost · link
+   size:    sm · (default) · lg
+
+   D wrote this as three classes and six overrides, because a cream button
+   needs a hand-written opposite for the paper sections and a ghost needs
+   its own pair as well. Under the theme those collapse: --primary is
+   cream on night and NIGHT ON PAPER, so `.btn` alone is D's `.btn` in the
+   dark sections and D's `.btn--dark` in the light ones, pixel for pixel,
+   and the six .on-light overrides are gone. Same for outline, which is
+   D's `.btn--ghost` on both grounds out of one rule.
+
+   The fill still rises from the bottom edge rather than the chip changing
+   colour: one transform, no repaint of the label. */
+.btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:.7em;
+  border:0;cursor:pointer;font:inherit;font-size:.83rem;font-weight:700;letter-spacing:.005em;
+  padding:1.05em 1.9em;border-radius:999px;text-decoration:none;white-space:nowrap;
+  background:hsl(var(--primary));color:hsl(var(--primary-foreground));
+  overflow:hidden;isolation:isolate;box-shadow:var(--shadow-btn);
+  transition:transform .5s var(--ease),color .45s var(--ease),box-shadow .5s var(--ease)}
+.btn::before{content:"";position:absolute;inset:0;z-index:-1;background:hsl(var(--accent));
+  transform:translate3d(0,101%,0);transition:transform .55s var(--ease)}
+.btn:hover::before,.btn:focus-visible::before{transform:translate3d(0,0,0)}
+.btn:hover{transform:translateY(-2px);color:hsl(var(--accent-foreground))}
+.btn:active{transform:translateY(0)}
+.btn:disabled,.btn[aria-disabled=true]{pointer-events:none;opacity:.5}
+.btn .arw{transition:transform .5s var(--ease)}
+.btn:hover .arw{transform:translateX(4px)}
+/* the sizes are the two D actually used — the footer's was an inline
+   style on the element, which is the thing a size axis exists to stop */
+.btn--sm{font-size:.74rem;padding:.85em 1.3em}
+.btn--lg{font-size:.92rem;padding:1.15em 2.2em}
+.btn--secondary{background:hsl(var(--secondary));color:hsl(var(--secondary-foreground))}
+.btn--outline{background:transparent;color:hsl(var(--foreground));box-shadow:inset 0 0 0 1.4px var(--border-hairline)}
+.btn--outline::before{background:hsl(var(--primary))}
+.btn--outline:hover{color:hsl(var(--primary-foreground));box-shadow:inset 0 0 0 1.4px transparent}
+.btn--ghost{background:transparent;color:hsl(var(--foreground));box-shadow:none}
+.btn--ghost::before{background:hsl(var(--primary))}
+.btn--ghost:hover{color:hsl(var(--primary-foreground))}
+.btn--link{padding:0;background:transparent;box-shadow:none;
+  color:hsl(var(--accent));text-underline-offset:4px}
+.btn--link::before{content:none}
+.btn--link:hover{transform:none;color:hsl(var(--accent));text-decoration:underline}
+
+/* ── Badge ────────────────────────────────────────────────────────────
+   variant: (default) · secondary · outline · accent
+   D grew four private chip styles — .dtag, .pill, .save and .kind — at
+   four sizes and four weights. They are one component with variants now,
+   and each variant keeps its own type scale because that is what D drew:
+   a service tag and a "Save $15" chip are not the same size on purpose.
+   No variant has a border; outline draws its ring with an inset shadow,
+   the way D did, so the chip does not grow by 2px. */
+/* NO display on the base. shadcn's Badge is inline-flex, and forcing that
+   here changes three of the four variants: D's chips are bare <span>s, so
+   .dtag and .save are blockified by their flex parents and .kind is
+   blockified by position:absolute. Setting inline-flex made them compute
+   `flex` instead of `block` — same box to the hundredth of a pixel, but a
+   different formatting context, and the brief is that the chips are
+   unchanged. Only the variant that actually has two children asks for it. */
+.badge{white-space:nowrap;border-radius:999px;padding:.42em .85em;
+  font-size:.68rem;font-weight:700;
+  background:hsl(var(--primary));color:hsl(var(--primary-foreground))}
+.badge--secondary{background:hsl(var(--secondary));color:hsl(var(--secondary-foreground))}
+.badge--outline{display:inline-flex;align-items:center;gap:.55em;
+  background:transparent;color:hsl(var(--muted-foreground));
+  box-shadow:inset 0 0 0 1px var(--border-hairline);
+  padding:.5em 1.05em;font-size:.76rem;font-weight:600}
+.badge--outline b{font-weight:800;color:hsl(var(--foreground))}
+.badge--accent{background:hsl(var(--accent));color:hsl(var(--accent-foreground));
+  padding:.4em .8em;font-size:.66rem;font-weight:800;letter-spacing:.1em;
+  text-transform:uppercase}
+
+/* ── Card ─────────────────────────────────────────────────────────────
+   The ground, the corner and the ink. Elevation is deliberately NOT here:
+   D gives its three cards three different shadows on purpose — a ledger
+   card is 40% of the viewport and a careers card is a hairline box — and
+   flattening them to one shadow-sm was the single most visible thing the
+   first pass got wrong. Each card keeps its own, in its own section. */
+.card{position:relative;display:grid;border-radius:var(--radius-lg);
+  background:hsl(var(--card));color:hsl(var(--card-foreground))}
+.card-header{display:grid;gap:.375rem;padding:1.35rem 1.35rem 0}
+.card-title{font-size:.94rem;font-weight:700}
+.card-description{font-size:.84rem;color:hsl(var(--muted-foreground))}
+.card-content{padding:1.35rem}
+.card-header + .card-content{padding-top:.7rem}
+.card-footer{display:flex;align-items:center;gap:.75rem;padding:0 1.35rem 1.35rem}
+
+/* ── Label · Input · Checkbox ─────────────────────────────────────────
+   D's field is an underline under a small uppercase label, and the
+   checkbox is the native control tinted with accent-color. shadcn would
+   draw a bordered box, a sentence-case label and a custom tick; that is
+   its default, not its contract, and the contract is the part being
+   adopted. What the kit does add here is where the error state lives:
+   aria-invalid on the control, which is the accessible attribute anyway,
+   so the field announces itself instead of only looking wrong. */
+.label{display:block;font-size:.66rem;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:hsl(var(--muted-foreground))}
+.input{width:100%;font:inherit;font-size:1rem;color:hsl(var(--foreground));
+  background:transparent;border:0;border-bottom:1px solid var(--border-hairline);
+  padding:.75em 0;border-radius:0;transition:border-color .4s var(--ease)}
+.input::placeholder{color:hsl(var(--muted-foreground) / .55)}
+.input:focus{outline:0;border-color:hsl(var(--ring))}
+.input[aria-invalid=true],.input[aria-invalid=true]:focus{border-color:hsl(var(--destructive))}
+.checkbox{width:16px;height:16px;flex:none;margin-top:.25em;
+  accent-color:hsl(var(--accent));cursor:pointer}
+
+/* ── Alert ─────────────────────────────────────────────────────────── */
+.alert{font-size:.78rem;color:hsl(var(--foreground))}
+.alert--destructive{color:hsl(var(--destructive))}
+
+/* ── Separator ────────────────────────────────────────────────────── */
+.separator{flex:none;border:0;margin:0;background:var(--border-hairline);height:1px;width:100%}
+.separator[data-orientation=vertical]{height:auto;width:1px;align-self:stretch}
+
+/* ── Tabs — the list and its triggers ─────────────────────────────────
+   A tray with one step of padding and the active trigger raised out of
+   it. §08's price switch was already that shape drawn by hand; it is the
+   primitive now, at D's measurements, and the marker still travels
+   between the three positions rather than appearing under the new one —
+   one transform against three repaints. */
+.tabs-list{position:relative;display:inline-flex;isolation:isolate;padding:5px;
+  border-radius:999px;background:hsl(var(--muted));
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2)}
+.tabs-trigger{position:relative;z-index:2;cursor:pointer;white-space:nowrap;
+  padding:.72em 1.15em;border-radius:999px;font-size:.76rem;font-weight:700;
+  letter-spacing:.02em;color:hsl(var(--muted-foreground));
+  transition:color .4s var(--ease)}
+
+/* the live dot inside a Badge — shadcn has no such part, but it sits in
+   one, so it reads the same token the rest of this block does */
+.dot{width:7px;height:7px;border-radius:50%;background:hsl(var(--accent));
+  flex:none;position:relative}
+.dot::after{content:"";position:absolute;inset:0;border-radius:50%;background:inherit;
+  animation:ping 2.8s var(--ease) infinite}
+@keyframes ping{0%{transform:scale(1);opacity:.6}70%,100%{transform:scale(3.6);opacity:0}}
+

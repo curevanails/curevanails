@@ -1,354 +1,231 @@
 ---
-import RecruitHead from "../components/recruit/RecruitHead.astro";
-
-// CureVà "Get Ready" waitlist landing — the root page of the standalone
-// `getready` Worker (see src/middleware.ts). Standalone document (no
-// Base.astro) on the warm "Gallacher Collective" design system shared with
-// /coming-soon and /recruit — see docs/DESIGN.md.
-//
-// Content follows the July 2026 "Landing page Coming Soon CURE VA" doc:
-// hero ("Enhance What's Already Beautiful"), the waiting-list offer for the
-// first 100 subscribers (email-only form → /api/waitlist), "The CURE VÀ
-// Difference", and the careers teaser that hands off to /recruit.
+/**
+ * /getready — the waiting-list landing, and the root page of the standalone
+ * `getready` Worker (see src/middleware.ts).
+ *
+ * CONTENT PRESERVED, DESIGN REPLACED. Every heading, benefit, list item and
+ * line of copy below is what this page shipped with — the July 2026
+ * "Landing page Coming Soon CURE VÀ" doc: the hero, the first-100 offer,
+ * the CURE VÀ Difference, and the careers teaser that hands off to
+ * /recruit. It is built from the version-H system now instead of the warm
+ * "Gallacher Collective" one.
+ *
+ * Two changes worth naming:
+ *   1 · The photography was Google `aida-public` URLs — temporary links
+ *       that expire. It is the brand's own assets now.
+ *   2 · The waiting-list form is <WaitlistForm />, shared with /waitlist.
+ *       Its markup, hooks and POST to /api/waitlist are unchanged, so the
+ *       D1 row and /admin/waitlist still work exactly as before.
+ */
 export const prerender = false;
 
-const INTERIOR_IMG =
-	"https://lh3.googleusercontent.com/aida-public/AB6AXuAA_pTTZJjEtqMiDXWYt1JEyX2ZJbOGI16l2ptaLnYflA8SYFiw4jDq4KCcn6TCLhiYB9Shya4OEeonU1r_YkXQjbsUbJHPbrJsnC5py0QOCE9uKbLMFFmZoNIQ7spCZNZOU6-xf94L4YpE703AuSQqllxw-sgf8Sv9nrJhSNKE3j9QedDpR_vdsnWJVPw6HberHspnbquDLXnfbEoL6y8_4luLYCOt0ApoEIl6jRO4iPdquHTuPwAq_QdjRWDyK9KRXvWpV6HmwVJB";
+import VersionH from "../layouts/VersionH.astro";
+import WaitlistForm from "../components/vh/WaitlistForm.astro";
+
+const PERKS = [
+	"Priority booking before appointments open to the public",
+	"Founding Member benefits",
+	"Preferred pricing on memberships and services",
+	"Access to our pre-opening booking event",
+];
+
+const DIFFERENCE = [
+	{
+		n: "01",
+		t: "Zero-Gravity Comfort",
+		d: "Leave the traditional salon chair behind. Relax in an ergonomic zero-gravity chair designed to support your body while you enjoy your service.",
+	},
+	{
+		n: "02",
+		t: "Waterless by Design",
+		d: "No shared soaking basins. Our waterless approach is cleaner, more hygienic, and better for long-term nail health.",
+	},
+	{
+		n: "03",
+		t: "Beauty That Fits Your Schedule",
+		d: "Enjoy multiple services during the same appointment — from nail care and facials to lash lifts and more — so you can make the most of your time.",
+	},
+];
+
+const GROW = [
+	{
+		t: "Training",
+		d: "You'll receive training in the unique techniques and service experience that make CURE VÀ different from a traditional salon.",
+	},
+	{
+		t: "A Cleaner Environment",
+		d: "No acrylics, no dip powders, and no strong chemical odors. Our focus is on clean products and long-term wellness.",
+	},
+	{
+		t: "Designed With Comfort in Mind",
+		d: "From our specialized zero-gravity setup to our thoughtful service model, every detail is designed to create a more comfortable experience for both clients and professionals.",
+	},
+];
 ---
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CURE VÀ — Enhance What's Already Beautiful · Opening December 2026</title>
-<meta
-	name="description"
-	content="A calm, non-toxic beauty lounge focused on healthy nails, radiant skin, and naturally enhanced beauty. Opening December 2026 at Legacy Village. Join the waiting list."
-/>
-<RecruitHead />
-<style is:inline>
-  /* ---- getready page-scoped styles ---- */
-  .kicker{
-    display:inline-flex;align-items:center;gap:10px;padding:9px 16px;
-    border-radius:var(--r-pill);background:var(--plaster);border:1px solid var(--line);
-    font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sage-deep);
-  }
-  .kicker .pulse{width:8px;height:8px;border-radius:50%;background:var(--sage);position:relative;}
-  .kicker .pulse::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1.5px solid var(--sage);opacity:.5;animation:ping 2.4s ease-out infinite;}
-  @keyframes ping{0%{transform:scale(.6);opacity:.6}100%{transform:scale(1.6);opacity:0}}
-  @media (prefers-reduced-motion:reduce){.kicker .pulse::after{animation:none;}}
+<VersionH
+	title="Get ready"
+	description="Cure Và — a calm, non-toxic beauty lounge opening December 2026 at Legacy Village, Sugar House. Join the waiting list."
+	nav="dark"
+	current="/coming-soon"
+>
 
-  .hero{position:relative;overflow:hidden;}
-  .hero .blobs{position:absolute;inset:0;z-index:0;pointer-events:none;}
-  .hero .blob{position:absolute;border-radius:50%;filter:blur(70px);opacity:.3;}
-  .hero-grid{position:relative;z-index:1;display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center;}
-  .hero-media{position:relative;border-radius:24px;overflow:hidden;box-shadow:var(--sh-md);min-height:460px;background:var(--plaster) center/cover;}
-  .hero-media::after{content:"";position:absolute;inset:0;background:linear-gradient(200deg,transparent 55%,rgba(43,36,25,.30));}
-  .hero-chip{position:absolute;bottom:26px;left:26px;z-index:2;display:flex;align-items:center;gap:13px;
-    background:rgba(246,241,232,.92);backdrop-filter:blur(6px);border:1px solid var(--line);
-    border-radius:18px;padding:14px 18px;box-shadow:var(--sh-md);}
-  .hero-chip .ci{width:42px;height:42px;border-radius:12px;background:#E7EBD6;display:flex;align-items:center;justify-content:center;flex:none;}
-  .hero-chip .ci svg{width:23px;height:23px;}
-  .hero-chip .ct{font-weight:600;font-size:14.5px;}
-  .hero-chip .cs2{font-size:12.5px;color:var(--muted);}
-
-  /* waiting-list benefits */
-  .benefits{list-style:none;margin:26px 0 0;padding:0;display:flex;flex-direction:column;gap:13px;}
-  .benefits li{display:flex;gap:13px;align-items:flex-start;font-size:16px;color:#4f4636;}
-  .benefits .tick{flex:none;width:24px;height:24px;border-radius:50%;background:#E7EBD6;border:1px solid var(--sage);
-    display:flex;align-items:center;justify-content:center;margin-top:1px;}
-  .benefits .tick svg{width:13px;height:13px;}
-
-  /* waitlist form */
-  .wl-form{display:flex;gap:12px;margin-top:30px;max-width:520px;}
-  .wl-form .inp{flex:1;}
-  .wl-msg{font-size:14.5px;font-weight:600;min-height:1.2em;margin-top:12px;}
-  .wl-msg.ok{color:var(--sage-deep);}
-  .wl-msg.bad{color:var(--clay);}
-  .wl-note{font-size:13.5px;color:var(--muted);margin-top:12px;}
-  .wl-success{display:none;align-items:center;gap:12px;margin-top:30px;max-width:520px;
-    background:#E7EBD6;border:1px solid var(--sage);border-radius:var(--r-md);padding:18px 20px;
-    font-weight:600;color:var(--sage-deep);}
-  .wl-success.show{display:flex;}
-  .wl-success svg{flex:none;width:22px;height:22px;}
-
-  /* difference cards */
-  .diff-card h3{font-size:23px;margin-bottom:10px;}
-  .diff-card .di{width:52px;height:52px;border-radius:14px;background:var(--oat);border:1px solid var(--line);
-    display:flex;align-items:center;justify-content:center;margin-bottom:18px;}
-  .diff-card .di svg{width:26px;height:26px;}
-
-  /* careers band */
-  .careers-band{background:var(--plaster);border-block:1px solid var(--line);}
-
-  @media (max-width:960px){
-    .hero-grid{grid-template-columns:1fr;}
-    .hero-media{min-height:340px;}
-  }
-  @media (max-width:640px){
-    .wl-form{flex-direction:column;}
-  }
-</style>
-</head>
-<body>
-
-<!-- ===================== NAV ===================== -->
-<header class="nav">
-  <div class="wrap nav-inner">
-    <a class="brand" href="/"><span class="mark"></span>CureVà</a>
-    <nav class="nav-links">
-      <a href="#difference">The difference</a>
-      <a href="#careers">Careers</a>
-    </nav>
-    <div class="nav-right">
-      <a class="nav-signin" href="/recruit">Join our team</a>
-      <a class="btn btn-primary btn-sm" href="#waitlist">Reserve my spot</a>
-    </div>
-  </div>
-</header>
-
-<!-- ===================== HERO ===================== -->
-<section class="section hero" style="padding-top:72px;padding-bottom:90px;">
-  <div class="blobs">
-    <span class="blob" style="width:520px;height:520px;background:var(--oak);top:-160px;left:-120px;"></span>
-    <span class="blob" style="width:380px;height:380px;background:#EAD9AE;bottom:-140px;left:34%;"></span>
-  </div>
-  <div class="wrap hero-grid">
+<!-- ══ hero ══════════════════════════════════════════════════════════ -->
+<section class="sec sec--first" id="top" aria-labelledby="heroH">
+  <div class="wrap gr-hero">
     <div>
-      <span class="kicker"><span class="pulse"></span>Opening December 2026 · Legacy Village</span>
-      <h1 style="margin:26px 0 0;max-width:14ch;">Enhance what's already <span class="serif-i" style="color:var(--sage-deep);">beautiful.</span></h1>
-      <p class="lede" style="margin-top:24px;">We're creating the kind of space we always wished existed — a calm, non-toxic space focused on healthy nails, radiant skin, and naturally enhanced beauty.</p>
-      <p class="lede" style="margin-top:16px;">From waterless nail care to customized facials and lash lifts, every service is designed to help you look polished, refreshed, and completely yourself.</p>
-      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:34px;">
-        <a class="btn btn-primary btn-lg" href="#waitlist">Reserve My Spot</a>
-        <a class="btn btn-outline btn-lg" href="#difference">The CURE VÀ difference</a>
-      </div>
+      <span class="eyebrow" data-r="fade">Opening December 2026 · Legacy Village</span>
+      <h1 class="h-xl gr-h1" id="heroH" data-r style="--d:60ms">Enhance what&rsquo;s already
+        <em>beautiful.</em></h1>
+      <p class="lede" data-r="fade" style="--d:120ms;margin-top:1.6rem">We&rsquo;re creating the
+        kind of space we always wished existed — a calm, non-toxic space focused on healthy nails,
+        radiant skin, and naturally enhanced beauty.</p>
+      <p class="lede" data-r="fade" style="--d:170ms;margin-top:1rem">From waterless nail care to
+        customized facials and lash lifts, every service is designed to help you look polished,
+        refreshed, and completely yourself.</p>
+      <p class="gr-cta" data-r="fade" style="--d:230ms">
+        <a class="btn btn--lg" href="#waitlist" data-mag>Reserve My Spot</a>
+        <a class="btn btn--outline btn--lg" href="#difference" data-mag>The CURE VÀ difference</a>
+      </p>
+      <p class="gr-chips" data-r="fade" style="--d:280ms">
+        <span class="badge badge--outline"><span class="dot" aria-hidden="true"></span>Calm &amp; non-toxic</span>
+        <span class="badge badge--outline">Waterless by design</span>
+      </p>
     </div>
-    <div class="hero-media" style={`background-image:url('${INTERIOR_IMG}');`}>
-      <div class="hero-chip">
-        <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 4 13c0-6 7-9 15-9 0 8-3 15-9 15Z"/><path d="M4 21c2.5-4 5.5-6.5 10-8"/></svg></span>
-        <div><div class="ct">Calm &amp; non-toxic</div><div class="cs2">Waterless by design</div></div>
-      </div>
+    <div class="fr fr--tall" data-r="zoom" style="--d:120ms">
+      <img src="/img/d-hero-room.webp" width="1600" height="1067" decoding="async"
+        fetchpriority="high" alt="The studio interior in morning light">
     </div>
   </div>
 </section>
 
-<!-- ===================== JOIN THE WAITING LIST ===================== -->
-<section class="section tight" id="waitlist" style="background:var(--plaster);border-block:1px solid var(--line);">
-  <div class="wrap" style="display:grid;grid-template-columns:.9fr 1.1fr;gap:60px;align-items:start;" data-wl-grid>
+<!-- ══ the waiting list ══════════════════════════════════════════════ -->
+<section class="sec on-light" id="waitlist" aria-labelledby="wlH">
+  <span class="ix" aria-hidden="true">01</span>
+  <div class="wrap gr-wl">
     <div>
-      <span class="eyebrow">Join the Waiting List</span>
-      <h2 style="margin-top:18px;">Be among the first to experience <span class="serif-i">CURE VÀ.</span></h2>
-      <p class="lede" style="margin-top:16px;">The first 100 subscribers will receive:</p>
-      <ul class="benefits">
-        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Priority booking before appointments open to the public</li>
-        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Founding Member benefits</li>
-        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Preferred pricing on memberships and services</li>
-        <li><span class="tick"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>Access to our pre-opening booking event</li>
+      <span class="eyebrow" data-r="fade">Join the Waiting List</span>
+      <h2 class="h-lg" id="wlH" data-r style="--d:60ms">Be among the first to experience
+        <em>CURE VÀ.</em></h2>
+      <p class="mono gr-perk-h" data-r="fade" style="--d:120ms">The first 100 subscribers will
+        receive:</p>
+      <ul class="gr-perks" data-r="fade" style="--d:160ms">
+        {PERKS.map((p) => <li>{p}</li>)}
       </ul>
     </div>
 
-    <div class="card" style="padding:38px;">
-      <h3 style="font-size:24px;">Reserve your spot</h3>
-      <p class="muted" style="margin-top:10px;font-size:15.5px;">Leave your email and we'll be in touch before we open.</p>
-      <form class="wl-form js-waitlist" novalidate>
-        <input class="inp" type="email" name="email" placeholder="Enter your email address" autocomplete="email" data-wl-email />
-        <button class="btn btn-primary" type="submit" style="white-space:nowrap;">Reserve My Spot</button>
-      </form>
-      <p class="wl-msg js-wl-msg" role="alert"></p>
-      <div class="wl-success js-wl-success">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="16 9 10.5 15 8 12.5"/></svg>
-        <span class="js-wl-success-text">You're on the list! We'll be in touch.</span>
+    <article class="card gr-wl-card" data-r style="--d:120ms">
+      <div class="card-header">
+        <h3 class="h-sm">Reserve your spot</h3>
+        <p class="card-description">Leave your email and we&rsquo;ll be in touch before we open.</p>
       </div>
-      <p class="wl-note">No spam — just opening news, priority booking, and your founding-member invitation.</p>
-    </div>
+      <div class="card-content">
+        <WaitlistForm source="getready-waitlist" label="Reserve My Spot" />
+      </div>
+    </article>
   </div>
 </section>
 
-<!-- ===================== THE CURE VÀ DIFFERENCE ===================== -->
-<section class="section" id="difference">
+<!-- ══ the difference ════════════════════════════════════════════════ -->
+<section class="sec" id="difference" aria-labelledby="diffH">
+  <span class="ix" aria-hidden="true">02</span>
   <div class="wrap">
-    <div class="center" style="margin-bottom:56px;">
-      <span class="eyebrow">Why it feels different</span>
-      <h2 style="margin-top:18px;">The CURE VÀ <span class="serif-i">Difference</span></h2>
+    <div class="head head--split">
+      <div>
+        <span class="eyebrow" data-r="fade">Why it feels different</span>
+        <h2 class="h-lg" id="diffH" data-r style="--d:60ms">The CURE VÀ <em>Difference</em></h2>
+      </div>
     </div>
-    <div class="grid g3">
-      <div class="card hover diff-card">
-        <div class="di"><svg viewBox="0 0 24 24" fill="none" stroke="#5B4632" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a4 4 0 0 1 4-4h2l3-5"/><path d="M4 14h8l4 5"/><path d="M16 19h4"/><path d="M5 14v5"/></svg></div>
-        <h3>Zero-Gravity Comfort</h3>
-        <p class="muted" style="font-size:15.5px;">Leave the traditional salon chair behind. Relax in an ergonomic zero-gravity chair designed to support your body while you enjoy your service.</p>
-      </div>
-      <div class="card hover diff-card">
-        <div class="di"><svg viewBox="0 0 24 24" fill="none" stroke="#5B4632" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c3.5 4.4 6 7.9 6 11a6 6 0 1 1-12 0c0-3.1 2.5-6.6 6-11Z"/><path d="M9 14a3 3 0 0 0 3 3" opacity=".6"/><path d="M3 4l18 16" stroke-width="1.9"/></svg></div>
-        <h3>Waterless by Design</h3>
-        <p class="muted" style="font-size:15.5px;">No shared soaking basins. Our waterless approach is cleaner, more hygienic, and better for long-term nail health.</p>
-      </div>
-      <div class="card hover diff-card">
-        <div class="di"><svg viewBox="0 0 24 24" fill="none" stroke="#5B4632" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15.5 14"/></svg></div>
-        <h3>Beauty That Fits Your Schedule</h3>
-        <p class="muted" style="font-size:15.5px;">Enjoy multiple services during the same appointment — from nail care and facials to lash lifts and more — so you can make the most of your time.</p>
-      </div>
+    <div class="gr-grid">
+      {DIFFERENCE.map((d, i) => (
+        <article class="card gr-card" data-r style={`--d:${60 + i * 70}ms`}>
+          <div class="card-header">
+            <span class="mono num">{d.n}</span>
+            <h3 class="h-sm">{d.t}</h3>
+          </div>
+          <div class="card-content"><p class="card-description">{d.d}</p></div>
+        </article>
+      ))}
     </div>
   </div>
 </section>
 
-<!-- ===================== CAREERS ===================== -->
-<section class="section careers-band" id="careers">
-  <div class="wrap" style="display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start;" data-careers-grid>
+<!-- ══ careers ═══════════════════════════════════════════════════════ -->
+<section class="sec on-light" id="careers" aria-labelledby="carH">
+  <span class="ix" aria-hidden="true">03</span>
+  <div class="wrap gr-careers">
+    <div class="fr fr--tall" data-r="zoom"><img src="/img/h-applying.webp"
+      width="1600" height="2397" decoding="async" loading="lazy"
+      alt="A technician applying polish"></div>
     <div>
-      <span class="eyebrow">Careers at CURE VÀ</span>
-      <h2 style="margin-top:18px;max-width:16ch;">Grow with us from day <span class="serif-i">one.</span></h2>
-      <p class="lede" style="margin-top:20px;">We're creating the kind of beauty studio we always wished existed — not just for our clients, but for the professionals who care for them.</p>
-      <p class="lede" style="margin-top:14px;">Opening in Sugar House this December, we're looking to connect with:</p>
-      <div style="margin-top:18px;display:flex;flex-wrap:wrap;gap:10px;">
-        <span class="chip"><span class="dot" style="background:var(--oak);"></span>Nail Technicians</span>
-        <span class="chip"><span class="dot" style="background:var(--sage);"></span>Estheticians</span>
-      </div>
-      <div style="margin-top:32px;">
-        <p style="font-weight:600;color:var(--ink);">Join Our Talent List</p>
-        <p class="muted" style="margin-top:8px;font-size:15.5px;max-width:44ch;">Leave your information and we'll personally reach out when interview scheduling begins this fall.</p>
-        <div style="margin-top:22px;display:flex;gap:14px;flex-wrap:wrap;">
-          <a class="btn btn-primary btn-lg" href="/recruit/apply">Quick apply <span class="arr">↗</span></a>
-          <a class="btn btn-outline btn-lg" href="/recruit">Apply</a>
-        </div>
-      </div>
-    </div>
+      <span class="eyebrow" data-r="fade">Careers at CURE VÀ</span>
+      <h2 class="h-lg" id="carH" data-r style="--d:60ms">Grow with us from <em>day one.</em></h2>
+      <p class="lede" data-r="fade" style="--d:120ms;margin-top:1.4rem">We&rsquo;re creating the
+        kind of beauty studio we always wished existed — not just for our clients, but for the
+        professionals who care for them.</p>
+      <p class="lede" data-r="fade" style="--d:160ms;margin-top:1rem">Opening in Sugar House this
+        December, we&rsquo;re looking to connect with:</p>
+      <p class="gr-chips" data-r="fade" style="--d:200ms">
+        <span class="badge badge--outline">Nail Technicians</span>
+        <span class="badge badge--outline">Estheticians</span>
+      </p>
 
-    <div>
-      <p class="num" style="margin-bottom:22px;">Why Grow With Us?</p>
-      <div style="display:flex;flex-direction:column;gap:18px;">
-        <div class="card" style="padding:26px 28px;">
-          <h3 style="font-size:20px;margin-bottom:6px;">Training</h3>
-          <p class="muted" style="font-size:15px;">You'll receive training in the unique techniques and service experience that make CURE VÀ different from a traditional salon.</p>
-        </div>
-        <div class="card" style="padding:26px 28px;">
-          <h3 style="font-size:20px;margin-bottom:6px;">A Cleaner Environment</h3>
-          <p class="muted" style="font-size:15px;">No acrylics, no dip powders, and no strong chemical odors. Our focus is on clean products and long-term wellness.</p>
-        </div>
-        <div class="card" style="padding:26px 28px;">
-          <h3 style="font-size:20px;margin-bottom:6px;">Designed With Comfort in Mind</h3>
-          <p class="muted" style="font-size:15px;">From our specialized zero-gravity setup to our thoughtful service model, every detail is designed to create a more comfortable experience for both clients and professionals.</p>
-        </div>
+      <div class="gr-grow" data-r="fade" style="--d:240ms">
+        <p class="mono gr-perk-h">Why Grow With Us?</p>
+        <dl class="gr-grow-list">
+          {GROW.map((g) => (<><dt>{g.t}</dt><dd>{g.d}</dd></>))}
+        </dl>
       </div>
+
+      <p class="gr-cta" data-r="fade" style="--d:280ms">
+        <a class="btn btn--lg" href="/recruit/apply" data-mag>Join Our Talent List</a>
+        <a class="btn btn--outline btn--lg" href="/recruit" data-mag>See open roles</a>
+      </p>
+      <p class="gr-fine">Leave your information and we&rsquo;ll personally reach out when
+        interview scheduling begins this fall.</p>
     </div>
   </div>
 </section>
 
-<!-- ===================== FOOTER ===================== -->
-<footer class="footer">
-  <div class="wrap">
-    <div class="foot-grid">
-      <div class="foot-col">
-        <a class="brand" href="/"><span class="mark"></span>CureVà</a>
-        <p style="margin:18px 0 0;max-width:34ch;font-size:15px;color:#cabb9f;">A calm, non-toxic beauty lounge. Opening December 2026 at Legacy Village.</p>
-      </div>
-      <div class="foot-col">
-        <h4>Explore</h4>
-        <a class="fl" href="#waitlist">Waiting list</a>
-        <a class="fl" href="#difference">The difference</a>
-        <a class="fl" href="#careers">Careers</a>
-      </div>
-      <div class="foot-col">
-        <h4>Join us</h4>
-        <a class="fl" href="/recruit">Open roles</a>
-        <a class="fl" href="/recruit/apply">Quick apply</a>
-      </div>
-      <div class="foot-col">
-        <h4>Contact</h4>
-        <a class="fl" href="mailto:hello@cureva.co">hello@cureva.co</a>
-        <a class="fl" href="mailto:careers@cureva.co">careers@cureva.co</a>
-      </div>
-    </div>
-    <div class="foot-bottom">
-      <span>© 2026 CureVà · The Gallacher Collective</span>
-      <div class="socials">
-        <a class="soc" href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="#e6dccb" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1" fill="#e6dccb" stroke="none"></circle></svg></a>
-        <a class="soc" href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="#e6dccb"><path d="M16 3c.3 2.2 1.7 3.9 4 4.2v3c-1.5 0-2.9-.4-4-1.1V15a6 6 0 1 1-6-6c.3 0 .7 0 1 .1v3.1a3 3 0 1 0 2 2.8V3h3Z"></path></svg></a>
-        <a class="soc" href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="#e6dccb"><path d="M14 8h2V5h-2c-1.7 0-3 1.3-3 3v2H9v3h2v6h3v-6h2.2l.8-3H14V8.5c0-.3.2-.5.5-.5H14Z"></path></svg></a>
-      </div>
-    </div>
-  </div>
-</footer>
+</VersionH>
 
-<!-- Responsive: collapse the two-column grids on small screens -->
-<style is:inline>
-  @media (max-width:960px){
-    [data-wl-grid],[data-careers-grid]{grid-template-columns:1fr !important;gap:40px !important;}
-  }
+<style is:global>
+/* ═══ get ready ═════════════════════════════════════════════════════════
+   Composed from tokens; names no colour. ═══════════════════════════════ */
+.gr-hero{display:grid;gap:2.4rem;align-items:center}
+@media (min-width:960px){.gr-hero{grid-template-columns:1.05fr .95fr;gap:3.4rem}}
+.gr-h1{margin-top:1rem;max-width:14ch}
+.gr-cta{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:2.2rem}
+.gr-chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.4rem}
+
+.gr-wl{display:grid;gap:2.4rem;align-items:start}
+@media (min-width:960px){.gr-wl{grid-template-columns:1fr 1fr;gap:3.75rem}}
+.gr-perk-h{margin-top:1.8rem}
+.gr-perks{list-style:none;margin:1rem 0 0;padding:0;display:grid;gap:.65rem}
+.gr-perks li{position:relative;padding-left:1.5rem;font-size:.95rem;line-height:1.6;
+  color:hsl(var(--muted-foreground))}
+.gr-perks li::before{content:"";position:absolute;left:0;top:.68em;width:9px;height:1px;
+  background:hsl(var(--accent))}
+.gr-wl-card{padding:clamp(1.5rem,3vw,2.4rem);
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2),var(--sh)}
+.gr-wl-card .card-header,.gr-wl-card .card-content{padding:0}
+.gr-wl-card .card-content{padding-top:1.4rem}
+
+.gr-grid{display:grid;gap:1rem}
+@media (min-width:820px){.gr-grid{grid-template-columns:repeat(3,1fr)}}
+.gr-card{align-content:start;padding:clamp(1.3rem,2.4vw,1.9rem);
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2),var(--sh-d)}
+.gr-card .card-header,.gr-card .card-content{padding:0}
+.gr-card .card-header{gap:.7rem}
+.gr-card .card-content{padding-top:.8rem}
+.gr-card .mono{color:hsl(var(--accent))}
+
+.gr-careers{display:grid;gap:2.4rem;align-items:center}
+@media (min-width:960px){.gr-careers{grid-template-columns:.85fr 1.15fr;gap:3.4rem}}
+.gr-grow{margin-top:2.2rem}
+.gr-grow-list{margin:1rem 0 0;display:grid;gap:1rem}
+.gr-grow-list dt{font-size:.94rem;font-weight:700;color:hsl(var(--foreground))}
+.gr-grow-list dd{margin:.3rem 0 0;font-size:.9rem;line-height:1.6;
+  color:hsl(var(--muted-foreground));max-width:60ch}
+.gr-fine{margin-top:1rem;font-size:.78rem;color:hsl(var(--muted-foreground));max-width:52ch}
 </style>
-
-<!-- Waitlist capture: POST email to /api/waitlist (phone optional server-side) -->
-<script is:inline>
-  (function () {
-    var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-    var form = document.querySelector('.js-waitlist');
-    if (!form) return;
-
-    var emailEl = form.querySelector('[data-wl-email]');
-    var msg = document.querySelector('.js-wl-msg');
-    var success = document.querySelector('.js-wl-success');
-    var successText = document.querySelector('.js-wl-success-text');
-    var btn = form.querySelector('button[type="submit"]');
-
-    form.addEventListener('submit', function (e) {
-      e.preventDefault();
-      var email = (emailEl.value || '').trim();
-
-      if (!email || !EMAIL_RE.test(email)) {
-        emailEl.classList.add('err');
-        msg.textContent = email ? 'Enter a valid email address.' : 'Email address is required.';
-        msg.className = 'wl-msg js-wl-msg bad';
-        emailEl.focus();
-        return;
-      }
-      emailEl.classList.remove('err');
-      msg.textContent = '';
-      msg.className = 'wl-msg js-wl-msg';
-
-      var label = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Reserving…';
-
-      fetch('/api/waitlist', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: email, source: 'getready-waitlist' }),
-      })
-        .then(function (res) {
-          return res.json().then(function (data) { return { ok: res.ok, data: data }; });
-        })
-        .then(function (r) {
-          if (r.ok && r.data && r.data.ok) {
-            form.style.display = 'none';
-            successText.textContent = r.data.alreadyJoined
-              ? "You're already on the list — we'll be in touch."
-              : "You're on the list! We'll be in touch before we open.";
-            success.classList.add('show');
-            return;
-          }
-          var err =
-            (r.data && r.data.errors && (r.data.errors.email || r.data.errors.phone)) ||
-            (r.data && r.data.error) ||
-            'Something went wrong. Please try again.';
-          if (r.data && r.data.errors && r.data.errors.email) emailEl.classList.add('err');
-          msg.textContent = err;
-          msg.className = 'wl-msg js-wl-msg bad';
-          btn.disabled = false;
-          btn.textContent = label;
-        })
-        .catch(function () {
-          msg.textContent = 'Network error. Please try again.';
-          msg.className = 'wl-msg js-wl-msg bad';
-          btn.disabled = false;
-          btn.textContent = label;
-        });
-    });
-
-    emailEl.addEventListener('input', function () {
-      emailEl.classList.remove('err');
-    });
-  })();
-</script>
-</body>
-</html>

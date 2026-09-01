@@ -1,0 +1,136 @@
+---
+/**
+ * The four open roles, as a disclosure list.
+ *
+ * /recruit and /recruit/apply carried the same four roles with the same
+ * copy in two hand-maintained copies of the markup. They are one component
+ * now — the copy is below, and both pages read it.
+ *
+ * <details>/<summary>, not a div with a click handler and a measured
+ * scrollHeight. It opens with JavaScript off, the browser owns the state,
+ * and a screen reader announces it as the disclosure it is. The script only
+ * closes siblings, so one-at-a-time is an enhancement rather than the
+ * mechanism. See design/version-h/DESIGN-SYSTEM.md §7.
+ */
+const ROLES = [
+	{
+		title: "Nail Technician",
+		meta: "2 openings · Full-time / Part-time",
+		body: "We're looking for someone who takes pride in their work, enjoys creating meaningful connections with clients, and wants to grow with a team that's redefining the salon experience.",
+		points: [
+			"Licensed (or eligible for Utah licensure)",
+			"Kind, dependable, and detail-oriented",
+			"Excited to learn and grow with us",
+		],
+	},
+	{
+		title: "Esthetician",
+		meta: "2 openings · Full-time / Part-time",
+		body: "We're looking for someone who genuinely enjoys helping others feel confident, values a calm and welcoming environment, and wants to be part of building something special from the beginning.",
+		points: [
+			"Licensed (or eligible for Utah licensure)",
+			"Warm, caring, and professional",
+			"Passionate about continuous learning",
+		],
+	},
+	{
+		title: "Lash & Brow Specialist",
+		meta: "1 opening · Full-time / Part-time",
+		body: "We're looking for someone who appreciates natural beauty, pays attention to the little details, and enjoys building lasting relationships with every client.",
+		points: [
+			"Licensed (or eligible for Utah licensure)",
+			"Patient, reliable, and detail-oriented",
+			"Committed to delivering a thoughtful experience",
+		],
+	},
+	{
+		title: "Cosmetologist",
+		meta: "1 opening · Full-time / Part-time",
+		body: "We're looking for someone who enjoys working with people, embraces learning new techniques, and wants to help shape the culture of a growing wellness-focused studio.",
+		points: [
+			"Licensed (or eligible for Utah licensure)",
+			"Positive, adaptable, and team-oriented",
+			"Interested in growing with CURE VÀ",
+		],
+	},
+];
+
+interface Props {
+	/** Where "Apply for this role" points. On /recruit/apply that is the form itself. */
+	applyHref?: string;
+}
+const { applyHref = "/recruit/apply" } = Astro.props;
+---
+
+<div class="rc-roles">
+  {ROLES.map((r, i) => (
+    <details class="rc-role" data-r="fade" style={`--d:${i * 60}ms`}>
+      <summary>
+        <span class="rc-role-t">{r.title}</span>
+        <span class="rc-role-m mono">{r.meta}</span>
+        <span class="rc-role-x" aria-hidden="true"></span>
+      </summary>
+      <div class="rc-role-b">
+        <p>{r.body}</p>
+        <ul>
+          {r.points.map((p) => <li>{p}</li>)}
+          <li><a class="rc-role-a" href={applyHref}>Apply for this role →</a></li>
+        </ul>
+      </div>
+    </details>
+  ))}
+</div>
+
+<style is:global>
+/* Composed from tokens; names no colour, so it works on either ground. */
+.rc-roles{display:grid;gap:.1rem;margin-top:.5rem}
+.rc-role{border-top:1px solid var(--border-hairline);position:relative}
+.rc-role:last-child{border-bottom:1px solid var(--border-hairline)}
+.rc-role summary{display:grid;grid-template-columns:1fr auto auto;align-items:center;
+  gap:.35rem 1.2rem;padding:1.35rem 0;cursor:pointer;list-style:none;
+  position:relative;z-index:1;transition:padding-inline .55s var(--ease)}
+.rc-role summary::-webkit-details-marker{display:none}
+.rc-role::after{content:"";position:absolute;inset:0;z-index:0;background:hsl(var(--muted));
+  transform:scaleY(0);transform-origin:50% 100%;transition:transform .45s var(--ease)}
+@media (pointer:fine){
+  .rc-role:hover::after,.rc-role:focus-within::after{transform:scaleY(1)}
+  .rc-role:hover summary{padding-inline:clamp(.6rem,1.4vw,1.1rem)}
+}
+@media (max-width:559px){
+  .rc-role summary{grid-template-columns:1fr auto}
+  .rc-role-m{grid-column:1/-1}
+}
+.rc-role-t{font-family:Fraunces,"Iowan Old Style",Georgia,serif;font-weight:300;
+  font-size:clamp(1.3rem,2.4vw,1.9rem);line-height:1.1;letter-spacing:-.028em}
+.rc-role-m{white-space:nowrap}
+.rc-role-x{width:14px;height:14px;flex:none;position:relative}
+.rc-role-x::before,.rc-role-x::after{content:"";position:absolute;left:0;right:0;top:50%;
+  height:1.5px;background:currentColor;transition:transform .45s var(--ease)}
+.rc-role-x::after{transform:rotate(90deg)}
+.rc-role[open] .rc-role-x::after{transform:rotate(0)}
+.rc-role-b{position:relative;z-index:1;display:grid;gap:1.2rem;padding:0 0 1.6rem}
+@media (min-width:820px){.rc-role-b{grid-template-columns:1fr 1fr;gap:2.4rem}}
+.rc-role-b p{font-size:.92rem;color:hsl(var(--muted-foreground));max-width:60ch}
+.rc-role-b ul{list-style:none;margin:0;padding:0;display:grid;gap:.5rem;align-content:start}
+.rc-role-b li{font-size:.92rem;color:hsl(var(--muted-foreground));
+  padding-left:1.1rem;position:relative}
+.rc-role-b li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
+  background:hsl(var(--accent))}
+.rc-role-a{color:hsl(var(--accent));font-weight:700;text-decoration:none;
+  text-underline-offset:4px}
+.rc-role-a:hover{text-decoration:underline}
+</style>
+
+<script is:inline>
+/* One open at a time. <details> already works without this — the script
+   only ever closes the others, it never owns the state. */
+(function () {
+  var roles = Array.prototype.slice.call(document.querySelectorAll('.rc-role'));
+  roles.forEach(function (d) {
+    d.addEventListener('toggle', function () {
+      if (!d.open) return;
+      roles.forEach(function (o) { if (o !== d) o.open = false; });
+    });
+  });
+})();
+</script>

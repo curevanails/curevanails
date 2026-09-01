@@ -49,21 +49,11 @@ export default defineConfig({
 	// the signed-cookie admin gate (src/middleware.ts), SNS signature + topic
 	// verification on the webhook, and the unguessable token on /unsubscribe.
 	security: { checkOrigin: false },
-	fonts: [
-		{
-			provider: fontProviders.google(),
-			name: "Inter",
-			cssVariable: "--font-sans",
-			weights: [400, 500, 600, 700],
-			fallbacks: ["sans-serif"],
-		},
-		{
-			provider: fontProviders.google(),
-			name: "JetBrains Mono",
-			cssVariable: "--font-mono",
-			weights: [400, 500],
-			fallbacks: ["monospace"],
-		},
-	],
+	// No `fonts:` block. The site runs on version H, whose two families —
+	// Fraunces and Manrope — come from the ONE Google Fonts <link> that every
+	// layout carries, and which is the only external request the design system
+	// makes. Astro's font pipeline was serving Inter + JetBrains Mono for the
+	// old blog theme; nothing imports `astro:assets`' <Font> any more, so the
+	// block only cost 20 copied files a build. See design/version-h/README.md §1.2.
 	devToolbar: { enabled: false },
 });

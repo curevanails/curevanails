@@ -1,0 +1,193 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Cure Và · version H — reveals, frames, preloader, cursor, grain, reduced motion
+   ───────────────────────────────────────────────────────────────────────
+   EXTRACTED, NOT REWRITTEN. This is byte-for-byte the CSS running at
+   /version-h/. If you change it here, change it in
+   landing-page-h.template.html too — or better, make that file the
+   source and re-run version-h/build/extract.py.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── reveal — transform + opacity only, one observer, unobserved as it goes ── */
+/* F lengthens the tail and adds a hair of scale. 26px of travel with no
+   scale reads as a slide; 26px with 1.5% of scale reads as something
+   arriving from behind the page, which is the same cost and a different
+   feeling. */
+[data-r]{opacity:0;transform:translate3d(0,26px,0) scale(.985);
+  transition:opacity 1.05s var(--ease-soft),transform 1.05s var(--ease-soft);
+  transition-delay:var(--d,0ms)}
+[data-r="fade"]{transform:none}
+[data-r="left"]{transform:translate3d(-26px,0,0) scale(.985)}
+[data-r="zoom"]{transform:scale(1.06);
+  transition:opacity 1.2s var(--ease-soft),transform 1.5s var(--ease-soft)}
+[data-r="clip"]{opacity:1;transform:none;clip-path:inset(0 0 100% 0);
+  transition:clip-path 1.25s var(--ease-soft);transition-delay:var(--d,0ms)}
+[data-r].in{opacity:1;transform:none}
+[data-r="clip"].in{clip-path:inset(0 0 0 0)}
+
+/* ── image frames — every photograph on this page is masked and moves ─── */
+.fr{position:relative;overflow:hidden;border-radius:var(--r-md);background:var(--night-3)}
+.fr img{width:100%;height:100%;object-fit:cover}
+/* a slow, permanent drift on the picture inside a static frame: the frame
+   is what the eye locks to, so the drift reads as depth, not as movement */
+.fr--drift img{animation:drift 22s var(--ease) infinite alternate}
+@keyframes drift{from{transform:scale(1.04) translate3d(0,0,0)}
+  to{transform:scale(1.11) translate3d(-1.2%,-1.6%,0)}}
+.fr--tall{aspect-ratio:3/4}
+.fr--sq{aspect-ratio:1}
+.fr--wide{aspect-ratio:16/10}
+.fr--film{aspect-ratio:21/9}
+
+/* ── grain + vignette, desktop only ──────────────────────────────────── */
+#grain{position:fixed;inset:0;z-index:92;pointer-events:none;opacity:.055;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4'/%3E%3C/filter%3E%3Crect width='220' height='220' filter='url(%23n)'/%3E%3C/svg%3E")}
+@media (pointer:coarse){#grain{display:none}}
+
+/* ── preloader ────────────────────────────────────────────────────────
+   THE CONTRACT FIRST, because it is the part that must not break: this
+   hides itself in CSS at 2.4s whether or not our JavaScript ever runs, so
+   a failed script can never leave a visitor staring at a closed curtain.
+   JS only ever hides it EARLIER. Every rule below therefore comes in a
+   pair — the timed one on #pre, and the same animation with no delay on
+   #pre.gone for when the script gets there first.
+
+   What it draws is the brand's own mark, not a spinner: the ring and the
+   centre dot are .mark-ring's geometry at 2.8x, so the thing a visitor
+   watches for a second and a half is the same object that sits in the nav
+   for the rest of the visit. The ring fills as a progress arc, the dot
+   blooms open — which is exactly the gesture .mark-ring already makes on
+   hover — and the contour behind it is the delivered brand pattern rather
+   than a flat black field.
+
+   It leaves as a curtain going UP (clip-path inset from the bottom), the
+   same wipe #menuPanel uses, instead of the fade-and-scale it had. That
+   reveals the hero photograph from the floor rather than dissolving over
+   it, and it costs one clip-path — already in this page's budget. */
+#pre{position:fixed;inset:0;z-index:120;display:grid;place-items:center;
+  background:var(--night);clip-path:inset(0 0 0 0);
+  animation:preOut 1.05s 2.4s var(--ease-soft) forwards}
+#pre.gone{animation:preOut 1.05s var(--ease-soft) forwards}
+@keyframes preOut{to{clip-path:inset(0 0 100% 0);visibility:hidden}}
+/* the contour is a positioned child; the content has to be lifted over it */
+#pre .contour{opacity:.85}
+.pre-in{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;
+  gap:1.15rem;text-align:center;
+  animation:preLift 1.05s 2.4s var(--ease-soft) forwards}
+#pre.gone .pre-in{animation:preLift 1.05s var(--ease-soft) forwards}
+/* the content leaves a beat before the floor does, so the curtain reads as
+   rising past it rather than taking it along */
+@keyframes preLift{to{transform:translate3d(0,-30px,0);opacity:0}}
+
+/* the mark: .mark-ring's ring and dot, at 2.8x */
+.pre-mark{width:72px;height:72px;border-radius:50%;position:relative;
+  box-shadow:inset 0 0 0 2px var(--line-d)}
+.pre-mark::before{content:"";position:absolute;inset:0;border-radius:50%;
+  background:conic-gradient(var(--sage) var(--p,0%),transparent 0);
+  -webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 0);
+  mask:radial-gradient(farthest-side,transparent calc(100% - 2px),#000 0);
+  /* 0.75s, not 1.7s. The script hides this curtain as soon as the page is
+     ready and never sooner than 900ms, so anything still moving at 0.9s is
+     a gesture nobody will ever see — the dot used to start blooming at
+     0.85s and was gone before it had opened. The whole sequence now
+     finishes inside 0.8s, and simply holds if the page is slow. */
+  animation:preSpin .75s var(--ease-io) forwards}
+/* inset:50% is a dot of no size at the centre; .mark-ring animates the
+   same property on hover, so this is the site's own gesture, opening */
+.pre-mark::after{content:"";position:absolute;inset:50%;border-radius:50%;
+  background:var(--sage);animation:preDot .45s .35s var(--ease-spring) forwards}
+@keyframes preDot{to{inset:22px}}
+@keyframes preSpin{from{--p:0%}to{--p:100%}}
+@property --p{syntax:'<percentage>';inherits:false;initial-value:0%}
+
+.pre-w{font-family:Fraunces,serif;font-size:clamp(2.2rem,7vw,3.6rem);letter-spacing:-.03em;
+  color:var(--cream);line-height:1;overflow:hidden}
+.pre-w span{display:inline-block;animation:preUp .8s .1s var(--ease-soft) both}
+@keyframes preUp{from{transform:translate3d(0,105%,0)}to{transform:none}}
+/* a hairline drawn out from the centre — scaleX, so it is a transform and
+   not a width the browser has to lay out sixty times a second */
+.pre-rule{width:clamp(84px,20vw,140px);height:1px;background:var(--line-d);
+  transform:scaleX(0);animation:preRule .6s .3s var(--ease-soft) forwards}
+@keyframes preRule{to{transform:scaleX(1)}}
+.pre-sub{font-size:.68rem;font-weight:700;letter-spacing:.26em;text-transform:uppercase;
+  color:var(--on-dark-2);animation:preFade .6s .4s var(--ease) both}
+@keyframes preFade{from{opacity:0}to{opacity:1}}
+
+/* ── custom cursor — desktop, fine pointer, motion allowed ───────────── */
+/* POSITION IS NOT ANIMATED. It used to be — one `transition:transform
+   .16s` covering both the position and the scale — and the ring trailed
+   the pointer by a sixth of a second. On a page that sets cursor:none
+   that is not a stylistic trail: the ring is the ONLY thing telling the
+   guest where they are pointing, and it was not where the click landed.
+
+   Splitting the two into the individual `translate` and `scale`
+   properties lets the position update instantly while the press and the
+   tag still grow smoothly — one element, no extra layer, no JavaScript
+   change. They compose in a fixed order (translate, then scale), which
+   is the order the old transform wrote them in anyway. */
+#cur{position:fixed;top:0;left:0;z-index:118;pointer-events:none;display:none;
+  width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;
+  box-shadow:inset 0 0 0 1.4px var(--cream);
+  translate:var(--cx,-100px) var(--cy,-100px);
+  scale:var(--cs,1);
+  will-change:translate;
+  transition:scale .26s var(--ease),opacity .3s var(--ease),background .3s var(--ease)}
+#cur b{position:absolute;inset:0;display:grid;place-items:center;border-radius:50%;
+  font-size:.55rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--night);background:var(--cream);opacity:0;transform:scale(.4);
+  transition:opacity .3s var(--ease),transform .35s var(--ease)}
+#cur.tag{--cs:2.3}
+#cur.tag b{opacity:1;transform:scale(1)}
+@media (pointer:fine){
+  #cur{display:block}
+  html.cursor-on,html.cursor-on *{cursor:none!important}
+  /* ...except where a region opts out. The ring is a nice idea over
+     photography and a bad one over a price list: there it either names an
+     action nobody asked it to name, or floats blank over a card that
+     already looks like a card. [data-nocursor] hands the region back to
+     the operating system, which draws a better arrow than we do. */
+  html.cursor-on [data-nocursor],
+  html.cursor-on [data-nocursor] *{cursor:auto!important}
+  html.cursor-on [data-nocursor] a,
+  html.cursor-on [data-nocursor] button,
+  html.cursor-on [data-nocursor] label,
+  html.cursor-on [data-nocursor] .rb-card{cursor:pointer!important}
+  html.cursor-on [data-nocursor] input{cursor:auto!important}
+}
+#cur.hide{opacity:0}
+@media (prefers-reduced-motion:reduce){#cur{display:none!important}}
+
+/* ── magnetic buttons ─────────────────────────────────────────────────
+   The magnet writes `translate`, not `transform`. Two things follow, and
+   both were bugs before:
+
+     · .btn carries `transition:transform .5s`, so a magnet written into
+       `transform` was eased over half a second and never caught up with
+       the pointer. `translate` has its own transition, set here.
+     · a magnet written into `transform` also OVERWROTE the hover lift
+       (`translateY(-2px)`). As two properties they compose instead.
+
+   Tracking is instant while the pointer is inside the button; the spring
+   back is what wants easing, so the transition is only on the way out. */
+[data-mag]{transition:translate 0s}
+[data-mag].mag-out{transition:translate .45s var(--ease)}
+
+/* ── progress rail ───────────────────────────────────────────────────── */
+#prog{position:fixed;inset:0 auto auto 0;height:2px;width:100%;z-index:96;
+  transform-origin:0 50%;transform:scaleX(0);pointer-events:none;
+  background:linear-gradient(90deg,var(--sage),var(--blue),var(--cream))}
+@supports (animation-timeline:scroll()){
+  #prog{animation:grow linear both;animation-timeline:scroll(root)}
+  @keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+}
+
+/* ═══ reduced motion — remove the motion, keep the information ═════════ */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;
+    transition-duration:.01ms!important;scroll-behavior:auto!important}
+  [data-r]{opacity:1!important;transform:none!important;clip-path:none!important}
+  .hero-h .ln>span,.mp-list a{transform:none!important}
+  .hero-shot img,.contour{animation:none!important}
+  .quote w{opacity:1!important}
+  .mani-stack img.on{clip-path:none}
+  #pre{display:none}
+}
+

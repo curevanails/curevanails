@@ -7,8 +7,8 @@
 		"author": "EmDash"
 	},
 	"settings": {
-		"title": "My Blog",
-		"tagline": "Thoughts on building for the web"
+		"title": "Cure Và",
+		"tagline": "Healthy nails, radiant skin, and a room built for five."
 	},
 	"collections": [
 		{
@@ -205,7 +205,7 @@
 							"children": [
 								{
 									"_type": "span",
-									"text": "A blog about software, design, and the occasional stray thought.",
+									"text": "Notes from the studio — the craft, the room, and the people in it.",
 									"_key": "k1"
 								}
 							],

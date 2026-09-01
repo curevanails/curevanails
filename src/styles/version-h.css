@@ -1,0 +1,23 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Cure Và · version H — the whole system, in load order.
+
+   This file is the ONLY thing an Astro page imports. It exists so the six
+   layers stay single-source in design/version-h/css/ — byte-for-byte the
+   upstream files, never edited, never duplicated — while Vite still
+   flattens them into one stylesheet in the right sequence.
+
+   ORDER IS THE CONTRACT. Tokens before anything that reads them;
+   components before the sections that compose them; page-variants LAST
+   because it re-declares tokens for the paper nav. A page's own <style>
+   comes after this, in the page.
+
+   Do not add a rule here. A rule that belongs to every page belongs in
+   design/version-h/css/; a rule that belongs to one page belongs in that
+   page. See design/version-h/GUIDE.md.
+   ═══════════════════════════════════════════════════════════════════════ */
+@import "../../design/version-h/css/01-tokens.css";
+@import "../../design/version-h/css/02-base.css";
+@import "../../design/version-h/css/03-components.css";
+@import "../../design/version-h/css/04-motion.css";
+@import "../../design/version-h/css/05-chrome.css";
+@import "../../design/version-h/css/page-variants.css";
