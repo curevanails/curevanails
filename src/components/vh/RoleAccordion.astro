@@ -105,9 +105,21 @@ const { applyHref = "/recruit/apply" } = Astro.props;
 .rc-role{--role-pad:clamp(1rem,2.4vw,1.9rem)}
 .rc-role[open]{padding-inline:var(--role-pad)}
 .rc-role[open]::after{transform:scaleY(1)}
-@media (max-width:559px){
-  .rc-role summary{grid-template-columns:1fr auto}
-  .rc-role-m{grid-column:1/-1}
+/* ── narrow ───────────────────────────────────────────────────────────
+   THE BUG THIS FIXES: the summary is a 3-column grid with 3 children. On
+   narrow screens it dropped to 2 columns while `.rc-role-m` was told to
+   span 1/-1 — so auto-placement put the title on row 1, the full-width
+   meta on row 2, and pushed the "+" down onto a row of its own.
+
+   Place all three explicitly instead of leaving it to auto-placement: the
+   "+" is pinned beside the title, and the meta takes the row below it.
+   The breakpoint moves up to 720px because the meta is `nowrap` and
+   "2 openings · Full-time / Part-time" stops fitting well before 560px. */
+@media (max-width:719px){
+  .rc-role summary{grid-template-columns:1fr auto;gap:.45rem .9rem}
+  .rc-role-t{grid-column:1;grid-row:1}
+  .rc-role-x{grid-column:2;grid-row:1;align-self:center}
+  .rc-role-m{grid-column:1/-1;grid-row:2;white-space:normal}
 }
 .rc-role-t{font-family:Fraunces,"Iowan Old Style",Georgia,serif;font-weight:300;
   font-size:clamp(1.3rem,2.4vw,1.9rem);line-height:1.1;letter-spacing:-.028em}

@@ -37,10 +37,19 @@ const ROOTS = [DIST, path.join(REPO, 'public')];
 const OUT = path.join(DIST, '_parity');
 const ASTRO = process.env.ASTRO_URL || 'http://localhost:4321';
 
-/* the pairs that must match, and the viewports they must match at */
-const PAIRS = [
-  { name: 'coming-soon', astro: '/coming-soon', built: '/soon/' },
-];
+/* The pairs that must match, and the viewports they must match at.
+   ─────────────────────────────────────────────────────────────────────
+   EMPTY ON PURPOSE, and this is not a gate that quietly stopped running.
+   /coming-soon was the one pixel-locked page and it passed at 0/1,296,000
+   — until the brief changed from "100% the version-H page" to "bring the
+   old content back" (the countdown, the two CTAs, the socials, the first-
+   visit dialog). Those two requirements cannot both hold, so the lock was
+   released deliberately. See design/version-h/PORTING.md §5.
+
+   The design system is still gated, by smoke.js and by e2e/design.spec.ts.
+   Re-add a pair here the moment a page is built from an html/ template
+   again — that is what this tool is for. */
+const PAIRS = [];
 const VIEWPORTS = [['desktop', { width: 1440, height: 900 }], ['phone', { width: 390, height: 844 }]];
 
 /* the same two-root static server smoke.js uses */
@@ -111,6 +120,10 @@ async function diff(browser, a, b) {
 
 const only = process.argv[2];
 const pairs = only ? PAIRS.filter(p => p.name === only) : PAIRS;
+if (!PAIRS.length) {
+  console.log('no pixel-locked pages are configured — see the note above PAIRS.');
+  process.exit(0);
+}
 if (!pairs.length) { console.error('no such pair: ' + only); process.exit(2); }
 
 fs.mkdirSync(OUT, { recursive: true });

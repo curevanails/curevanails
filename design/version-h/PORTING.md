@@ -107,6 +107,17 @@ node design/version-h/build/smoke.js
 `/_skeleton/`) — it is the upstream page list. Screenshots land in
 `design/version-h/dist/_screens/`; override with `SMOKE_OUT`.
 
+**The pixel lock on `/coming-soon` has been released.** It held — `parity.js`
+reported 0/1,296,000 differing pixels at 1440x900 and 0/329,160 at 390x844 —
+right up until the brief changed from "100% the version-H page" to "bring the
+old content back": the countdown, the two calls to action, the socials, the
+Gallacher Collective credit and a first-visit dialog. Those two requirements
+cannot both be satisfied, so the page is now a custom one and `PAIRS` in
+`parity.js` is empty, with the reason written above it. The tool stays: point
+it at any future page built from an `html/` template.
+
+The display gate is now `e2e/design.spec.ts`, run by `pnpm test:e2e`.
+
 Last run: all six profiles clean (3 pages × 1440 and 390), guards passing —
 CSS balanced, component layer names no colour, 17 shadcn tokens defined and
 re-themed on both grounds as bare HSL triplets, one external stylesheet (the

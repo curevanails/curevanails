@@ -1,29 +1,31 @@
 ---
 /**
- * /coming-soon — Cure Và version H, the pre-launch holding page.
+ * /coming-soon — the pre-launch holding page.
  *
- * GENERATED FROM design/version-h/html/coming-soon.html, not transcribed.
- * The markup, the copy and the page CSS below are that template verbatim;
- * only four things differ, and each is forced by running inside Astro
- * rather than by a design decision:
+ * Version-H design, the PREVIOUS page's content: the countdown, the two
+ * calls to action, the hiring line, the socials and the Gallacher
+ * Collective credit all came back across on request.
  *
- *   1 · the six <link>s to css/01–05 + page-variants are gone — the same
- *       six layers arrive in the same order through ../styles/version-h.css
- *   2 · __E_SPACE__ resolved to /img/e-space.webp with its intrinsic
- *       width/height stamped, which is what build-page.py does
- *   3 · <style is:global> and <script is:inline>, because Astro would
- *       otherwise scope the CSS and bundle the scripts — and bundling
- *       breaks the runtime's IIFE contract
- *   4 · the runtime is imported for its URL so it stays single-source at
- *       design/version-h/js/runtime.js
+ * ⚠ THIS PAGE IS NO LONGER PIXEL-LOCKED to design/version-h/html/coming-soon.html.
+ * It was, and design/version-h/build/parity.js proved it at 0/1,296,000
+ * pixels — but that lock existed to serve "100% the version-H page", and
+ * the brief changed to "bring the old content back". Both cannot be true.
+ * The design system is still gated (smoke.js + e2e/design.spec.ts); the
+ * byte-for-byte comparison is not, and PORTING.md §5 records why.
  *
- * Verified pixel-identical to the standalone build. See docs/DESIGN-SYSTEM.md.
- * Like the other splash pages this deliberately does NOT use Base.astro.
+ * The waitlist form is the REAL one now — <WaitlistForm/> POSTs to
+ * /api/waitlist and writes the D1 row /admin/waitlist reads. Version H's
+ * own form was front-end only, which was the first thing flagged here.
+ *
+ * Like the other splash pages this deliberately does NOT use Base.astro:
+ * it is one screen, with no nav, menu or footer to inherit.
  */
 export const prerender = false;
 
 import "../styles/version-h.css";
 import runtimeUrl from "../../design/version-h/js/runtime.js?url";
+import WaitlistForm from "../components/vh/WaitlistForm.astro";
+import CursorGround from "../components/vh/CursorGround.astro";
 ---
 
 <!doctype html>
@@ -34,7 +36,7 @@ import runtimeUrl from "../../design/version-h/js/runtime.js?url";
 <meta name="theme-color" content="#0B1410">
 <meta name="color-scheme" content="dark">
 <title>Cure Và — Opening December 2026</title>
-<meta name="description" content="Cure Và — a calm, non-toxic nail and skin studio. Opening December 2026 at Legacy Village, Sugar House UT.">
+<meta name="description" content="Cure Và — a private, gender-inclusive nail and beauty lounge built around stillness. Opening December 2026 at Legacy Village, Sugar House UT.">
 
 <!-- The only external request this system makes. Guard it: a second one is
      a regression, not a feature. -->
@@ -44,17 +46,14 @@ import runtimeUrl from "../../design/version-h/js/runtime.js?url";
 
 <noscript><style>
   /* The reveals are opacity:0 until the runtime's observer adds `.in`. With
-     scripting off nothing ever does, and every page would render as an empty
-     ground — which is why this block is not optional. It restores the
-     system's own rule: what loads is what there is.
-     Costs nothing when scripts run: <noscript> is inert then. */
+     scripting off nothing ever does, and the page would render as an empty
+     ground. Costs nothing when scripts run: <noscript> is inert then. */
   [data-r]{opacity:1!important;transform:none!important;clip-path:none!important}
   #pre{display:none!important}
 </style></noscript>
 
 <style is:global>
 /* ═══ coming soon — one screen, one thing to do ═════════════════════════
-   The only page-specific CSS. Everything else is the system.
    Composed from tokens; names no colour. ═══════════════════════════════ */
 .cs{position:relative;min-height:100svh;display:grid;align-items:end;overflow:clip}
 .cs-shot{position:absolute;inset:0;z-index:0}
@@ -63,37 +62,94 @@ import runtimeUrl from "../../design/version-h/js/runtime.js?url";
    right half keeps its daylight. On a phone the copy fills the width, so
    the scrim becomes a foot to the frame instead. */
 .cs-shot::after{content:"";position:absolute;inset:0;
-  background:linear-gradient(180deg,rgba(11,20,16,.62),rgba(11,20,16,.30) 46%,rgba(11,20,16,.86))}
+  background:linear-gradient(180deg,hsl(var(--background) / .66),
+    hsl(var(--background) / .34) 46%,hsl(var(--background) / .88))}
 @media (min-width:900px){
-  .cs-shot::after{background:linear-gradient(100deg,rgba(11,20,16,.90) 14%,
-    rgba(11,20,16,.55) 52%,rgba(11,20,16,.18))}
+  .cs-shot::after{background:linear-gradient(100deg,hsl(var(--background) / .92) 14%,
+    hsl(var(--background) / .58) 52%,hsl(var(--background) / .2))}
 }
 .cs-in{position:relative;z-index:1;width:100%;max-width:var(--maxw);margin-inline:auto;
-  padding:clamp(3rem,10vh,7rem) var(--gut) clamp(2.5rem,7vh,5rem);
+  padding:clamp(3rem,10vh,6rem) var(--gut) clamp(1.4rem,3.5vh,2.2rem);
   display:grid;gap:clamp(1.6rem,3.4vw,2.6rem)}
 @media (min-width:900px){.cs-in{grid-template-columns:1.1fr .9fr;align-items:end}}
 .cs-h{font-size:clamp(2.6rem,7.4vw,6rem);letter-spacing:-.036em;line-height:.96;
   color:hsl(var(--primary));margin-top:.9rem}
 .cs-h em{font-style:italic;color:hsl(var(--accent))}
-.cs-say{margin-top:1.2rem;max-width:44ch}
-.cs-form{display:grid;gap:.85rem;padding:clamp(1.2rem,2.6vw,2rem);
-  border-radius:var(--radius-lg);background:hsl(var(--background) / .68);
+.cs-say{margin-top:1.2rem;max-width:46ch}
+
+/* ── the countdown ────────────────────────────────────────────────────
+   `.num` on every cell: tabular figures, so a changing second does not
+   jitter the row it sits in. */
+.cs-count{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1.9rem;padding:0;list-style:none}
+.cs-count li{min-width:4.4rem;padding:.7rem .8rem;border-radius:var(--radius-sm);
+  background:hsl(var(--background) / .5);
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2);text-align:center}
+@media (pointer:coarse){.cs-count li{background:hsl(var(--card))}}
+.cs-count b{display:block;font-family:Fraunces,"Iowan Old Style",Georgia,serif;
+  font-weight:300;font-variation-settings:"opsz" 144,"SOFT" 12,"WONK" 0;
+  font-size:clamp(1.5rem,3.4vw,2.1rem);line-height:1;letter-spacing:-.02em;
+  color:hsl(var(--primary))}
+.cs-count span{display:block;margin-top:.35rem;font-size:.58rem;font-weight:800;
+  letter-spacing:.2em;text-transform:uppercase;color:hsl(var(--muted-foreground))}
+
+.cs-cta{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.9rem}
+.cs-hiring{margin-top:1.1rem;font-size:.8rem;color:hsl(var(--muted-foreground));max-width:52ch}
+.cs-meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.4rem}
+
+.cs-panel{padding:clamp(1.2rem,2.6vw,2rem);border-radius:var(--radius-lg);
+  background:hsl(var(--background) / .68);
   backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
   box-shadow:inset 0 0 0 1px var(--border-hairline-2)}
-@media (pointer:coarse){.cs-form{background:hsl(var(--background));
+@media (pointer:coarse){.cs-panel{background:hsl(var(--card));
   backdrop-filter:none;-webkit-backdrop-filter:none}}
-.cs-field{display:grid;gap:.5rem}
-.cs-err{display:none}
-.cs-form.invalid .cs-err{display:block}
-.cs-consent{display:flex;gap:.65rem;align-items:flex-start;font-size:.78rem;
-  color:hsl(var(--muted-foreground));cursor:pointer}
-.cs-small{font-size:.72rem;color:hsl(var(--muted-foreground))}
-.cs-done{display:none;gap:.7rem;text-align:center;padding:1.4rem .4rem}
-.cs-form.sent .cs-field,.cs-form.sent .cs-consent,
-.cs-form.sent .cs-btns,.cs-form.sent .cs-err{display:none}
-.cs-form.sent .cs-done{display:grid}
-.cs-btns{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center;margin-top:.3rem}
-.cs-meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.4rem}
+.cs-panel h2{font-size:clamp(1.15rem,1.6vw,1.4rem);line-height:1.14}
+.cs-panel .cs-panel-say{margin-top:.6rem;font-size:.88rem;color:hsl(var(--muted-foreground))}
+.cs-panel .wl{margin-top:1.4rem}
+
+/* ── the foot: socials + credit ───────────────────────────────────────── */
+.cs-foot{position:relative;z-index:1;width:100%;max-width:var(--maxw);margin-inline:auto;
+  padding:0 var(--gut) clamp(1.4rem,3.5vh,2.2rem);display:flex;flex-wrap:wrap;
+  gap:.9rem 1.4rem;align-items:center;justify-content:space-between}
+.cs-credit{font-size:.72rem;color:hsl(var(--muted-foreground))}
+.cs-soc{display:flex;gap:.5rem;list-style:none;margin:0;padding:0}
+.cs-soc a{display:grid;place-items:center;width:34px;height:34px;border-radius:999px;
+  color:hsl(var(--muted-foreground));box-shadow:inset 0 0 0 1px var(--border-hairline);
+  transition:color .3s var(--ease),box-shadow .3s var(--ease)}
+.cs-soc a:hover{color:hsl(var(--primary));box-shadow:inset 0 0 0 1px hsl(var(--accent))}
+.cs-soc svg{width:16px;height:16px}
+
+/* ══ the first-visit dialog ═══════════════════════════════════════════
+   A real <dialog> opened with showModal(): focus containment, Escape, the
+   inert background and the top layer all come for free, and hand-rolling
+   any of them is how a modal ends up trapping a keyboard
+   (DESIGN-SYSTEM.md §7). The top layer is also why it carries
+   data-nocursor — it paints above the custom cursor, so without it the
+   visitor has no pointer at all (§6). */
+.ask::backdrop{background:hsl(var(--background) / .72);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.ask{border:0;padding:0;max-width:min(34rem,calc(100vw - 2rem));width:100%;
+  border-radius:var(--radius-lg);background:hsl(var(--popover));
+  color:hsl(var(--popover-foreground));
+  box-shadow:inset 0 0 0 1px var(--border-hairline),var(--sh-d)}
+.ask-in{padding:clamp(1.5rem,4vw,2.4rem)}
+.ask h2{font-size:clamp(1.45rem,3.2vw,2rem);margin-bottom:.6rem}
+.ask h2 em{color:hsl(var(--accent))}
+.ask-say{font-size:.9rem;color:hsl(var(--muted-foreground))}
+.ask-opts{display:grid;gap:.7rem;margin-top:1.6rem}
+@media (min-width:520px){.ask-opts{grid-template-columns:1fr 1fr}}
+.ask-opt{display:grid;gap:.35rem;align-content:start;text-align:left;text-decoration:none;
+  padding:1.05rem 1.15rem;border:0;border-radius:var(--radius-md);cursor:pointer;
+  font:inherit;color:inherit;background:hsl(var(--muted));
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2);
+  transition:box-shadow .3s var(--ease),background .3s var(--ease)}
+.ask-opt:hover{box-shadow:inset 0 0 0 1.4px hsl(var(--accent))}
+.ask-opt b{font-size:.98rem;font-weight:700;color:hsl(var(--foreground))}
+.ask-opt span{font-size:.82rem;line-height:1.5;color:hsl(var(--muted-foreground))}
+.ask-skip{margin-top:1.2rem;text-align:center}
+.ask-skip button{border:0;background:transparent;cursor:pointer;font:inherit;
+  font-size:.78rem;font-weight:700;color:hsl(var(--muted-foreground));
+  padding:.4em .6em;transition:color .3s var(--ease)}
+.ask-skip button:hover{color:hsl(var(--foreground))}
 </style>
 </head>
 <body>
@@ -130,68 +186,159 @@ import runtimeUrl from "../../design/version-h/js/runtime.js?url";
   <div class="cs-in">
     <div>
       <span class="eyebrow">Opening December 2026</span>
-      <h1 class="cs-h">Enhance what&rsquo;s already <em>beautiful.</em></h1>
-      <p class="lede cs-say">Nail and skin therapy at Legacy Village, Sugar House &mdash;
-        natural nails, clean products, and a chair you can rest in.</p>
+      <h1 class="cs-h">Something calm is <em>coming.</em></h1>
+      <p class="lede cs-say">A private, gender-inclusive nail &amp; beauty lounge built around
+        stillness &mdash; plaster, walnut, real greenery, and the signature Zero Gravity ritual.
+        We&rsquo;re building the founding team now.</p>
+
+      <ul class="cs-count" aria-label="Countdown to opening">
+        <li><b class="num" data-d>&mdash;</b><span>Days</span></li>
+        <li><b class="num" data-h>&mdash;</b><span>Hours</span></li>
+        <li><b class="num" data-m>&mdash;</b><span>Minutes</span></li>
+        <li><b class="num" data-s>&mdash;</b><span>Seconds</span></li>
+      </ul>
+
+      <p class="cs-cta">
+        <a class="btn" href="/recruit" data-mag>Join the founding team
+          <svg class="arw" width="15" height="10" viewBox="0 0 15 10" fill="none"
+            aria-hidden="true"><path d="M1 5h12M9 1l4 4-4 4" stroke="currentColor"
+            stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a class="btn btn--outline" href="#waitlist" data-mag>Join the waitlist</a>
+      </p>
+      <p class="cs-hiring">Now hiring nail artists, estheticians &amp; hosts &mdash; every role
+        open to all genders.</p>
+
       <p class="cs-meta">
-        <span class="badge badge--outline"><span class="dot" aria-hidden="true"></span>Legacy Village</span>
-        <span class="badge badge--outline">Sugar House, UT</span>
+        <span class="badge badge--outline"><span class="dot" aria-hidden="true"></span>5 Zero Gravity chairs</span>
+        <span class="badge badge--outline">A calmer kind of lounge</span>
       </p>
     </div>
 
-    <form class="cs-form" id="csForm" novalidate>
-      <div class="cs-field">
-        <label class="label" for="csMail">Email address</label>
-        <input class="input" id="csMail" type="email" name="email" autocomplete="email"
-          inputmode="email" placeholder="you@example.com" aria-describedby="csErr">
-      </div>
-      <p class="cs-err alert alert--destructive" id="csErr" role="alert">Please enter an email
-        address we can actually reach you at.</p>
-      <label class="cs-consent"><input class="checkbox" type="checkbox" id="csNews" checked>
-        <span>Yes, tell me when booking opens. Unsubscribe any time.</span></label>
-      <div class="cs-btns">
-        <button class="btn" type="submit" data-mag>Join the waitlist
-          <svg class="arw" width="15" height="10" viewBox="0 0 15 10" fill="none"
-            aria-hidden="true"><path d="M1 5h12M9 1l4 4-4 4" stroke="currentColor"
-            stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
-        <span class="cs-small">No spam. Opening news only.</span>
-      </div>
-      <div class="cs-done">
-        <h2 class="h-sm">You&rsquo;re on the list.</h2>
-        <p class="cs-small">We&rsquo;ll write once, when booking opens.</p>
-      </div>
-    </form>
+    <div class="cs-panel" id="waitlist">
+      <h2>Be first through the door.</h2>
+      <p class="cs-panel-say">Leave your email and we&rsquo;ll write once, when booking opens.</p>
+      <WaitlistForm source="coming-soon" label="Join the waitlist" />
+    </div>
+  </div>
+
+  <div class="cs-foot">
+    <span class="cs-credit">&copy; 2026 Cure Và &middot; The Gallacher Collective</span>
+    <ul class="cs-soc">
+      <li><a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a></li>
+      <li><a href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 3c.3 2.2 1.7 3.9 4 4.2v3c-1.5 0-2.9-.4-4-1.1V15a6 6 0 1 1-6-6c.3 0 .7 0 1 .1v3.1a3 3 0 1 0 2 2.8V3h3Z"/></svg></a></li>
+      <li><a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 8h2V5h-2c-1.7 0-3 1.3-3 3v2H9v3h2v6h3v-6h2.2l.8-3H14V8.5c0-.3.2-.5.5-.5H14Z"/></svg></a></li>
+    </ul>
   </div>
 </header>
 </main>
 
-<script src={runtimeUrl} is:inline></script>
-<script is:inline>
-/* ── the form ──────────────────────────────────────────────────────────
-   FRONT-END ONLY. It validates and it says thank you; it sends nothing
-   anywhere. Wire it to a real endpoint before this page is public.
+<!-- ══ first visit: which door? ═══════════════════════════════════════ -->
+<dialog class="ask" id="ask" data-nocursor aria-labelledby="askH">
+  <div class="ask-in">
+    <h2 id="askH">What brings you to <em>Cure Và?</em></h2>
+    <p class="ask-say">We&rsquo;re opening in December, and there are two ways in. Pick either
+      &mdash; you can always see both.</p>
 
-   The invalid state goes on the CONTROL (aria-invalid), not only on a
-   class on the form — so the field announces itself rather than only
-   looking wrong. */
-(function(){
-  var form = document.getElementById('csForm');
-  if (!form) return;
-  var mail = document.getElementById('csMail');
-  form.addEventListener('submit', function(e){
+    <div class="ask-opts">
+      <button class="ask-opt" type="button" data-go="waitlist">
+        <b>I&rsquo;m booking a visit</b>
+        <span>Join the waiting list for priority booking when we open.</span>
+      </button>
+      <a class="ask-opt" href="/recruit" data-go="careers">
+        <b>I&rsquo;m looking for a role</b>
+        <span>See the open roles and apply to the founding team.</span>
+      </a>
+    </div>
+
+    <p class="ask-skip"><button type="button" data-go="close">Just looking, thanks</button></p>
+  </div>
+</dialog>
+
+<script src={runtimeUrl} is:inline></script>
+<CursorGround />
+<script is:inline>
+/* ── the countdown ───────────────────────────────────────────────────── */
+(function () {
+  var target = new Date('2026-12-01T09:00:00').getTime();
+  var elD = document.querySelector('[data-d]'), elH = document.querySelector('[data-h]'),
+      elM = document.querySelector('[data-m]'), elS = document.querySelector('[data-s]');
+  if (!elD) return;
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function tick() {
+    var diff = target - Date.now();
+    if (diff < 0) diff = 0;
+    elD.textContent = Math.floor(diff / 86400000);
+    elH.textContent = pad(Math.floor(diff % 86400000 / 3600000));
+    elM.textContent = pad(Math.floor(diff % 3600000 / 60000));
+    elS.textContent = pad(Math.floor(diff % 60000 / 1000));
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+
+/* ── first visit: which door? ─────────────────────────────────────────
+   Shown ONCE. The answer lives in localStorage, which is per-browser and
+   throws outright in some privacy modes — so every read and write is
+   guarded, and the page is correct when it returns nothing.
+
+   It waits for the preloader to leave (two curtains at once is one too
+   many) and never opens for a visitor who arrived with a hash, because
+   they have already said where they were going. */
+(function () {
+  var dlg = document.getElementById('ask');
+  if (!dlg || typeof dlg.showModal !== 'function') return;
+
+  var KEY = 'cureva:visitor';
+  function remembered() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
+  function remember(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+
+  if (remembered() || location.hash) return;
+
+  function open() {
+    if (dlg.open) return;
+    dlg.showModal();
+    document.body.classList.add('lock');
+  }
+
+  /* Release the lock on the dialog's own `close` EVENT, never inside a
+     button handler — Escape closes natively and never reaches a button, so
+     the lock would leak and the page would stay unscrollable. */
+  dlg.addEventListener('close', function () {
+    document.body.classList.remove('lock');
+    if (!remembered()) remember('skipped');
+  });
+
+  dlg.addEventListener('click', function (e) {
+    /* a click that lands on the <dialog> itself is a click on the backdrop */
+    if (e.target === dlg) { dlg.close(); return; }
+
+    var el = e.target.closest('[data-go]');
+    if (!el) return;
+    var go = el.getAttribute('data-go');
+    if (go === 'careers') { remember('careers'); return; }   // let the anchor navigate
+
     e.preventDefault();
-    var ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail.value.trim());
-    form.classList.toggle('invalid', !ok);
-    mail.setAttribute('aria-invalid', ok ? 'false' : 'true');
-    if (!ok){ mail.focus(); return; }
-    form.classList.add('sent');
-    var h = form.querySelector('.cs-done h2');
-    if (h){ h.setAttribute('tabindex','-1'); h.focus({preventScroll:true}); }
+    remember(go === 'close' ? 'skipped' : 'guest');
+    dlg.close();
+
+    if (go === 'waitlist') {
+      var panel = document.getElementById('waitlist');
+      if (!panel) return;
+      panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var field = panel.querySelector('input[type=email]');
+      if (field) setTimeout(function () { field.focus({ preventScroll: true }); }, 500);
+    }
   });
-  mail.addEventListener('input', function(){
-    form.classList.remove('invalid');
-    mail.setAttribute('aria-invalid','false');
-  });
+
+  /* The preloader removes itself from the DOM; wait for that rather than
+     racing it, with a ceiling so a failed script cannot suppress this. */
+  if (!document.getElementById('pre')) { open(); return; }
+  var watch = setInterval(function () {
+    if (document.getElementById('pre')) return;
+    clearInterval(watch);
+    open();
+  }, 150);
+  setTimeout(function () { clearInterval(watch); open(); }, 4000);
 })();
 </script>
 </body>

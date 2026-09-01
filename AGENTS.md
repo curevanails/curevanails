@@ -38,7 +38,7 @@ After a change, verify end-to-end before committing:
 
 1. `pnpm build` succeeds (the Cloudflare adapter compiles the Worker).
 2. `pnpm typecheck` passes.
-3. `/` 302s to `/coming-soon`, which renders the version-H holding page. **`/coming-soon` must stay pixel-identical to the standalone build** — run `node design/version-h/build/parity.js` (needs `pnpm preview` and the design-system build; see "Design system" below).
+3. `/` 302s to `/coming-soon`, which renders the version-H holding page with the countdown, the waiting-list form and the first-visit dialog. **Run `pnpm test:e2e`** — `e2e/design.spec.ts` is the display gate (47 checks: template leaks, cursor contrast on both grounds, the accordion at four widths, the month picker, the theme's raised/recessed pair, and every page with JavaScript off).
 4. Booking CTAs on `/early-access` (**Book now**, **Book your visit**) open the Mangomint popup; they fall back to `https://booking.mangomint.com/463532` if the widget script hasn't loaded. Booking must be enabled in the Mangomint account for the popup to appear.
 5. Blog routes respond: `/posts`, a single post, `/search`, `/rss.xml`.
 6. `/_emdash/admin` loads.
@@ -233,11 +233,17 @@ Shared pieces: [`src/components/vh/RoleAccordion.astro`](src/components/vh/RoleA
 ```bash
 python3 design/version-h/build/build-page.py html/coming-soon.html design/version-h/dist/soon/
 node design/version-h/build/smoke.js      # the standalone templates
-node design/version-h/build/parity.js     # /coming-soon vs that build, pixel for pixel
+pnpm test:e2e                             # e2e/design.spec.ts — the display gate
 ```
 
-`parity.js` needs `pnpm preview` running (`ASTRO_URL` overrides the default
-`localhost:4321`). It fails on any pixel difference.
+`e2e/design.spec.ts` is where a visual regression gets caught; every check
+in it exists because that bug actually shipped once.
+
+`design/version-h/build/parity.js` compares an Astro route against the
+standalone build pixel for pixel. It has **no pairs configured right now** —
+`/coming-soon` was the one locked page until its content was deliberately
+changed. Re-add a pair the moment a page is built from an `html/` template
+again.
 
 ## Schema
 

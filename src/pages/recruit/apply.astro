@@ -109,8 +109,51 @@ import RoleAccordion from "../../components/vh/RoleAccordion.astro";
         <div class="fld" style="margin-top:22px;max-width:calc(50% - 10px);">
           <label for="graduation_date">Expected Graduation Date <span class="hint">(if applicable)</span></label>
           <div class="date-wrap">
-            <input class="inp js-month" id="graduation_date" name="graduation_date" placeholder="Month / Year" />
-            <svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+            <input class="inp js-month" id="graduation_date" name="graduation_date"
+              type="text" placeholder="Month / Year" autocomplete="off"
+              aria-describedby="gradHelp" />
+            <button class="date-btn js-monthbtn" type="button" hidden
+              popovertarget="gradPop" aria-label="Choose month and year">
+              <svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+            </button>
+          </div>
+          <p class="hint-note" id="gradHelp">Type <span class="num">MM/YYYY</span>, or pick a month.</p>
+
+          <!-- ══ month picker ═══════════════════════════════════════════
+               shadcn's Popover + Calendar, at this brand's measurements —
+               the same trade the whole system makes (DESIGN-SYSTEM.md §1):
+               take the structure and the token contract, keep Cure Và's
+               shape language. Cells are pills at 999px like every other
+               control here, not shadcn's stock rounded squares.
+
+               `popover` puts it in the TOP LAYER, which is the only way out
+               of `.app-shell{overflow:hidden}` and `.sec{overflow:clip}`.
+               The top layer also paints above the custom cursor, so it
+               carries `data-nocursor` — the exact case DESIGN-SYSTEM.md §6
+               documents for <dialog>. Without it the visitor has no
+               pointer over the panel. ═══════════════════════════════════ -->
+          <div class="mpick" id="gradPop" popover data-nocursor
+            role="dialog" aria-label="Choose a graduation month">
+            <div class="mpick-head">
+              <button class="mpick-nav" type="button" data-step="-1" aria-label="Previous year">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <span class="mpick-y num js-mpick-y" aria-live="polite"></span>
+              <button class="mpick-nav" type="button" data-step="1" aria-label="Next year">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+            <div class="mpick-grid js-mpick-grid">
+              {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m, i) => (
+                <button class="mpick-m" type="button" data-m={i + 1}>{m}</button>
+              ))}
+            </div>
+            <div class="mpick-foot">
+              <button class="mpick-act" type="button" data-act="clear">Clear</button>
+              <button class="mpick-act mpick-act--go" type="button" data-act="now">This month</button>
+            </div>
           </div>
         </div>
 
@@ -272,33 +315,72 @@ textarea.inp{resize:vertical;min-height:5.5em}
    the control, so aria-invalid rides along on the same declaration */
 .inp.err,.inp[aria-invalid=true]{border-color:hsl(var(--destructive))}
 /* ── the graduation month ─────────────────────────────────────────────
-   `<input type="month">` draws its own editor and its own drop-down, and
-   neither is stylable: on this night card Chrome was painting the empty
-   "-----  --" segments and the selected month in the SYSTEM blue, over a
-   light-grey panel. Two properties fix both, and they are the two the
-   platform actually exposes:
-     · color-scheme  — makes the browser render the picker panel, the
-       scrollbar and the segment text in dark rather than light
-     · accent-color  — recolours the selected segment and the selected
-       month from system blue to the brand's sage
-   The native indicator is hidden because the field already has the SVG
-   calendar mark, and the script opens the picker on focus. */
-.date-wrap{position:relative}
-.date-wrap .cal{position:absolute;right:0;top:50%;width:17px;height:17px;
-  transform:translateY(-50%);pointer-events:none;
-  color:hsl(var(--muted-foreground));transition:color .35s var(--ease)}
-.date-wrap:focus-within .cal{color:hsl(var(--accent))}
-.js-month{color-scheme:dark;accent-color:hsl(var(--accent));padding-right:1.9rem}
-.on-light .js-month{color-scheme:light}
-.js-month::-webkit-calendar-picker-indicator{display:none}
-.js-month::-webkit-datetime-edit{color:hsl(var(--foreground))}
-.js-month::-webkit-datetime-edit-fields-wrapper{padding:0}
-.js-month::-webkit-datetime-edit-text{padding:0 .18em;
-  color:hsl(var(--muted-foreground))}
-/* an empty month/year segment should read as a placeholder, not as content */
-.js-month:not(:focus)::-webkit-datetime-edit-month-field,
-.js-month:not(:focus)::-webkit-datetime-edit-year-field{
-  color:hsl(var(--muted-foreground) / .75)}
+   The native <input type="month"> is gone. It draws its own editor AND its
+   own drop-down, and neither is stylable: `accent-color` recolours the
+   segment highlight but never reaches the panel, so the picker stayed
+   system-blue on a light-grey sheet no matter what we set. The field is a
+   plain text input now — which also means it works with JavaScript off and
+   with the keyboard alone — and the calendar is ours. */
+.date-wrap{position:relative;display:flex;align-items:center}
+.date-wrap .inp{padding-right:2.4rem}
+.date-btn{position:absolute;right:0;top:50%;translate:0 -50%;
+  display:grid;place-items:center;width:32px;height:32px;flex:none;
+  border:0;border-radius:999px;background:transparent;cursor:pointer;
+  color:hsl(var(--muted-foreground));
+  transition:color .25s var(--ease),background .25s var(--ease)}
+.date-btn:hover{color:hsl(var(--accent));background:hsl(var(--muted))}
+.date-btn .cal{width:17px;height:17px}
+.hint-note{margin-top:.45rem;font-size:.72rem;color:hsl(var(--muted-foreground))}
+
+/* ── the picker itself — shadcn Popover + Calendar, Cure Và's clothes ──
+   Motion is deliberately one short opacity+scale. A panel a visitor has to
+   READ should not arrive on a spring. */
+.mpick{position:fixed;margin:0;inset:auto;padding:.8rem;border:0;
+  width:min(19rem,calc(100vw - 2rem));
+  border-radius:var(--radius-md);
+  background:hsl(var(--popover));color:hsl(var(--popover-foreground));
+  box-shadow:inset 0 0 0 1px var(--border-hairline),var(--sh-d);
+  opacity:0;scale:.98;
+  transition:opacity .16s var(--ease),scale .16s var(--ease),
+    overlay .16s allow-discrete,display .16s allow-discrete}
+.mpick:popover-open{opacity:1;scale:1}
+@starting-style{.mpick:popover-open{opacity:0;scale:.98}}
+.mpick::backdrop{background:transparent}
+.on-light .mpick{box-shadow:inset 0 0 0 1px var(--border-hairline),var(--sh)}
+@media (prefers-reduced-motion:reduce){.mpick{transition:none;scale:1}}
+
+.mpick-head{display:flex;align-items:center;justify-content:space-between;
+  gap:.5rem;margin-bottom:.7rem}
+.mpick-y{font-size:.92rem;font-weight:800;letter-spacing:.04em}
+.mpick-nav{display:grid;place-items:center;width:28px;height:28px;flex:none;
+  border:0;border-radius:999px;background:transparent;cursor:pointer;
+  color:hsl(var(--muted-foreground));
+  transition:color .25s var(--ease),background .25s var(--ease)}
+.mpick-nav:hover{color:hsl(var(--foreground));background:hsl(var(--muted))}
+.mpick-nav svg{width:15px;height:15px}
+
+.mpick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.3rem}
+.mpick-m{padding:.68em .2em;border:0;border-radius:999px;background:transparent;
+  cursor:pointer;font:inherit;font-size:.8rem;font-weight:600;
+  color:hsl(var(--muted-foreground));
+  transition:color .2s var(--ease),background .2s var(--ease),
+    box-shadow .2s var(--ease)}
+.mpick-m:hover{background:hsl(var(--muted));color:hsl(var(--foreground))}
+/* the month we are in — a ring, not a fill, so it never competes with the
+   selection */
+.mpick-m[data-now]{box-shadow:inset 0 0 0 1px hsl(var(--accent));
+  color:hsl(var(--foreground))}
+.mpick-m[aria-pressed=true]{background:hsl(var(--primary));
+  color:hsl(var(--primary-foreground))}
+
+.mpick-foot{display:flex;align-items:center;justify-content:space-between;
+  gap:.5rem;margin-top:.8rem;padding-top:.7rem;
+  border-top:1px solid var(--border-hairline-2)}
+.mpick-act{border:0;background:transparent;cursor:pointer;font:inherit;
+  font-size:.74rem;font-weight:700;letter-spacing:.02em;padding:.4em .2em;
+  color:hsl(var(--muted-foreground));transition:color .25s var(--ease)}
+.mpick-act:hover{color:hsl(var(--foreground))}
+.mpick-act--go{color:hsl(var(--accent))}
 
 /* option pills — a checkbox or radio wearing the Badge's shape */
 .opts,.inline-opts{display:flex;flex-wrap:wrap;gap:.55rem}
@@ -381,19 +463,122 @@ textarea.inp{resize:vertical;min-height:5.5em}
     var resume = document.querySelector('.js-resume');
     var dropFile = document.querySelector('.js-dropfile');
 
-    /* ---- graduation field: text → month on focus so the placeholder shows.
-       Browsers without <input type="month"> keep the text input; the endpoint
-       also accepts an "MM/YYYY" string. ---- */
-    document.querySelectorAll('.js-month').forEach(function (inp) {
-      inp.addEventListener('focus', function () {
-        var probe = document.createElement('input');
-        probe.setAttribute('type', 'month');
-        if (probe.type !== 'month') return; // unsupported → stay a text field
-        inp.type = 'month';
-        if (inp.showPicker) { try { inp.showPicker(); } catch (e) {} }
+    /* ---- the month picker -------------------------------------------
+       The field itself is a plain text input and stays authoritative: it
+       holds the value, it is what the endpoint reads, and typing MM/YYYY
+       into it is a complete way to fill this form. The panel only ever
+       WRITES to it, then fires input+change so the form's own
+       error-clearing listeners run exactly as they do for typing.
+
+       PROGRESSIVE: the trigger ships `hidden` and is only revealed when the
+       browser has the Popover API. No JavaScript, or an older browser, and
+       the visitor gets the text field — which still works. ---------- */
+    (function () {
+      var input = document.getElementById('graduation_date');
+      var pop = document.getElementById('gradPop');
+      var btn = document.querySelector('.js-monthbtn');
+      if (!input || !pop || !btn) return;
+      if (!('popover' in HTMLElement.prototype)) return;   // stays a text field
+      btn.hidden = false;
+
+      var grid = pop.querySelector('.js-mpick-grid');
+      var yEl = pop.querySelector('.js-mpick-y');
+      var cells = Array.prototype.slice.call(pop.querySelectorAll('.mpick-m'));
+      var today = new Date();
+      var year = today.getFullYear();
+
+      /* Read whichever of the two accepted shapes is in the field. */
+      function parse() {
+        var v = (input.value || '').trim();
+        var m = v.match(/^(\d{4})-(\d{2})$/);
+        if (m) return { y: +m[1], m: +m[2] };
+        m = v.match(/^(\d{1,2})\s*\/\s*(\d{4})$/);
+        if (m) return { y: +m[2], m: +m[1] };
+        return null;
+      }
+
+      /* MM/YYYY — the shape the field shows a human. The endpoint
+         normalises it to YYYY-MM, and accepts either. */
+      function write(y, m) {
+        input.value = (m < 10 ? '0' + m : '' + m) + '/' + y;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      function render() {
+        var sel = parse();
+        yEl.textContent = year;
+        cells.forEach(function (c) {
+          var m = +c.getAttribute('data-m');
+          c.setAttribute('aria-pressed', sel && sel.y === year && sel.m === m ? 'true' : 'false');
+          if (year === today.getFullYear() && m === today.getMonth() + 1) c.setAttribute('data-now', '');
+          else c.removeAttribute('data-now');
+        });
+      }
+
+      /* Anchored to the trigger, measured ONCE per open — never per frame.
+         Clamped so it cannot leave the viewport on a small screen. */
+      function place() {
+        var r = btn.getBoundingClientRect();
+        var w = pop.offsetWidth, h = pop.offsetHeight;
+        var left = Math.min(Math.max(8, r.right - w), innerWidth - w - 8);
+        var top = r.bottom + 8;
+        if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 8);
+        pop.style.left = left + 'px';
+        pop.style.top = top + 'px';
+      }
+
+      pop.addEventListener('beforetoggle', function (e) {
+        if (e.newState !== 'open') return;
+        var sel = parse();
+        year = sel ? sel.y : today.getFullYear();
+        render();
+        /* width is needed to place it, so make it measurable first */
+        requestAnimationFrame(place);
       });
-      inp.addEventListener('blur', function () { if (!inp.value) inp.type = 'text'; });
-    });
+      pop.addEventListener('toggle', function (e) {
+        if (e.newState !== 'open') return;
+        var on = pop.querySelector('[aria-pressed=true]') || pop.querySelector('[data-now]') || cells[0];
+        if (on) on.focus();
+      });
+
+      pop.addEventListener('click', function (e) {
+        var nav = e.target.closest('.mpick-nav');
+        if (nav) { year += +nav.getAttribute('data-step'); render(); return; }
+
+        var cell = e.target.closest('.mpick-m');
+        if (cell) { write(year, +cell.getAttribute('data-m')); pop.hidePopover(); btn.focus(); return; }
+
+        var act = e.target.closest('.mpick-act');
+        if (!act) return;
+        if (act.getAttribute('data-act') === 'clear') {
+          input.value = '';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+          write(today.getFullYear(), today.getMonth() + 1);
+        }
+        pop.hidePopover();
+        btn.focus();
+      });
+
+      /* A grid is one tab stop; the arrows move inside it. */
+      pop.addEventListener('keydown', function (e) {
+        var i = cells.indexOf(document.activeElement);
+        if (i < 0) return;
+        var step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 3, ArrowUp: -3 }[e.key];
+        if (step) {
+          var n = i + step;
+          if (n < 0) { year--; render(); n += 12; }
+          else if (n > 11) { year++; render(); n -= 12; }
+          e.preventDefault();
+          cells[n].focus();
+        } else if (e.key === 'Home') { e.preventDefault(); cells[0].focus(); }
+        else if (e.key === 'End') { e.preventDefault(); cells[11].focus(); }
+      });
+
+      addEventListener('resize', function () { if (pop.matches(':popover-open')) place(); });
+    })();
 
     /* ---- resume dropzone (optional) ---- */
     function showResume(file) {
