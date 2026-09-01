@@ -125,6 +125,11 @@ import CursorGround from "../components/vh/CursorGround.astro";
    (DESIGN-SYSTEM.md §7). The top layer is also why it carries
    data-nocursor — it paints above the custom cursor, so without it the
    visitor has no pointer at all (§6). */
+/* The scroll lock is OURS, on <html>, not the system's `body.lock`: the
+   runtime's preloader clears `body.lock` when it finishes, which would
+   unlock the page underneath an open dialog about a second after it
+   opened. */
+html.ask-open{overflow:hidden}
 .ask::backdrop{background:hsl(var(--background) / .72);
   backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .ask{border:0;padding:0;max-width:min(34rem,calc(100vw - 2rem));width:100%;
@@ -308,10 +313,24 @@ import CursorGround from "../components/vh/CursorGround.astro";
 
   if (remembered() || location.hash) return;
 
+  /* ── OPEN AT ONCE ─────────────────────────────────────────────────
+     This script sits at the end of <body>, which is the first moment
+     #ask exists — so the question is up before the hero photograph has
+     finished decoding, never mind before the preloader would have lifted.
+
+     THE PRELOADER GOES WITH IT, on this visit only. It is a curtain, and
+     a modal over a curtain is two curtains: the visitor would watch a
+     brand animation through a blurred backdrop for no reason. A second
+     page view in the same session shows no dialog and keeps the normal
+     preloader. */
+  var pre = document.getElementById('pre');
+  if (pre && pre.parentNode) pre.parentNode.removeChild(pre);
+  document.body.classList.remove('lock');
+
   function open() {
     if (dlg.open) return;
     dlg.showModal();
-    document.body.classList.add('lock');
+    document.documentElement.classList.add('ask-open');
   }
 
   /* ── THIS DIALOG IS A REQUIRED CHOICE ──────────────────────────────
@@ -333,7 +352,7 @@ import CursorGround from "../components/vh/CursorGround.astro";
      button handler — the dialog can close by routes a button never sees,
      and the lock would leak and leave the page unscrollable. */
   dlg.addEventListener('close', function () {
-    document.body.classList.remove('lock');
+    document.documentElement.classList.remove('ask-open');
   });
 
   dlg.addEventListener('click', function (e) {
@@ -357,15 +376,7 @@ import CursorGround from "../components/vh/CursorGround.astro";
     }
   });
 
-  /* The preloader removes itself from the DOM; wait for that rather than
-     racing it, with a ceiling so a failed script cannot suppress this. */
-  if (!document.getElementById('pre')) { open(); return; }
-  var watch = setInterval(function () {
-    if (document.getElementById('pre')) return;
-    clearInterval(watch);
-    open();
-  }, 150);
-  setTimeout(function () { clearInterval(watch); open(); }, 4000);
+  open();
 })();
 </script>
 </body>

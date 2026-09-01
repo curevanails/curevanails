@@ -473,7 +473,7 @@ test.describe("coming-soon", () => {
 				isDialog: d.tagName === "DIALOG",
 				modal: d.matches(":modal"),
 				nocursor: d.hasAttribute("data-nocursor"),
-				locked: document.body.classList.contains("lock"),
+				locked: document.documentElement.classList.contains("ask-open"),
 			};
 		});
 		expect(shape.isDialog).toBe(true);
@@ -486,13 +486,43 @@ test.describe("coming-soon", () => {
 
 		// the lock must be released on the dialog's own close event
 		await expect
-			.poll(() => page.evaluate(() => document.body.classList.contains("lock")))
+			.poll(() => page.evaluate(() => document.documentElement.classList.contains("ask-open")))
 			.toBe(false);
 
 		// same tab again: sessionStorage survives a navigation
 		await page.goto("/coming-soon", { waitUntil: "load" });
 		await settle(page);
 		await expect(dialog, "it asked again in the same session").toBeHidden();
+	});
+
+	test("it opens immediately, not after the page has loaded", async ({ page }) => {
+		// The ask was "as soon as I arrive", not "once the page settles". The
+		// dialog script sits at the end of <body>, so the question is up before
+		// the load event — and well before the preloader would have lifted at
+		// 2.4s. Measured from the moment navigation commits.
+		const started = Date.now();
+		await page.goto("/coming-soon", { waitUntil: "commit" });
+		await page.locator("#ask").waitFor({ state: "visible", timeout: 3000 });
+		const elapsed = Date.now() - started;
+		expect(elapsed, `the dialog took ${elapsed}ms to appear`).toBeLessThan(2400);
+
+		// and it must not be waiting behind a curtain: on the visit that shows
+		// the dialog the preloader stands down, so there is only ever one
+		const curtain = await page.evaluate(() => !!document.getElementById("pre"));
+		expect(curtain, "a modal over the preloader is two curtains").toBe(false);
+	});
+
+	test("a visit that shows no dialog keeps the normal preloader", async ({ page }) => {
+		// answer the question first, so the second view is a returning one
+		await page.goto("/coming-soon", { waitUntil: "load" });
+		await page.locator('.ask-opt[data-go="waitlist"]').click();
+
+		await page.goto("/coming-soon", { waitUntil: "commit" });
+		const hadCurtain = await page
+			.waitForFunction(() => !!document.getElementById("pre"), null, { timeout: 2000 })
+			.then(() => true)
+			.catch(() => false);
+		expect(hadCurtain, "the preloader should be untouched when no dialog opens").toBe(true);
 	});
 
 	test("it asks again in a new session, but not in the same one", async ({ page }) => {

@@ -31,6 +31,19 @@ export default defineConfig({
 	},
 	projects: [
 		{ name: "chromium", use: { ...devices["Desktop Chrome"] } },
+		// The display suite also runs in WebKit. It is the engine most of this
+		// site's visitors are on (Safari, and every browser on iOS), and it is
+		// where a Chromium-only suite misses a layout break — `overflow:clip`,
+		// `100svh`/`100dvh`, `:has()`, `@starting-style` and the Popover API all
+		// behave differently or not at all across engines, and this design leans
+		// on every one of them. Scoped to design.spec.ts on purpose: the recruit
+		// suite posts real rows to D1, and running it twice doubles the writes
+		// for no extra coverage of the thing being tested.
+		{
+			name: "webkit-design",
+			use: { ...devices["Desktop Safari"] },
+			testMatch: /design\.spec\.ts/,
+		},
 	],
 	webServer: {
 		// `reuseExistingServer` (local only) lets you point at an already-running
