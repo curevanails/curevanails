@@ -283,9 +283,17 @@ import CursorGround from "../components/vh/CursorGround.astro";
 })();
 
 /* ── first visit: which door? ─────────────────────────────────────────
-   Shown ONCE. The answer lives in localStorage, which is per-browser and
-   throws outright in some privacy modes — so every read and write is
-   guarded, and the page is correct when it returns nothing.
+   Shown ONCE PER SESSION. The answer lives in sessionStorage, not
+   localStorage: it is scoped to this tab and it dies with it, so a visitor
+   who comes back tomorrow — or opens the site in a second tab — is asked
+   again. That is the deliberate difference from `localStorage`, which
+   would have answered for them on every visit from this browser, forever,
+   including after the studio opens and the question stops making sense.
+
+   Both APIs throw outright in some privacy modes rather than returning
+   null, so every read and write is guarded and the page is correct when it
+   returns nothing — the cost of that is the dialog showing again, which is
+   the safe direction to fail in.
 
    It waits for the preloader to leave (two curtains at once is one too
    many) and never opens for a visitor who arrived with a hash, because
@@ -295,8 +303,8 @@ import CursorGround from "../components/vh/CursorGround.astro";
   if (!dlg || typeof dlg.showModal !== 'function') return;
 
   var KEY = 'cureva:visitor';
-  function remembered() { try { return localStorage.getItem(KEY); } catch (e) { return null; } }
-  function remember(v) { try { localStorage.setItem(KEY, v); } catch (e) {} }
+  function remembered() { try { return sessionStorage.getItem(KEY); } catch (e) { return null; } }
+  function remember(v) { try { sessionStorage.setItem(KEY, v); } catch (e) {} }
 
   if (remembered() || location.hash) return;
 

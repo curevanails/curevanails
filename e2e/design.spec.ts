@@ -489,10 +489,49 @@ test.describe("coming-soon", () => {
 			.poll(() => page.evaluate(() => document.body.classList.contains("lock")))
 			.toBe(false);
 
-		// second visit: same browser context, so localStorage persists
+		// same tab again: sessionStorage survives a navigation
 		await page.goto("/coming-soon", { waitUntil: "load" });
 		await settle(page);
-		await expect(dialog).toBeHidden();
+		await expect(dialog, "it asked again in the same session").toBeHidden();
+	});
+
+	test("it asks again in a new session, but not in the same one", async ({ page }) => {
+		// This is the assertion that tells sessionStorage from localStorage.
+		// With localStorage the second context below would stay silent, and the
+		// question would be answered for the visitor on every future visit from
+		// this browser — including after the studio opens.
+		await page.goto("/coming-soon", { waitUntil: "load" });
+		await expect(page.locator("#ask")).toBeVisible({ timeout: 10000 });
+		await page.locator('.ask-opt[data-go="waitlist"]').click();
+		await expect(page.locator("#ask")).toBeHidden();
+
+		// a second tab in the SAME context is a separate sessionStorage
+		const sameBrowserNewTab = await page.context().newPage();
+		await sameBrowserNewTab.goto("/coming-soon", { waitUntil: "load" });
+		await expect(
+			sameBrowserNewTab.locator("#ask"),
+			"a new tab should be a new session",
+		).toBeVisible({ timeout: 10000 });
+		await sameBrowserNewTab.close();
+
+		// and the original tab still remembers
+		await page.goto("/coming-soon", { waitUntil: "load" });
+		await settle(page);
+		await expect(page.locator("#ask")).toBeHidden();
+	});
+
+	test("the answer is kept in sessionStorage, not localStorage", async ({ page }) => {
+		await page.goto("/coming-soon", { waitUntil: "load" });
+		await expect(page.locator("#ask")).toBeVisible({ timeout: 10000 });
+		await page.locator('.ask-opt[data-go="waitlist"]').click();
+		await expect(page.locator("#ask")).toBeHidden();
+
+		const stored = await page.evaluate(() => ({
+			session: sessionStorage.getItem("cureva:visitor"),
+			local: localStorage.getItem("cureva:visitor"),
+		}));
+		expect(stored.session).toBe("guest");
+		expect(stored.local, "the answer must not outlive the session").toBeNull();
 	});
 
 	test("it is a required choice — Escape and the backdrop do not dismiss it", async ({
