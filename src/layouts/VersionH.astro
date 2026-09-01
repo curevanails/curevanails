@@ -23,6 +23,7 @@
  */
 import "../styles/version-h.css";
 import runtimeUrl from "../../design/version-h/js/runtime.js?url";
+import CursorGround from "../components/vh/CursorGround.astro";
 
 interface Props {
 	title: string;
@@ -213,6 +214,7 @@ const NAV = [
 )}
 
 <script src={runtimeUrl} is:inline></script>
+<CursorGround />
 <slot name="body-end" />
 </body>
 </html>

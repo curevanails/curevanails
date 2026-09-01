@@ -48,7 +48,7 @@ import RoleAccordion from "../../components/vh/RoleAccordion.astro";
 </section>
 
 <!-- ══ the application ═══════════════════════════════════════════════ -->
-<section class="sec" aria-labelledby="formH">
+<section class="sec on-light" aria-labelledby="formH">
   <div class="wrap ap-wrap">
 
 <div class="app-shell" id="form">
@@ -217,11 +217,19 @@ import RoleAccordion from "../../components/vh/RoleAccordion.astro";
    the validation script and the endpoint contract are written against.
    ═══════════════════════════════════════════════════════════════════════ */
 .ap-wrap{max-width:64rem}
+/* the form section sits directly under the roles section, and both are paper.
+   Recess this one a step so the two still read as two. */
+#form{position:relative}
+.sec.on-light:has(>.ap-wrap>#form){background:hsl(var(--muted))}
 
 /* the shell — a Card, with the elevation this usage wants */
+/* On paper `--card` is WHITE and `--muted` is paper-2 — raised and recessed
+   (DESIGN-SYSTEM.md §5). The card therefore lifts off the section instead of
+   sinking into it, and it takes the paper shadow rather than the night one:
+   --sh-d is a 50px-blurred black, which on a light ground reads as dirt. */
 .app-shell{border-radius:var(--radius-lg);background:hsl(var(--card));
   color:hsl(var(--card-foreground));overflow:hidden;
-  box-shadow:inset 0 0 0 1px var(--border-hairline-2),var(--sh-d)}
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2),var(--sh)}
 .app-head{padding:clamp(1.8rem,4vw,2.6rem) clamp(1.4rem,3.4vw,2.9rem);
   border-bottom:1px solid var(--border-hairline)}
 .app-head .back{display:inline-flex;align-items:center;gap:.5rem;font-size:.78rem;
@@ -263,9 +271,34 @@ textarea.inp{resize:vertical;min-height:5.5em}
 /* the script writes .err; the system's rule is that the state also reaches
    the control, so aria-invalid rides along on the same declaration */
 .inp.err,.inp[aria-invalid=true]{border-color:hsl(var(--destructive))}
+/* ── the graduation month ─────────────────────────────────────────────
+   `<input type="month">` draws its own editor and its own drop-down, and
+   neither is stylable: on this night card Chrome was painting the empty
+   "-----  --" segments and the selected month in the SYSTEM blue, over a
+   light-grey panel. Two properties fix both, and they are the two the
+   platform actually exposes:
+     · color-scheme  — makes the browser render the picker panel, the
+       scrollbar and the segment text in dark rather than light
+     · accent-color  — recolours the selected segment and the selected
+       month from system blue to the brand's sage
+   The native indicator is hidden because the field already has the SVG
+   calendar mark, and the script opens the picker on focus. */
 .date-wrap{position:relative}
 .date-wrap .cal{position:absolute;right:0;top:50%;width:17px;height:17px;
-  transform:translateY(-50%);pointer-events:none;color:hsl(var(--muted-foreground))}
+  transform:translateY(-50%);pointer-events:none;
+  color:hsl(var(--muted-foreground));transition:color .35s var(--ease)}
+.date-wrap:focus-within .cal{color:hsl(var(--accent))}
+.js-month{color-scheme:dark;accent-color:hsl(var(--accent));padding-right:1.9rem}
+.on-light .js-month{color-scheme:light}
+.js-month::-webkit-calendar-picker-indicator{display:none}
+.js-month::-webkit-datetime-edit{color:hsl(var(--foreground))}
+.js-month::-webkit-datetime-edit-fields-wrapper{padding:0}
+.js-month::-webkit-datetime-edit-text{padding:0 .18em;
+  color:hsl(var(--muted-foreground))}
+/* an empty month/year segment should read as a placeholder, not as content */
+.js-month:not(:focus)::-webkit-datetime-edit-month-field,
+.js-month:not(:focus)::-webkit-datetime-edit-year-field{
+  color:hsl(var(--muted-foreground) / .75)}
 
 /* option pills — a checkbox or radio wearing the Badge's shape */
 .opts,.inline-opts{display:flex;flex-wrap:wrap;gap:.55rem}

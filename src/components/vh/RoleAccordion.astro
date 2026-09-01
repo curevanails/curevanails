@@ -84,18 +84,27 @@ const { applyHref = "/recruit/apply" } = Astro.props;
 <style is:global>
 /* Composed from tokens; names no colour, so it works on either ground. */
 .rc-roles{display:grid;gap:.1rem;margin-top:.5rem}
-.rc-role{border-top:1px solid var(--border-hairline);position:relative}
+.rc-role{position:relative;border-top:1px solid var(--border-hairline);
+  transition:padding-inline .5s var(--ease)}
 .rc-role:last-child{border-bottom:1px solid var(--border-hairline)}
 .rc-role summary{display:grid;grid-template-columns:1fr auto auto;align-items:center;
   gap:.35rem 1.2rem;padding:1.35rem 0;cursor:pointer;list-style:none;
-  position:relative;z-index:1;transition:padding-inline .55s var(--ease)}
+  position:relative;z-index:1}
 .rc-role summary::-webkit-details-marker{display:none}
 .rc-role::after{content:"";position:absolute;inset:0;z-index:0;background:hsl(var(--muted));
   transform:scaleY(0);transform-origin:50% 100%;transition:transform .45s var(--ease)}
 @media (pointer:fine){
   .rc-role:hover::after,.rc-role:focus-within::after{transform:scaleY(1)}
-  .rc-role:hover summary{padding-inline:clamp(.6rem,1.4vw,1.1rem)}
+  .rc-role:hover{padding-inline:var(--role-pad)}
 }
+/* AN OPEN ROW IS A PANEL, so it keeps the ground and gains the inset. The
+   inset is on the row, not on the summary, so the heading, the body copy and
+   the bullet column all move together — putting it on the summary alone was
+   the bug: the panel's text sat flush against the tint while its heading was
+   indented. */
+.rc-role{--role-pad:clamp(1rem,2.4vw,1.9rem)}
+.rc-role[open]{padding-inline:var(--role-pad)}
+.rc-role[open]::after{transform:scaleY(1)}
 @media (max-width:559px){
   .rc-role summary{grid-template-columns:1fr auto}
   .rc-role-m{grid-column:1/-1}
@@ -108,7 +117,8 @@ const { applyHref = "/recruit/apply" } = Astro.props;
   height:1.5px;background:currentColor;transition:transform .45s var(--ease)}
 .rc-role-x::after{transform:rotate(90deg)}
 .rc-role[open] .rc-role-x::after{transform:rotate(0)}
-.rc-role-b{position:relative;z-index:1;display:grid;gap:1.2rem;padding:0 0 1.6rem}
+.rc-role-b{position:relative;z-index:1;display:grid;gap:1.4rem;
+  padding:.35rem 0 1.9rem}
 @media (min-width:820px){.rc-role-b{grid-template-columns:1fr 1fr;gap:2.4rem}}
 .rc-role-b p{font-size:.92rem;color:hsl(var(--muted-foreground));max-width:60ch}
 .rc-role-b ul{list-style:none;margin:0;padding:0;display:grid;gap:.5rem;align-content:start}

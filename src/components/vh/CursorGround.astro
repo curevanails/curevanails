@@ -1,0 +1,59 @@
+---
+/**
+ * Makes the custom cursor visible on paper.
+ *
+ * THE BUG: `04-motion.css` draws the ring as
+ * `box-shadow: inset 0 0 0 1.4px var(--cream)` and its label chip as
+ * cream-on-night. `#cur` is `position:fixed`, so it lives outside every
+ * `.on-light` section and always resolves the DARK tokens — which means on
+ * a paper section the visitor gets a #FCF5D6 ring on a #F7F4EC ground.
+ * That is a 1.02:1 contrast ratio: not "hard to see", invisible. And the
+ * page sets `cursor:none`, so the ring IS the pointer — losing it means
+ * losing the pointer entirely, which is the same class of bug the system
+ * already documents for `<dialog>` (DESIGN-SYSTEM.md §6).
+ *
+ * This is UPSTREAM'S bug, not the port's: the landing page has paper
+ * sections too. It is fixed here rather than in
+ * `design/version-h/js/runtime.js` because that file is a byte-for-byte
+ * copy of upstream and must stay diffable — see PORTING.md. **Push this
+ * upstream**, then delete this component and re-copy.
+ *
+ * THE FIX follows the system's own idiom rather than inventing one:
+ *   · one delegated `pointerover`, exactly like the runtime's own
+ *     `[data-nocursor]` and `[data-cur]` handling — no per-frame work, no
+ *     `getBoundingClientRect`, nothing measured (DESIGN-SYSTEM.md §6.3)
+ *   · it toggles ONE class, and the class only changes colour, so no
+ *     position or scale is touched and the cursor cannot start lagging
+ *   · `.nav--paper` is in the selector because the fixed bar sits OUTSIDE
+ *     `.on-light` yet still paints over paper — miss it and the ring
+ *     disappears again in the top 64px of every paper page
+ *
+ * The colours come from the brand aliases, which resolve once at `:root`
+ * and inherit as flat colours — the one case where an alias is correct
+ * rather than a token, because this element is deliberately outside both
+ * theme scopes and must name the two grounds explicitly.
+ */
+---
+
+<style is:global>
+  /* The ring, inverted for paper. */
+  #cur.on-paper{box-shadow:inset 0 0 0 1.4px var(--ink)}
+  /* ...and its label chip, which is cream-on-night by default. */
+  #cur.on-paper b{color:var(--paper);background:var(--ink)}
+</style>
+
+<script is:inline>
+  (function () {
+    var cur = document.getElementById('cur');
+    if (!cur) return;
+    /* Delegated, passive, and only ever writes a class. Bound unconditionally:
+       the ring is display:none unless (pointer:fine) and motion is allowed, so
+       on a phone or under prefers-reduced-motion this costs one class write on
+       a hidden element and nothing else. */
+    addEventListener('pointerover', function (e) {
+      var t = e.target;
+      if (!t || !t.closest) return;
+      cur.classList.toggle('on-paper', !!t.closest('.on-light, .nav--paper'));
+    }, { passive: true });
+  })();
+</script>

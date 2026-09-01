@@ -37,6 +37,7 @@ import { resolveBlogSiteIdentity } from "../utils/site-identity";
 import "../styles/version-h.css";
 import "../styles/version-h-content.css";
 import runtimeUrl from "../../design/version-h/js/runtime.js?url";
+import CursorGround from "../components/vh/CursorGround.astro";
 
 interface Props {
 	title: string;
@@ -278,6 +279,7 @@ const NAV = [
 		</footer>
 
 		<script src={runtimeUrl} is:inline></script>
+<CursorGround />
 		<EmDashBodyEnd page={pageCtx} />
 	</body>
 </html>
