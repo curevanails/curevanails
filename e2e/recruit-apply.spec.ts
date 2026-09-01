@@ -166,12 +166,33 @@ test.describe("form interactions", () => {
 		await expect(page.locator(SELECTORS.drop)).toHaveClass(/filled/);
 	});
 
-	test("multiple positions can be selected together", async ({ page }) => {
+	test("multiple specific positions can be selected together", async ({ page }) => {
 		await page.click(SELECTORS.option("nail_technician"));
 		await page.click(SELECTORS.option("esthetician"));
-		await page.click(SELECTORS.option("open_to_multiple"));
+		await page.click(SELECTORS.option("cosmetologist"));
 
 		await expect(page.locator('input[name="positions"]:checked')).toHaveCount(3);
+	});
+
+	test("'open to multiple roles' replaces the specific ones and disables them", async ({
+		page,
+	}) => {
+		// Naming three roles AND saying you are open to any of them tells the
+		// hiring team two different things, so they are exclusive.
+		await page.click(SELECTORS.option("nail_technician"));
+		await page.click(SELECTORS.option("esthetician"));
+		await expect(page.locator('input[name="positions"]:checked')).toHaveCount(2);
+
+		await page.click(SELECTORS.option("open_to_multiple"));
+		await expect(page.locator('input[name="positions"]:checked')).toHaveCount(1);
+		await expect(page.locator('input[value="open_to_multiple"]')).toBeChecked();
+		await expect(page.locator('input[value="nail_technician"]')).toBeDisabled();
+		await expect(page.locator('input[value="esthetician"]')).toBeDisabled();
+
+		// ...and taking it back hands them straight over
+		await page.click(SELECTORS.option("open_to_multiple"));
+		await expect(page.locator('input[value="nail_technician"]')).toBeEnabled();
+		await expect(page.locator('input[name="positions"]:checked')).toHaveCount(0);
 	});
 
 	test("current_status is single-select (radio semantics)", async ({ page }) => {
@@ -180,6 +201,38 @@ test.describe("form interactions", () => {
 
 		await expect(page.locator('input[name="current_status"]:checked')).toHaveCount(1);
 		await expect(page.locator('input[value="beauty_school"]')).toBeChecked();
+	});
+
+	test("a radio can be unset by clicking it again", async ({ page }) => {
+		// A native radio group cannot be cleared once set — the only way out is
+		// a different answer. Every one of these questions is optional to change
+		// your mind about, so clicking the chosen answer again clears it.
+		for (const [group, value] of [
+			["current_status", "licensed_utah"],
+			["background", "salon_experience"],
+			["employment_type", "full_time"],
+		] as const) {
+			await page.click(SELECTORS.option(value));
+			await expect(page.locator(`input[name="${group}"]:checked`)).toHaveCount(1);
+
+			await page.click(SELECTORS.option(value));
+			await expect(
+				page.locator(`input[name="${group}"]:checked`),
+				`${group} could not be cleared`,
+			).toHaveCount(0);
+		}
+	});
+
+	test("clearing a radio by re-clicking still flags it as missing on submit", async ({
+		page,
+	}) => {
+		// the deselect must not sneak past validation
+		await fillApplication(page);
+		await page.click(SELECTORS.option("full_time")); // un-picks it
+		await submitApplication(page);
+
+		await expect(page.locator(SELECTORS.group("employment_type"))).toHaveClass(/err/);
+		await expect(page.locator(SELECTORS.done)).not.toHaveClass(/show/);
 	});
 
 	test("editing a flagged field clears its error styling", async ({ page }) => {

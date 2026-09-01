@@ -416,6 +416,12 @@ textarea.inp{resize:vertical;min-height:5.5em}
   background:hsl(var(--primary-foreground))}
 .opt:focus-within,.iopt:focus-within{outline:2px solid hsl(var(--ring));outline-offset:3px}
 .js-group.err .opt,.js-group.err .iopt{box-shadow:inset 0 0 0 1.4px hsl(var(--destructive))}
+/* A position ruled out by "open to multiple roles". Not hidden — the
+   visitor needs to see WHY it stopped being available, and that it comes
+   back the moment they change their mind. */
+.opt:has(input:disabled){opacity:.4;cursor:not-allowed;
+  background:transparent;box-shadow:inset 0 0 0 1px var(--border-hairline)}
+.opt:has(input:disabled) .mk{box-shadow:inset 0 0 0 1.4px hsl(var(--foreground) / .25)}
 
 /* résumé dropzone */
 .drop{display:grid;justify-items:center;gap:.4rem;text-align:center;cursor:pointer;
@@ -477,6 +483,73 @@ textarea.inp{resize:vertical;min-height:5.5em}
     var drop = document.querySelector('.js-drop');
     var resume = document.querySelector('.js-resume');
     var dropFile = document.querySelector('.js-dropfile');
+
+    /* ---- radios deselect ---------------------------------------------
+       A native radio cannot be unset once set: the only way out of a group
+       is to pick a different answer. Every one of these questions is
+       genuinely optional to change your mind about, and a visitor who
+       clicked "Full-time" by accident had no way back.
+
+       Clicking the SAME answer again clears it. The previous state has to
+       be read on pointerdown, before the browser has done its own
+       toggling — and it is read from the LABEL, because that is what the
+       visitor actually clicks (the input is 0x0 and transparent). Space
+       and Enter are covered too, so the keyboard behaves the same way. */
+    form.querySelectorAll('.js-group').forEach(function (group) {
+      /* Arm on the way down, from the LABEL — that is what the visitor
+         actually hits, because the input itself is 0x0 and transparent. */
+      function arm(e) {
+        var lbl = e.target.closest('.iopt');
+        if (lbl) lbl._was = !!lbl.querySelector('input').checked;
+      }
+      group.addEventListener('pointerdown', arm, true);
+      group.addEventListener('keydown', function (e) {
+        if (e.key === ' ' || e.key === 'Enter') arm(e);
+      }, true);
+
+      /* ...and act on the INPUT's own click, never the label's.
+         Clicking a label fires TWO clicks: the label's, which bubbles
+         first, and then the one the label forwards to the control. A radio
+         is checked in the control's pre-click activation steps — so on the
+         label's click it has not happened yet, and anything we clear there
+         is put straight back by the forwarded click a moment later. On the
+         input's click the toggle is already done and clearing it sticks. */
+      group.querySelectorAll('.iopt input').forEach(function (input) {
+        var lbl = input.closest('.iopt');
+        input.addEventListener('click', function () {
+          if (lbl._was && input.checked) {
+            input.checked = false;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          lbl._was = false;
+        });
+      });
+    });
+
+    /* ---- "open to multiple roles" rules out the specific ones ---------
+       They are contradictory answers to one question: naming three roles
+       AND saying you are open to any of them tells the hiring team two
+       different things. Choosing it clears and disables the rest; taking
+       it back hands them straight over. The pills stay visible while
+       disabled so the reason is legible. */
+    (function () {
+      var group = form.querySelector('.js-group[data-name="positions"]');
+      if (!group) return;
+      var multi = group.querySelector('input[value="open_to_multiple"]');
+      if (!multi) return;
+      var others = Array.prototype.slice
+        .call(group.querySelectorAll('input[name="positions"]'))
+        .filter(function (i) { return i !== multi; });
+
+      function sync() {
+        others.forEach(function (i) {
+          if (multi.checked) i.checked = false;
+          i.disabled = multi.checked;
+        });
+      }
+      group.addEventListener('change', sync);
+      sync();
+    })();
 
     /* ---- the month picker -------------------------------------------
        The field itself is a plain text input and stays authoritative: it
