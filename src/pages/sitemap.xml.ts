@@ -8,6 +8,12 @@ import { getEmDashCollection } from "emdash";
  * <sitemapindex> — it lists no URLs at all, so nothing on this site was
  * being offered to a crawler. This route replaces it with the real thing.
  *
+ * ⚠ THIS ROUTE COLLIDES with EmDash's own injected /sitemap.xml, and Astro
+ * warns that a collision "will result in a hard error in following
+ * versions". Ours wins today, which is what we want — theirs is empty — but
+ * an Astro upgrade may turn this into a build failure. If it does, the fix
+ * is to serve this from a different path and point robots.txt at it.
+ *
  * Only canonical, indexable URLs belong here. A sitemap that lists a page
  * which canonicals elsewhere, or one that is noindex, sends a crawler two
  * contradictory instructions — so /waitlist, /getready (both canonical to
@@ -40,6 +46,19 @@ function url(loc: string, lastmod: string | null, changefreq: string, priority: 
 		.join("\n");
 }
 
+/**
+ * Read a field off a generated collection entry without asserting its
+ * shape. EmDash generates a concrete type per collection, and casting that
+ * straight to Record<string, unknown> is a type error — the two do not
+ * overlap. Going through `unknown` is the documented way, and it keeps the
+ * sitemap working if a field is renamed rather than failing the build.
+ */
+function field(entry: unknown, key: string): unknown {
+	return entry && typeof entry === "object"
+		? (entry as unknown as Record<string, unknown>)[key]
+		: undefined;
+}
+
 /** ISO date only — a sitemap wants a date, not a timestamp with a zone. */
 function day(value: unknown): string | null {
 	if (typeof value !== "string" && !(value instanceof Date)) return null;
@@ -58,7 +77,7 @@ export const GET: APIRoute = async () => {
 			entries.push(
 				url(
 					`/posts/${post.id}`,
-					day((post.data as Record<string, unknown>).updatedAt ?? (post.data as Record<string, unknown>).publishedAt),
+					day(field(post.data, "updatedAt") ?? field(post.data, "publishedAt")),
 					"monthly",
 					"0.7",
 				),
@@ -71,9 +90,14 @@ export const GET: APIRoute = async () => {
 	try {
 		const { entries: pages } = await getEmDashCollection("pages");
 		for (const page of pages) {
-			const data = page.data as Record<string, unknown>;
+			const slug = field(page.data, "slug");
 			entries.push(
-				url(`/pages/${(data.slug as string) || page.id}`, day(data.updatedAt), "monthly", "0.5"),
+				url(
+					`/pages/${typeof slug === "string" && slug ? slug : page.id}`,
+					day(field(page.data, "updatedAt")),
+					"monthly",
+					"0.5",
+				),
 			);
 		}
 	} catch {
