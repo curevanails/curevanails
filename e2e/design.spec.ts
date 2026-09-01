@@ -520,3 +520,60 @@ test.describe("coming-soon", () => {
 		await expect(form).toHaveAttribute("data-wl-source", "coming-soon");
 	});
 });
+
+/* ═══════════════════════════════════════════════════════════════════════
+   8 · /recruit/apply — the layout and contrast decisions, pinned
+   ═══════════════════════════════════════════════════════════════════════ */
+test.describe("apply page", () => {
+	test("the form comes before the roles list", async ({ page }) => {
+		await page.goto("/recruit/apply", { waitUntil: "load" });
+		await settle(page);
+		const order = await page.evaluate(() =>
+			[...document.querySelectorAll("main section")].map(
+				(s) => s.id || s.getAttribute("aria-labelledby"),
+			),
+		);
+		expect(order.slice(0, 2)).toEqual(["formH", "roles"]);
+	});
+
+	test("a chosen option pill is unmistakable, and legible either way", async ({ page }) => {
+		await page.goto("/recruit/apply", { waitUntil: "load" });
+		await settle(page);
+
+		const unchosen = await page.evaluate(() => {
+			const el = document.querySelector(".opt")!;
+			return { bg: getComputedStyle(el).backgroundColor, ink: getComputedStyle(el).color };
+		});
+		await page.locator(".opt").first().click();
+		await page.waitForTimeout(450);
+		const chosen = await page.evaluate(() => {
+			const el = document.querySelector(".opt")!;
+			return { bg: getComputedStyle(el).backgroundColor, ink: getComputedStyle(el).color };
+		});
+
+		// both states have to be readable...
+		expect(contrast(unchosen.ink, unchosen.bg), "unchosen pill").toBeGreaterThan(4.5);
+		expect(contrast(chosen.ink, chosen.bg), "chosen pill").toBeGreaterThan(4.5);
+		// ...and a chosen pill must be obviously darker, not a hairline change
+		expect(
+			luminance(unchosen.bg) - luminance(chosen.bg),
+			"a chosen pill is not visibly darker than an unchosen one",
+		).toBeGreaterThan(0.3);
+	});
+
+	test("the submit button keeps one calm transition", async ({ page }) => {
+		await page.goto("/recruit/apply", { waitUntil: "load" });
+		await settle(page);
+		const btn = await page.evaluate(() => {
+			const b = document.querySelector(".js-submit")!;
+			return {
+				magnet: b.hasAttribute("data-mag"),
+				risingFill: getComputedStyle(b, "::before").content,
+				properties: getComputedStyle(b).transitionProperty,
+			};
+		});
+		expect(btn.magnet, "the magnetic pull belongs on marketing CTAs, not a submit").toBe(false);
+		expect(btn.risingFill, "the rising fill reads as a loading bar at this size").toBe("none");
+		expect(btn.properties).not.toContain("transform");
+	});
+});

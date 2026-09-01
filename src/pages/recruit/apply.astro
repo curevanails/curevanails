@@ -33,29 +33,15 @@ import RoleAccordion from "../../components/vh/RoleAccordion.astro";
 	current="/recruit/apply"
 >
 
-<!-- ══ open roles, for quick appliers ════════════════════════════════ -->
-<section class="sec sec--first sec--tight on-light" id="roles" aria-labelledby="rolesH">
-  <div class="wrap ap-wrap">
-    <div class="head">
-      <span class="eyebrow" data-r="fade">Open roles</span>
-      <h2 class="h-lg" id="rolesH" data-r style="--d:60ms">Who we&rsquo;re hiring
-        <em>this December</em></h2>
-      <p class="lede" data-r="fade" style="--d:120ms">Six founding-team openings in Sugar House —
-        the same application below covers every role.</p>
-    </div>
-    <RoleAccordion applyHref="#form" />
-  </div>
-</section>
-
 <!-- ══ the application ═══════════════════════════════════════════════ -->
-<section class="sec on-light" aria-labelledby="formH">
+<section class="sec sec--first on-light" aria-labelledby="formH">
   <div class="wrap ap-wrap">
 
 <div class="app-shell" id="form">
 
     <!-- ===== HEADER BAND ===== -->
     <div class="app-head">
-      <a class="back" href="/recruit">← Back to open roles</a>
+      <a class="back" href="#roles">↓ See the open roles</a>
       <h1 class="h-lg" id="formH">Career <em>Application</em></h1>
       <p>Nail · Esthetics · Lash &amp; Brow · Cosmetology — tell us a little about yourself.</p>
     </div>
@@ -224,7 +210,7 @@ import RoleAccordion from "../../components/vh/RoleAccordion.astro";
       </div>
 
       <div class="submit-row">
-        <button class="btn btn--lg js-submit" data-mag type="submit" style="min-width:280px;">Submit Application</button>
+        <button class="btn btn--lg js-submit" type="submit" style="min-width:280px;">Submit Application</button>
         <p class="form-alert js-alert" role="status"></p>
         <div class="app-foot-note">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
@@ -245,6 +231,20 @@ import RoleAccordion from "../../components/vh/RoleAccordion.astro";
     </div>
 
   </div>
+  </div>
+</section>
+
+<!-- ══ open roles, for quick appliers ════════════════════════════════ -->
+<section class="sec sec--tight on-light" id="roles" aria-labelledby="rolesH">
+  <div class="wrap ap-wrap">
+    <div class="head">
+      <span class="eyebrow" data-r="fade">Open roles</span>
+      <h2 class="h-lg" id="rolesH" data-r style="--d:60ms">Who we&rsquo;re hiring
+        <em>this December</em></h2>
+      <p class="lede" data-r="fade" style="--d:120ms">Six founding-team openings in Sugar House —
+        the same application below covers every role.</p>
+    </div>
+    <RoleAccordion applyHref="#form" />
   </div>
 </section>
 
@@ -385,20 +385,35 @@ textarea.inp{resize:vertical;min-height:5.5em}
 /* option pills — a checkbox or radio wearing the Badge's shape */
 .opts,.inline-opts{display:flex;flex-wrap:wrap;gap:.55rem}
 .inline-opts.stack{flex-direction:column;align-items:flex-start}
+/* THE OPTION PILLS RUN DARK on the light form. They were hairline outlines
+   with muted ink on white — correct by the tokens, but they read as
+   disabled rather than as the page's main choice. They now sit on the
+   recessed ground with full-strength ink, and a CHOSEN pill goes all the
+   way to `--primary` (night here) with cream on it, so a selection is
+   unmistakable from across the form and matches the submit button.
+   Still no colour named: every value is a token, so this inverts by
+   itself on a night section. */
 .opt,.iopt{position:relative;display:inline-flex;align-items:center;gap:.6rem;cursor:pointer;
   padding:.62em 1.05em;border-radius:999px;font-size:.82rem;font-weight:600;
-  color:hsl(var(--muted-foreground));box-shadow:inset 0 0 0 1px var(--border-hairline);
-  transition:color .35s var(--ease),box-shadow .35s var(--ease),background .35s var(--ease)}
+  color:hsl(var(--foreground));background:hsl(var(--muted));
+  box-shadow:inset 0 0 0 1px var(--border-hairline);
+  transition:color .3s var(--ease),box-shadow .3s var(--ease),background .3s var(--ease)}
 .opt input,.iopt input{position:absolute;opacity:0;width:0;height:0}
 .opt .mk,.iopt .mk{width:15px;height:15px;flex:none;border-radius:50%;position:relative;
-  box-shadow:inset 0 0 0 1.4px var(--border-hairline);transition:box-shadow .3s var(--ease)}
+  box-shadow:inset 0 0 0 1.4px hsl(var(--foreground) / .35);
+  transition:box-shadow .3s var(--ease)}
 .opt .mk{border-radius:5px}
 .opt .mk::after,.iopt .mk::after{content:"";position:absolute;inset:50%;border-radius:inherit;
   background:hsl(var(--accent));transition:inset .28s var(--ease-spring)}
 .opt input:checked~.mk::after,.iopt input:checked~.mk::after{inset:3.5px}
-.opt:hover,.iopt:hover{color:hsl(var(--foreground))}
-.opt:has(input:checked),.iopt:has(input:checked){color:hsl(var(--foreground));
-  background:hsl(var(--muted));box-shadow:inset 0 0 0 1.4px hsl(var(--accent))}
+.opt:hover,.iopt:hover{box-shadow:inset 0 0 0 1.4px hsl(var(--foreground) / .45)}
+.opt:has(input:checked),.iopt:has(input:checked){
+  background:hsl(var(--primary));color:hsl(var(--primary-foreground));
+  box-shadow:inset 0 0 0 1.4px hsl(var(--primary))}
+.opt:has(input:checked) .mk,.iopt:has(input:checked) .mk{
+  box-shadow:inset 0 0 0 1.4px hsl(var(--primary-foreground) / .5)}
+.opt:has(input:checked) .mk::after,.iopt:has(input:checked) .mk::after{
+  background:hsl(var(--primary-foreground))}
 .opt:focus-within,.iopt:focus-within{outline:2px solid hsl(var(--ring));outline-offset:3px}
 .js-group.err .opt,.js-group.err .iopt{box-shadow:inset 0 0 0 1.4px hsl(var(--destructive))}
 
@@ -725,3 +740,22 @@ textarea.inp{resize:vertical;min-height:5.5em}
     });
   })();
 </script>
+
+<style is:global>
+/* ── the submit button, calmed down ───────────────────────────────────
+   `.btn` carries four things at once: a fill that rises from the bottom
+   edge, a 2px lift, a magnetic pull toward the pointer (`data-mag`) and a
+   sliding arrow. That is right for a marketing call to action and wrong
+   for the button that submits a two-minute form — at this size the rising
+   fill reads as a loading bar.
+
+   The magnet is gone from the markup; the rest is neutralised here. What
+   is left is one colour change. Scoped to this button only, so no other
+   `.btn` on the site is affected. */
+.js-submit::before{content:none}
+.js-submit{transition:background .25s var(--ease),color .25s var(--ease)}
+.js-submit:hover{transform:none;background:hsl(var(--accent));
+  color:hsl(var(--accent-foreground))}
+.js-submit:active{transform:none}
+.js-submit:disabled{opacity:.55}
+</style>
