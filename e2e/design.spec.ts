@@ -627,7 +627,7 @@ test.describe("coming-soon", () => {
    8 · /recruit/apply — the layout and contrast decisions, pinned
    ═══════════════════════════════════════════════════════════════════════ */
 test.describe("apply page", () => {
-	test("the form comes before the roles list", async ({ page }) => {
+	test("three sections, in order: the count, the form, the roles", async ({ page }) => {
 		await page.goto("/recruit/apply", { waitUntil: "load" });
 		await settle(page);
 		const order = await page.evaluate(() =>
@@ -635,7 +635,79 @@ test.describe("apply page", () => {
 				(s) => s.id || s.getAttribute("aria-labelledby"),
 			),
 		);
-		expect(order.slice(0, 2)).toEqual(["formH", "roles"]);
+		expect(order).toEqual(["open", "formH", "roles"]);
+	});
+
+	test("the opening count matches the roles listed below it", async ({ page }) => {
+		await page.goto("/recruit/apply", { waitUntil: "load" });
+		await settle(page);
+
+		const counted = await page.evaluate(() => {
+			// sum the "N opening(s)" on every role in the list further down
+			const fromList = [...document.querySelectorAll(".rc-role-m")]
+				.map((el) => parseInt(el.textContent!.trim(), 10) || 0)
+				.reduce((a, b) => a + b, 0);
+			const headline = document.querySelector("[data-count-to]")!;
+			return {
+				fromList,
+				attr: Number(headline.getAttribute("data-count-to")),
+				shown: Number(headline.textContent!.trim()),
+				tabular: getComputedStyle(headline).fontVariantNumeric,
+			};
+		});
+
+		expect(counted.attr, "the headline number drifted from the roles list").toBe(counted.fromList);
+		expect(counted.shown, "the count did not land on its target").toBe(counted.attr);
+		// tabular figures, or the line reflows on every frame while counting
+		expect(counted.tabular).toContain("tabular-nums");
+	});
+
+	test("the count animates up and still lands exactly", async ({ page }) => {
+		await page.goto("/recruit/apply", { waitUntil: "commit" });
+		const el = page.locator("[data-count-to]");
+		await el.waitFor({ state: "visible", timeout: 10000 });
+		await page.waitForTimeout(1600); // the run is 900ms
+		const target = await el.getAttribute("data-count-to");
+		await expect(el).toHaveText(target!);
+	});
+
+	test("both buttons in the opening section go where they say", async ({ page }) => {
+		await page.goto("/recruit/apply", { waitUntil: "load" });
+		await settle(page);
+		const links = await page.evaluate(() =>
+			[...document.querySelectorAll("#open .ap-cta a")].map((a) => a.getAttribute("href")),
+		);
+		expect(links).toEqual(["#form", "/recruit"]);
+
+		// and "Apply now" actually reaches the form
+		await page.locator('#open .ap-cta a[href="#form"]').click();
+		await page.waitForTimeout(800);
+		const reached = await page.evaluate(() => {
+			const r = document.getElementById("form")!.getBoundingClientRect();
+			return r.top < innerHeight && r.bottom > 0;
+		});
+		expect(reached, "Apply now did not scroll the form into view").toBe(true);
+	});
+
+	test("the map is embedded accessibly and opts out of the custom cursor", async ({ page }) => {
+		await page.goto("/recruit/apply", { waitUntil: "load" });
+		await settle(page);
+		const map = await page.evaluate(() => {
+			const frame = document.querySelector(".ap-map iframe") as HTMLIFrameElement | null;
+			if (!frame) return null;
+			return {
+				title: frame.getAttribute("title"),
+				loading: frame.getAttribute("loading"),
+				src: frame.getAttribute("src"),
+				// the iframe swallows pointer events, so the ring would freeze on it
+				nocursor: !!frame.closest("[data-nocursor]"),
+			};
+		});
+		expect(map, "the map is missing").toBeTruthy();
+		expect(map!.title, "an untitled iframe is unusable with a screen reader").toBeTruthy();
+		expect(map!.loading).toBe("lazy");
+		expect(map!.src).toContain("google.com/maps");
+		expect(map!.nocursor).toBe(true);
 	});
 
 	test("a chosen option pill is unmistakable, and legible either way", async ({ page }) => {
@@ -889,5 +961,21 @@ test.describe("SEO", () => {
 			expect(txt, `${path} is crawlable`).toContain(`Disallow: ${path}`);
 		}
 		expect(txt).toContain("Sitemap:");
+	});
+});
+
+test.describe("the visitor dialog's careers door", () => {
+	test("sends candidates straight to the application", async ({ page }) => {
+		await page.goto("/coming-soon", { waitUntil: "load" });
+		await expect(page.locator("#ask")).toBeVisible({ timeout: 10000 });
+
+		const href = await page.locator('.ask-opt[data-go="careers"]').getAttribute("href");
+		expect(href, "the careers door should land on the form, not the overview").toBe(
+			"/recruit/apply",
+		);
+
+		await page.locator('.ask-opt[data-go="careers"]').click();
+		await page.waitForURL("**/recruit/apply");
+		await expect(page.locator("[data-count-to]")).toBeVisible();
 	});
 });

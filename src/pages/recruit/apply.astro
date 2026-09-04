@@ -18,12 +18,23 @@
  * so it re-themes with the rest of the site.
  *
  * The duplicated open-roles accordion is now <RoleAccordion />, shared with
- * /recruit.
+ * /recruit, and the roles themselves live in src/data/roles.ts so the
+ * opening count in the first section is DERIVED from the list rather than
+ * typed beside it — a hard-coded "6" next to a list that says 2+2+1+1 is a
+ * number that goes wrong the first time a role is filled.
+ *
+ * ⚠ THE MAP IS A THIRD-PARTY IFRAME. Like the booking widget on
+ * /early-access it is a second external request, which this system allows
+ * only for the Google Fonts link. It is here because "where is this job"
+ * is the second thing a candidate asks. It loads lazily, it is titled for
+ * screen readers, and it carries data-nocursor because pointer events
+ * belong to the iframe the moment the pointer is inside it.
  */
 export const prerender = false;
 
 import VersionH from "../../layouts/VersionH.astro";
 import RoleAccordion from "../../components/vh/RoleAccordion.astro";
+import { TOTAL_OPENINGS } from "../../data/roles";
 ---
 
 <VersionH
@@ -34,7 +45,48 @@ import RoleAccordion from "../../components/vh/RoleAccordion.astro";
 >
 
 <!-- ══ the application ═══════════════════════════════════════════════ -->
-<section class="sec sec--first on-light" aria-labelledby="formH">
+<!-- ══ how many are open, and where ══════════════════════════════════
+     The page opens on the one fact a candidate wants first: the number.
+     It is DERIVED from src/data/roles.ts, so it cannot drift from the list
+     further down the page. ═══════════════════════════════════════════ -->
+<section class="sec sec--first sec--tight on-light" id="open" aria-labelledby="openH">
+  <div class="wrap ap-hero">
+    <div>
+      <span class="eyebrow" data-r="fade">Now hiring · Legacy Village, Sugar House</span>
+
+      <h1 class="ap-h1" id="openH" data-r style="--d:60ms">
+        <b class="ap-n num" data-count-to={TOTAL_OPENINGS}>{TOTAL_OPENINGS}</b>
+        <span class="ap-sub">founding-team positions are open — nail, esthetics, lash &amp; brow
+          and cosmetology, all starting together when we open this December.</span>
+      </h1>
+
+      <p class="ap-cta" data-r="fade" style="--d:140ms">
+        <a class="btn btn--lg" href="#form" data-mag>Apply now</a>
+        <a class="btn btn--outline btn--lg" href="/recruit" data-mag>View the details</a>
+      </p>
+    </div>
+
+    <!-- data-nocursor: pointer events belong to the iframe once the pointer
+         is over it, so the custom ring would freeze mid-map. Hand the
+         region back to the operating system. See DESIGN-SYSTEM.md §6.
+
+         allow="fullscreen" is not optional: the embed calls the Fullscreen
+         API for its expand control, and without the grant WebKit throws
+         "Permission policy 'Fullscreen' check failed" on every load and the
+         control silently does nothing. -->
+    <div class="ap-map" data-nocursor data-r="zoom" style="--d:120ms">
+      <iframe
+        title="Map — Cure Và, Legacy Village, Sugar House, Utah"
+        src="https://www.google.com/maps?q=Legacy%20Village%2C%20Sugar%20House%2C%20Salt%20Lake%20City%2C%20UT&output=embed"
+        loading="lazy"
+        referrerpolicy="no-referrer-when-downgrade"
+        allow="fullscreen"></iframe>
+    </div>
+  </div>
+</section>
+
+<!-- ══ the application ═══════════════════════════════════════════════ -->
+<section class="sec on-light" aria-labelledby="formH">
   <div class="wrap ap-wrap">
 
 <div class="app-shell" id="form">
@@ -42,7 +94,7 @@ import RoleAccordion from "../../components/vh/RoleAccordion.astro";
     <!-- ===== HEADER BAND ===== -->
     <div class="app-head">
       <a class="back" href="#roles">↓ See the open roles</a>
-      <h1 class="h-lg" id="formH">Career <em>Application</em></h1>
+      <h2 class="h-lg" id="formH">Career <em>Application</em></h2>
       <p>Nail · Esthetics · Lash &amp; Brow · Cosmetology — tell us a little about yourself.</p>
     </div>
 
@@ -259,6 +311,32 @@ import RoleAccordion from "../../components/vh/RoleAccordion.astro";
    The class names are the previous page's on purpose: they are the hooks
    the validation script and the endpoint contract are written against.
    ═══════════════════════════════════════════════════════════════════════ */
+/* ── the opening section ──────────────────────────────────────────────
+   The number carries the section, so it is set at display scale in the
+   editorial face while the sentence beside it stays Manrope. The h1 is ONE
+   element, not two, so a screen reader reads "6 founding-team positions
+   are open…" as a single sentence. */
+.ap-hero{display:grid;gap:2.2rem;align-items:center}
+@media (min-width:960px){.ap-hero{grid-template-columns:1.05fr .95fr;gap:3.4rem}}
+.ap-h1{display:grid;gap:.4rem;margin:1rem 0 0}
+.ap-n{display:block;font-family:Fraunces,"Iowan Old Style",Georgia,serif;font-weight:300;
+  font-variation-settings:"opsz" 144,"SOFT" 12,"WONK" 0;
+  font-size:clamp(5rem,15vw,10rem);line-height:.84;letter-spacing:-.05em;
+  color:hsl(var(--foreground))}
+/* the sentence is body copy that happens to live inside the h1 */
+.ap-sub{display:block;font-family:Manrope,-apple-system,"Segoe UI",sans-serif;
+  font-weight:400;font-size:clamp(1.02rem,1.15vw,1.16rem);line-height:1.7;
+  letter-spacing:0;color:hsl(var(--muted-foreground));max-width:44ch;
+  text-wrap:pretty}
+.ap-cta{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:2rem}
+
+/* the map — a third-party iframe, see the note at the top of this file */
+.ap-map{position:relative;aspect-ratio:4/3;border-radius:var(--radius-lg);
+  overflow:hidden;background:hsl(var(--muted));
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2),var(--sh)}
+@media (min-width:960px){.ap-map{aspect-ratio:1}}
+.ap-map iframe{display:block;width:100%;height:100%;border:0}
+
 .ap-wrap{max-width:64rem}
 /* the form section sits directly under the roles section, and both are paper.
    Recess this one a step so the two still read as two. */
@@ -473,6 +551,42 @@ textarea.inp{resize:vertical;min-height:5.5em}
 </style>
 
 <script is:inline>
+  /* ── the opening count ──────────────────────────────────────────────
+     The final number is ALREADY IN THE HTML. This only ever counts up TO
+     it — so a visitor with no JavaScript reads the right figure, and one
+     who asked for reduced motion is left alone: motion removed,
+     information kept (DESIGN-SYSTEM.md §6).
+
+     `.num` on the element is not decoration. Tabular figures are what stop
+     the line reflowing on every frame as the digits change width. */
+  (function () {
+    var el = document.querySelector('[data-count-to]');
+    if (!el) return;
+    var target = parseInt(el.getAttribute('data-count-to'), 10);
+    if (!target || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    var started = false;
+    function run() {
+      if (started) return;
+      started = true;
+      var t0 = performance.now(), dur = 900;
+      el.textContent = '0';
+      (function step(now) {
+        var p = Math.min(1, (now - t0) / dur);
+        /* ease-out, so it lands rather than stops */
+        el.textContent = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = String(target);   /* never leave a rounded value */
+      })(t0);
+    }
+
+    if (!('IntersectionObserver' in window)) { run(); return; }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) { if (e.isIntersecting) { run(); io.disconnect(); } });
+    }, { threshold: 0.4 });
+    io.observe(el);
+  })();
+
   (function () {
     'use strict';
     var form = document.querySelector('.js-apply-full');

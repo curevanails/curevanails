@@ -4,7 +4,9 @@
  *
  * /recruit and /recruit/apply carried the same four roles with the same
  * copy in two hand-maintained copies of the markup. They are one component
- * now — the copy is below, and both pages read it.
+ * now, and the copy itself moved out to src/data/roles.ts so the count in
+ * the /recruit/apply headline is derived from this list rather than typed
+ * beside it.
  *
  * <details>/<summary>, not a div with a click handler and a measured
  * scrollHeight. It opens with JavaScript off, the browser owns the state,
@@ -12,48 +14,7 @@
  * closes siblings, so one-at-a-time is an enhancement rather than the
  * mechanism. See design/version-h/DESIGN-SYSTEM.md §7.
  */
-const ROLES = [
-	{
-		title: "Nail Technician",
-		meta: "2 openings · Full-time / Part-time",
-		body: "We're looking for someone who takes pride in their work, enjoys creating meaningful connections with clients, and wants to grow with a team that's redefining the salon experience.",
-		points: [
-			"Licensed (or eligible for Utah licensure)",
-			"Kind, dependable, and detail-oriented",
-			"Excited to learn and grow with us",
-		],
-	},
-	{
-		title: "Esthetician",
-		meta: "2 openings · Full-time / Part-time",
-		body: "We're looking for someone who genuinely enjoys helping others feel confident, values a calm and welcoming environment, and wants to be part of building something special from the beginning.",
-		points: [
-			"Licensed (or eligible for Utah licensure)",
-			"Warm, caring, and professional",
-			"Passionate about continuous learning",
-		],
-	},
-	{
-		title: "Lash & Brow Specialist",
-		meta: "1 opening · Full-time / Part-time",
-		body: "We're looking for someone who appreciates natural beauty, pays attention to the little details, and enjoys building lasting relationships with every client.",
-		points: [
-			"Licensed (or eligible for Utah licensure)",
-			"Patient, reliable, and detail-oriented",
-			"Committed to delivering a thoughtful experience",
-		],
-	},
-	{
-		title: "Cosmetologist",
-		meta: "1 opening · Full-time / Part-time",
-		body: "We're looking for someone who enjoys working with people, embraces learning new techniques, and wants to help shape the culture of a growing wellness-focused studio.",
-		points: [
-			"Licensed (or eligible for Utah licensure)",
-			"Positive, adaptable, and team-oriented",
-			"Interested in growing with CURE VÀ",
-		],
-	},
-];
+import { ROLES, roleMeta } from "../../data/roles";
 
 interface Props {
 	/** Where "Apply for this role" points. On /recruit/apply that is the form itself. */
@@ -67,7 +28,7 @@ const { applyHref = "/recruit/apply" } = Astro.props;
     <details class="rc-role" data-r="fade" style={`--d:${i * 60}ms`}>
       <summary>
         <span class="rc-role-t">{r.title}</span>
-        <span class="rc-role-m mono">{r.meta}</span>
+        <span class="rc-role-m mono">{roleMeta(r)}</span>
         <span class="rc-role-x" aria-hidden="true"></span>
       </summary>
       <div class="rc-role-b">
