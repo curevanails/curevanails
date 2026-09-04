@@ -35,18 +35,41 @@ const PAGES = [
 	{ path: "/404", name: "404", ground: "night" },
 ] as const;
 
-/** Wait for fonts, let the preloader leave, then fire every reveal. */
+/**
+ * Wait for fonts, let the preloader leave, then walk the page until every
+ * reveal has fired.
+ *
+ * This used to be one scroll pass with fixed 60ms pauses, which is a guess
+ * about how fast the machine is. It held locally and failed the first CI
+ * run in WebKit — 47 unrevealed elements on /recruit — because a loaded
+ * GitHub runner does not deliver IntersectionObserver callbacks inside the
+ * window a laptop does.
+ *
+ * So: scroll, then ASK whether the reveals have landed, and scroll again if
+ * not. A condition rather than a delay, which is slower on a slow machine
+ * and no slower on a fast one. It still fails if reveals genuinely never
+ * fire — that assertion is the point of the suite and is not being relaxed.
+ */
 async function settle(page: Page) {
 	await page.evaluate(() => document.fonts.ready);
-	await page.waitForFunction(() => !document.getElementById("pre"), null, { timeout: 8000 });
-	await page.evaluate(async () => {
-		for (let y = 0; y < document.body.scrollHeight; y += 600) {
-			scrollTo({ top: y, behavior: "instant" });
-			await new Promise((r) => setTimeout(r, 60));
-		}
-		scrollTo({ top: 0, behavior: "instant" });
-		await new Promise((r) => setTimeout(r, 400));
-	});
+	await page.waitForFunction(() => !document.getElementById("pre"), null, { timeout: 20000 });
+
+	await page.waitForFunction(
+		async () => {
+			for (let y = 0; y < document.body.scrollHeight; y += 500) {
+				scrollTo({ top: y, behavior: "instant" });
+				await new Promise((r) => setTimeout(r, 50));
+			}
+			scrollTo({ top: 0, behavior: "instant" });
+			await new Promise((r) => setTimeout(r, 150));
+			return document.querySelectorAll("[data-r]:not(.in)").length === 0;
+		},
+		null,
+		{ timeout: 45000, polling: 400 },
+	);
+
+	await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
+	await page.waitForTimeout(250);
 }
 
 /** WCAG relative luminance, from a computed `rgb(...)` / `rgba(...)` string. */
