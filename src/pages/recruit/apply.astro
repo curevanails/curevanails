@@ -73,7 +73,8 @@ const MAP_EMBED_SRC =
       <span class="eyebrow" data-r="fade">Now hiring · Legacy Village, Sugar House</span>
 
       <h1 class="ap-h1" id="openH" data-r style="--d:60ms">
-        <b class="ap-n num" data-count-to={TOTAL_OPENINGS}>{TOTAL_OPENINGS}</b>
+        <b class="ap-n num"><span data-count-to={TOTAL_OPENINGS}>{TOTAL_OPENINGS}</span><span
+          class="ap-plus">+</span></b>
         <span class="ap-sub">founding-team positions are open — nail, esthetics, lash &amp; brow
           and cosmetology, all starting together when we open this December.</span>
       </h1>
@@ -345,10 +346,17 @@ const MAP_EMBED_SRC =
 .ap-hero{display:grid;gap:1.6rem;align-items:center}
 @media (min-width:960px){.ap-hero{grid-template-columns:1.05fr .95fr;gap:3rem}}
 .ap-h1{display:grid;gap:.35rem;margin:.7rem 0 0}
-.ap-n{display:block;font-family:Fraunces,"Iowan Old Style",Georgia,serif;font-weight:300;
+/* The "+" is a SIBLING of the counting element, not part of it: the script
+   writes textContent, so anything sharing that node would be wiped on the
+   first frame. It also keeps the counter's text purely numeric, which is
+   what the tests read. Baseline-aligned and half-size, the way a display
+   numeral takes a suffix. */
+.ap-n{display:flex;align-items:baseline;gap:.01em;
+  font-family:Fraunces,"Iowan Old Style",Georgia,serif;font-weight:300;
   font-variation-settings:"opsz" 144,"SOFT" 12,"WONK" 0;
   font-size:clamp(3.6rem,10vw,7rem);line-height:.82;letter-spacing:-.05em;
   color:hsl(var(--foreground))}
+.ap-plus{font-size:.5em;letter-spacing:0;color:hsl(var(--accent))}
 /* the sentence is body copy that happens to live inside the h1 */
 .ap-sub{display:block;font-family:Manrope,-apple-system,"Segoe UI",sans-serif;
   font-weight:400;font-size:clamp(1.02rem,1.15vw,1.16rem);line-height:1.7;

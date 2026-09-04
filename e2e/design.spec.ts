@@ -686,12 +686,16 @@ test.describe("apply page", () => {
 				fromList,
 				attr: Number(headline.getAttribute("data-count-to")),
 				shown: Number(headline.textContent!.trim()),
+				headlineText: headline.closest(".ap-n")!.textContent!.replace(/\s+/g, ""),
 				tabular: getComputedStyle(headline).fontVariantNumeric,
 			};
 		});
 
 		expect(counted.attr, "the headline number drifted from the roles list").toBe(counted.fromList);
 		expect(counted.shown, "the count did not land on its target").toBe(counted.attr);
+		// the visible headline reads "6+" — the suffix is a sibling node, so the
+		// counter's own text stays numeric and the script cannot wipe it
+		expect(counted.headlineText, 'the headline should read "6+"').toBe(`${counted.attr}+`);
 		// tabular figures, or the line reflows on every frame while counting
 		expect(counted.tabular).toContain("tabular-nums");
 	});
