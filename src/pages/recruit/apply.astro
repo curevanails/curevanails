@@ -29,12 +29,30 @@
  * is the second thing a candidate asks. It loads lazily, it is titled for
  * screen readers, and it carries data-nocursor because pointer events
  * belong to the iframe the moment the pointer is inside it.
+ *
+ * The map's location is a PLACEHOLDER — a keyword query, not a pinned
+ * address — and is one line, MAP_EMBED_SRC below. See the note there.
  */
 export const prerender = false;
 
 import VersionH from "../../layouts/VersionH.astro";
 import RoleAccordion from "../../components/vh/RoleAccordion.astro";
 import { TOTAL_OPENINGS } from "../../data/roles";
+
+/* ── PLACEHOLDER, awaiting the confirmed address ──────────────────────
+   A keyword query, not a pinned location: Google resolves
+   "Legacy Village, Sugar House" to its best guess, which is the same
+   string the rest of the site prints but is NOT a confirmed shopfront.
+   Treat the pin as indicative until it is replaced.
+
+   To replace it, swap this one line for either
+     · a Place ID embed (exact, and survives the business being renamed):
+       https://www.google.com/maps/embed/v1/place?key=KEY&q=place_id:PLACE_ID
+     · or coordinates:
+       https://www.google.com/maps?q=40.7247,-111.8556&z=17&output=embed
+   Nothing else on the page needs to change. */
+const MAP_EMBED_SRC =
+	"https://www.google.com/maps?q=Legacy%20Village%2C%20Sugar%20House%2C%20Salt%20Lake%20City%2C%20UT&output=embed";
 ---
 
 <VersionH
@@ -77,7 +95,7 @@ import { TOTAL_OPENINGS } from "../../data/roles";
     <div class="ap-map" data-nocursor data-r="zoom" style="--d:120ms">
       <iframe
         title="Map — Cure Và, Legacy Village, Sugar House, Utah"
-        src="https://www.google.com/maps?q=Legacy%20Village%2C%20Sugar%20House%2C%20Salt%20Lake%20City%2C%20UT&output=embed"
+        src={MAP_EMBED_SRC}
         loading="lazy"
         referrerpolicy="no-referrer-when-downgrade"
         allow="fullscreen"></iframe>

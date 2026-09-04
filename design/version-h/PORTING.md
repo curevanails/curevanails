@@ -145,6 +145,11 @@ Not code bugs. Do not "fix" these without a decision.
    system anyway.)
 4. **Fonts are the Google Fonts releases.** The delivered brand package ships
    *trial* licences of the display faces. Confirm before a paying domain.
+5. **The map on `/recruit/apply` is a placeholder.** It embeds a keyword
+   query — "Legacy Village, Sugar House" — so the pin is Google's best guess
+   at the string the rest of the site prints, not a confirmed shopfront. It
+   is one constant, `MAP_EMBED_SRC` at the top of that page; swap it for a
+   Place ID or coordinates when the address is settled.
 
 ## 7 · Found during verification — and fixed
 
