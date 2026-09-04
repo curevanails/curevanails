@@ -334,25 +334,35 @@ const MAP_EMBED_SRC =
    editorial face while the sentence beside it stays Manrope. The h1 is ONE
    element, not two, so a screen reader reads "6 founding-team positions
    are open…" as a single sentence. */
-.ap-hero{display:grid;gap:2.2rem;align-items:center}
-@media (min-width:960px){.ap-hero{grid-template-columns:1.05fr .95fr;gap:3.4rem}}
-.ap-h1{display:grid;gap:.4rem;margin:1rem 0 0}
+/* THE SECTION HAS TO SHOW ITS SEAM. It is the page's opening, not a hero,
+   and at full height it filled the viewport — on a 390x844 phone the form
+   below started at 853px, entirely off-screen, so the page looked like it
+   had one section. `.sec--first` is overridden here rather than globally:
+   the padding that clears the fixed bar is still needed, just not the
+   landing-page-sized block padding under it. */
+#open{padding-top:calc(var(--nav-h) + clamp(1.5rem,4vh,3rem));
+  padding-bottom:clamp(2.2rem,5vh,3.4rem)}
+.ap-hero{display:grid;gap:1.6rem;align-items:center}
+@media (min-width:960px){.ap-hero{grid-template-columns:1.05fr .95fr;gap:3rem}}
+.ap-h1{display:grid;gap:.35rem;margin:.7rem 0 0}
 .ap-n{display:block;font-family:Fraunces,"Iowan Old Style",Georgia,serif;font-weight:300;
   font-variation-settings:"opsz" 144,"SOFT" 12,"WONK" 0;
-  font-size:clamp(5rem,15vw,10rem);line-height:.84;letter-spacing:-.05em;
+  font-size:clamp(3.6rem,10vw,7rem);line-height:.82;letter-spacing:-.05em;
   color:hsl(var(--foreground))}
 /* the sentence is body copy that happens to live inside the h1 */
 .ap-sub{display:block;font-family:Manrope,-apple-system,"Segoe UI",sans-serif;
   font-weight:400;font-size:clamp(1.02rem,1.15vw,1.16rem);line-height:1.7;
   letter-spacing:0;color:hsl(var(--muted-foreground));max-width:44ch;
   text-wrap:pretty}
-.ap-cta{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:2rem}
+.ap-cta{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.5rem}
 
 /* the map — a third-party iframe, see the note at the top of this file */
-.ap-map{position:relative;aspect-ratio:4/3;border-radius:var(--radius-lg);
+/* The map used to be a square on desktop, which alone made the row 549px
+   tall. It is the supporting column, not the subject. */
+.ap-map{position:relative;aspect-ratio:16/10;border-radius:var(--radius-lg);
   overflow:hidden;background:hsl(var(--muted));
   box-shadow:inset 0 0 0 1px var(--border-hairline-2),var(--sh)}
-@media (min-width:960px){.ap-map{aspect-ratio:1}}
+@media (min-width:960px){.ap-map{aspect-ratio:4/3}}
 .ap-map iframe{display:block;width:100%;height:100%;border:0}
 
 .ap-wrap{max-width:64rem}
@@ -597,6 +607,13 @@ textarea.inp{resize:vertical;min-height:5.5em}
         else el.textContent = String(target);   /* never leave a rounded value */
       })(t0);
     }
+
+    /* Above the fold — which it is, it opens the page — start now. Reading
+       the rect ONCE at startup is not the per-frame measurement the system
+       forbids, and it removes a frame of the server-rendered "6" flashing
+       before the observer's async callback resets it to zero. */
+    var r = el.getBoundingClientRect();
+    if (r.top < innerHeight && r.bottom > 0) { run(); return; }
 
     if (!('IntersectionObserver' in window)) { run(); return; }
     var io = new IntersectionObserver(function (entries) {

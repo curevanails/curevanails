@@ -696,13 +696,80 @@ test.describe("apply page", () => {
 		expect(counted.tabular).toContain("tabular-nums");
 	});
 
-	test("the count animates up and still lands exactly", async ({ page }) => {
+	test("the count actually counts, and lands exactly", async ({ page }) => {
 		await page.goto("/recruit/apply", { waitUntil: "commit" });
+
+		// sample the digit every frame while it runs — asserting only the final
+		// value would pass on a number that never moved
+		const seen = await page.evaluate(async () => {
+			const out: string[] = [];
+			const t0 = performance.now();
+			while (performance.now() - t0 < 3000) {
+				const el = document.querySelector("[data-count-to]");
+				if (el) {
+					const v = el.textContent!.trim();
+					if (v !== out[out.length - 1]) out.push(v);
+				}
+				await new Promise((r) => requestAnimationFrame(r));
+			}
+			return out;
+		});
+
 		const el = page.locator("[data-count-to]");
-		await el.waitFor({ state: "visible", timeout: 10000 });
-		await page.waitForTimeout(1600); // the run is 900ms
-		const target = await el.getAttribute("data-count-to");
-		await expect(el).toHaveText(target!);
+		const target = (await el.getAttribute("data-count-to"))!;
+		expect(seen.length, `the number never moved: ${JSON.stringify(seen)}`).toBeGreaterThan(2);
+		// The sampler can observe the DOM before the inline script runs, so the
+		// server-rendered figure may be the first thing it records — that is the
+		// JavaScript-off fallback, not a painted frame. What matters is that the
+		// run starts at zero and climbs.
+		expect(seen, "the count never started from zero").toContain("0");
+		const climb = seen.slice(seen.indexOf("0")).map(Number);
+		expect(climb.every((v, i) => i === 0 || v >= climb[i - 1]), "the count went backwards").toBe(true);
+		expect(seen[seen.length - 1]).toBe(target);
+		await expect(el).toHaveText(target);
+	});
+
+	test("it counts on a phone too", async ({ page }) => {
+		await page.setViewportSize({ width: 390, height: 844 });
+		await page.goto("/recruit/apply", { waitUntil: "commit" });
+		const seen = await page.evaluate(async () => {
+			const out: string[] = [];
+			const t0 = performance.now();
+			while (performance.now() - t0 < 3000) {
+				const el = document.querySelector("[data-count-to]");
+				if (el) {
+					const v = el.textContent!.trim();
+					if (v !== out[out.length - 1]) out.push(v);
+				}
+				await new Promise((r) => requestAnimationFrame(r));
+			}
+			return out;
+		});
+		expect(seen.length, "the count did not run on a phone").toBeGreaterThan(2);
+		expect(seen, "the count never started from zero on a phone").toContain("0");
+		expect(seen[seen.length - 1]).toBe("6");
+	});
+
+	test("the opening section leaves the next one in view", async ({ page }) => {
+		// It is the page's opening, not a hero. At full height it filled the
+		// viewport and the form below started off-screen on a phone.
+		for (const vp of [
+			{ width: 1440, height: 900 },
+			{ width: 1280, height: 800 },
+			{ width: 390, height: 844 },
+		]) {
+			await page.setViewportSize(vp);
+			await page.goto("/recruit/apply", { waitUntil: "load" });
+			await settle(page);
+			const peek = await page.evaluate(() => {
+				const next = document.getElementById("open")!.nextElementSibling!;
+				return innerHeight - next.getBoundingClientRect().top;
+			});
+			expect(
+				peek,
+				`only ${Math.round(peek)}px of the next section shows at ${vp.width}x${vp.height}`,
+			).toBeGreaterThan(100);
+		}
 	});
 
 	test("both buttons in the opening section go where they say", async ({ page }) => {
