@@ -1,0 +1,50 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Cure Và · small-screen adaptations
+
+   THIS REPO'S OWN LAYER, loaded by every layout — not an edit to
+   design/version-h/css/, which stays byte-for-byte upstream.
+
+   Version H is a desktop editorial design and its type scale bottoms out
+   at .66–.68rem: 10.5–10.9px of letter-spaced uppercase. That reads on a
+   1440px page and is under the size where it stays comfortable on a phone.
+   Its footer links are `padding:.22em 0` — a 30px target stacked at a
+   0.1rem gap, which is a mis-tap waiting to happen with a thumb.
+
+   Every rule here was found by the UI audit rather than by eye, applies
+   only below the width where the problem exists, and changes nothing on
+   the sizes the system was drawn for.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width:820px){
+  /* ── reach ─────────────────────────────────────────────────────────
+     A link in a stacked list is a thumb target, not a line of prose. */
+  .foot ul a,
+  .foot address a{padding-block:.62em;min-height:44px;display:flex;
+    align-items:center}
+  .foot-legal a{padding-block:.5em;min-height:40px;display:inline-flex;
+    align-items:center}
+  /* the wordmark is the one control present on every page — in the bar
+     and again in the footer */
+  .nav .mark{padding-block:.55em}
+  .foot .mark{padding-block:.5em;min-height:44px}
+  /* inline text links that act as buttons */
+  .btn--link,.rc-role-a,.app-head .back{display:inline-flex;align-items:center;
+    min-height:40px}
+}
+
+@media (max-width:640px){
+  /* ── legibility ────────────────────────────────────────────────────
+     The small-caps labels come up to ~11.8px. The editorial scale above
+     this breakpoint is the system's and is untouched. */
+  .mono,.eyebrow,.label{font-size:.74rem}
+  .foot h4,.widget__title{font-size:.74rem}
+  /* the service tags are content, not decoration, and .68rem is 10.9px */
+  .badge{font-size:.74rem}
+  .badge--accent{font-size:.72rem}
+  /* The countdown's unit labels were the smallest text on the site at
+     9.3px — under any reasonable floor. `.cs-count li span` rather than
+     `.cs-count span`: the page's own <style> is injected after this file
+     and a media query adds no specificity, so at equal weight the page
+     rule simply won on order. */
+  .cs-count li span{font-size:.7rem}
+}

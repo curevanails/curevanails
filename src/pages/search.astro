@@ -22,12 +22,14 @@ const { items: results } = query
 	<section class="ct ct-wrap">
 		<h1 class="search-title">Search</h1>
 
-		<form method="get" action="/search" class="search-form">
+		<form method="get" action="/search" class="search-form" role="search">
+			<label class="sr" for="q">Search posts and pages</label>
 			<input
+				id="q"
 				type="search"
 				name="q"
 				value={query}
-				placeholder="Search posts..."
+				placeholder="Search posts…"
 				class="search-input"
 				autofocus
 			/>

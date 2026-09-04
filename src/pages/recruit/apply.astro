@@ -240,12 +240,13 @@ const MAP_EMBED_SRC =
         </div>
 
         <div class="fld">
-          <div class="drop js-drop" tabindex="0">
+          <div class="drop js-drop" tabindex="0" role="button"
+            aria-label="Upload your résumé — PDF or Word, optional">
             <div class="dz-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0-.5 9"/><path d="M12 12v7M9 15l3-3 3 3"/></svg></div>
             <div class="dz-t">Upload your Resume <span class="hint">(optional)</span></div>
             <div class="dz-s">Drag and drop or click to browse (PDF, Word)</div>
             <div class="dz-file js-dropfile"></div>
-            <input type="file" class="js-resume" name="resume" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
+            <input type="file" class="js-resume" name="resume" aria-label="Résumé file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
           </div>
         </div>
 
@@ -584,6 +585,20 @@ textarea.inp{resize:vertical;min-height:5.5em}
 .done-card h2 em{color:hsl(var(--accent))}
 .done-card>p{margin-top:.9rem;font-size:.95rem;color:hsl(var(--muted-foreground));
   max-width:46ch;margin-inline:auto}
+
+/* ── small screens ────────────────────────────────────────────────────
+   LAST IN THE BLOCK ON PURPOSE. A media query adds no specificity, so
+   these lost to the base rules further down the file when they sat next
+   to the ones they override. 10.5px of letter-spaced uppercase is under
+   the size where a field label reads comfortably on a phone; the desktop
+   scale is the system's and is left alone. */
+@media (max-width:640px){
+  .fld>label,.q-label{font-size:.74rem;letter-spacing:.12em}
+  .ap-grp-h h2{font-size:.74rem}
+  .or-row{font-size:.72rem}
+  /* the option pills are this form's main control — give them a thumb */
+  .opt,.iopt{padding:.78em 1.1em}
+}
 </style>
 
 <script is:inline>

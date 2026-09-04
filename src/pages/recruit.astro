@@ -362,10 +362,15 @@ const MATERIALS = [
 
 .rc-values{display:flex;flex-wrap:wrap;gap:.6rem}
 
-/* the mosaic: one tall plate, then four that fill beside it */
-.rc-mosaic{display:grid;gap:.9rem;grid-template-columns:1fr}
+/* the mosaic: one tall plate, then four that fill beside it.
+   minmax(0,…) is not decoration. A bare `1fr` is `minmax(auto,1fr)`, and a
+   frame with an aspect-ratio in a tall row reports a large min-content
+   WIDTH — which pushes the track past its share and the whole grid past
+   the wrap. That is what was happening: a square in a 333px column
+   measured 100px wider than the column and got clipped by `.sec`. */
+.rc-mosaic{display:grid;gap:.9rem;grid-template-columns:minmax(0,1fr)}
 @media (min-width:720px){
-  .rc-mosaic{grid-template-columns:1.4fr 1fr 1fr}
+  .rc-mosaic{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr)}
   .rc-m1{grid-row:span 2}
 }
 .rc-materials{display:grid;gap:1.4rem;margin-top:1.9rem}
@@ -386,12 +391,20 @@ const MATERIALS = [
 
 .rc-note{margin-top:2.2rem;font-size:.92rem;color:hsl(var(--muted-foreground))}
 
-.rc-gallery{display:grid;gap:.9rem;grid-template-columns:1fr}
+/* THE GALLERY HAD THE SAME BLOWOUT, worse. `.rc-gallery .fr{height:100%}`
+   stretched each frame to its row, and `aspect-ratio` then computed the
+   WIDTH from that height — so a square in a 292px column came out 500px
+   wide and was clipped. Rows are sized explicitly here and the frames fill
+   their cell in both axes, so the aspect-ratio classes no longer drive
+   anything inside this grid. */
+.rc-gallery{display:grid;gap:.9rem;grid-template-columns:minmax(0,1fr);
+  grid-auto-rows:clamp(11rem,42vw,15rem)}
 @media (min-width:720px){
-  .rc-gallery{grid-template-columns:repeat(4,1fr)}
+  .rc-gallery{grid-template-columns:repeat(4,minmax(0,1fr));
+    grid-auto-rows:clamp(9rem,16vw,14rem)}
   .rc-g-big{grid-column:span 2;grid-row:span 2}
 }
-.rc-gallery .fr{height:100%}
+.rc-gallery .fr{width:100%;height:100%;aspect-ratio:auto}
 
 .rc-apply{display:grid;gap:2rem}
 @media (min-width:960px){.rc-apply{grid-template-columns:.85fr 1.15fr;gap:3.75rem;align-items:start}}
