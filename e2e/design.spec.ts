@@ -71,7 +71,18 @@ for (const pg of PAGES) {
 		test(`renders clean at 1440 and 390`, async ({ page }) => {
 			const errors: string[] = [];
 			const httpFailures: string[] = [];
-			page.on("pageerror", (e) => errors.push(e.message));
+
+			/* Errors thrown INSIDE a third-party iframe surface on the parent in
+			   WebKit, so the Google Maps embed on /recruit/apply and the booking
+			   widget on /early-access can both report failures of their own
+			   internal RPCs. They are not ours and we cannot fix them; the map
+			   was verified to render identically in both engines despite it.
+			   Matched by the third-party origin, so anything WE throw still
+			   fails the test. */
+			const THIRD_PARTY = /maps\.googleapis\.com|maps\.google\.com|www\.google\.com|mangomint/;
+			page.on("pageerror", (e) => {
+				if (!THIRD_PARTY.test(e.message)) errors.push(e.message);
+			});
 			page.on("response", (r) => {
 				// /404 is expected to 404; the booking widget is third-party.
 				if (r.status() >= 400 && !r.url().endsWith("/404") && !r.url().includes("mangomint")) {
