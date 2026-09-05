@@ -782,6 +782,9 @@ textarea.inp{resize:vertical;min-height:5.5em}
       function place() {
         var r = btn.getBoundingClientRect();
         var w = pop.offsetWidth, h = pop.offsetHeight;
+        /* A popover that has not painted yet measures 0. Try again next
+           frame rather than pinning it to the top-left corner. */
+        if (!w || !h) { requestAnimationFrame(place); return; }
         var left = Math.min(Math.max(8, r.right - w), innerWidth - w - 8);
         var top = r.bottom + 8;
         if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 8);
@@ -799,6 +802,7 @@ textarea.inp{resize:vertical;min-height:5.5em}
       });
       pop.addEventListener('toggle', function (e) {
         if (e.newState !== 'open') return;
+        place();                       /* it has painted by now — place it again */
         var on = pop.querySelector('[aria-pressed=true]') || pop.querySelector('[data-now]') || cells[0];
         if (on) on.focus();
       });

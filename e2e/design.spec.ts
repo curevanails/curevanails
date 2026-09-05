@@ -55,19 +55,28 @@ async function settle(page: Page) {
 	await page.evaluate(() => document.fonts.ready);
 	await page.waitForFunction(() => !document.getElementById("pre"), null, { timeout: 20000 });
 
-	await page.waitForFunction(
-		async () => {
-			for (let y = 0; y < document.body.scrollHeight; y += 500) {
-				scrollTo({ top: y, behavior: "instant" });
-				await new Promise((r) => setTimeout(r, 50));
-			}
-			scrollTo({ top: 0, behavior: "instant" });
-			await new Promise((r) => setTimeout(r, 150));
-			return document.querySelectorAll("[data-r]:not(.in)").length === 0;
-		},
-		null,
-		{ timeout: 45000, polling: 400 },
-	);
+	// Park each unrevealed element in the middle of the viewport and let the
+	// observer see it, rather than scrolling PAST everything and hoping the
+	// callbacks land. IntersectionObserver makes no promise about an element
+	// that appears and disappears between two frames, which is what a fast
+	// programmatic scroll does on a machine dropping frames.
+	//
+	// THIS LOOP IS IN page.evaluate, NOT page.waitForFunction, and that is
+	// the whole point. `waitForFunction` with a NUMERIC `polling` interval
+	// does not await an async predicate: the Promise it returns is truthy,
+	// so it resolves on the first poll and the body never runs. Both earlier
+	// versions of this helper were written that way, which means neither of
+	// them ever waited for anything — they passed locally because the
+	// reveals happened to fire on their own, and failed in CI because they
+	// did not. Verified against Playwright directly before rewriting it.
+	await page.evaluate(async () => {
+		for (let i = 0; i < 300; i++) {
+			const stuck = document.querySelector("[data-r]:not(.in)");
+			if (!stuck) return;
+			stuck.scrollIntoView({ block: "center", behavior: "instant" });
+			await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+		}
+	});
 
 	await page.evaluate(() => scrollTo({ top: 0, behavior: "instant" }));
 	await page.waitForTimeout(250);
@@ -291,6 +300,16 @@ test.describe("graduation month picker", () => {
 		await page.locator(".js-monthbtn").click();
 		const panel = page.locator("#gradPop");
 		await expect(panel).toBeVisible();
+
+		// it is positioned a frame after it opens, so poll rather than race it
+		await expect
+			.poll(() =>
+				page.evaluate(() => {
+					const r = document.getElementById("gradPop")!.getBoundingClientRect();
+					return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight;
+				}),
+			)
+			.toBe(true);
 
 		const box = await page.evaluate(() => {
 			const el = document.getElementById("gradPop")!;
@@ -857,7 +876,15 @@ test.describe("apply page", () => {
 			return { bg: getComputedStyle(el).backgroundColor, ink: getComputedStyle(el).color };
 		});
 		await page.locator(".opt").first().click();
-		await page.waitForTimeout(450);
+		// the fill transitions over .3s; wait for it to arrive rather than
+		// assuming a slow runner got there inside a fixed delay
+		await expect
+			.poll(() =>
+				page.evaluate(
+					() => getComputedStyle(document.querySelector(".opt")!).backgroundColor,
+				),
+			)
+			.not.toBe(unchosen.bg);
 		const chosen = await page.evaluate(() => {
 			const el = document.querySelector(".opt")!;
 			return { bg: getComputedStyle(el).backgroundColor, ink: getComputedStyle(el).color };
