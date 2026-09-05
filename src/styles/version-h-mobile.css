@@ -46,5 +46,6 @@
      `.cs-count span`: the page's own <style> is injected after this file
      and a media query adds no specificity, so at equal weight the page
      rule simply won on order. */
-  .cs-count li span{font-size:.7rem}
+  .cs-count li span,
+  p.cs-openday span{font-size:.7rem}
 }

@@ -26,6 +26,7 @@ import "../styles/version-h-mobile.css";
 import runtimeUrl from "../../design/version-h/js/runtime.js?url";
 import CursorGround from "../components/vh/CursorGround.astro";
 import Seo from "../components/vh/Seo.astro";
+import { OPENING_SEASON } from "../data/opening";
 
 interface Props {
 	title: string;
@@ -48,7 +49,7 @@ interface Props {
 
 const {
 	title,
-	description = "Cure Và — a calm, non-toxic nail and skin studio at Legacy Village, Sugar House UT. Opening December 2026.",
+	description = "Cure Và — a waterless nail and skin care spa at Legacy Village, Sugar House UT. Opening Spring 2027.",
 	nav = "dark",
 	footer = true,
 	menu = true,
@@ -162,7 +163,7 @@ const NAV = [
         <div class="fr fr--drift"><img src="/img/d-hero-hands.webp" width="1500" height="844"
           decoding="async" loading="lazy" alt="Two hands resting, nails bare and shaped"></div>
         <div class="mp-meta">
-          <div><b>Opening</b>December 2026</div>
+          <div><b>Opening</b>{OPENING_SEASON}</div>
           <div><b>Where</b>Legacy Village, Sugar House UT</div>
           <div><b>Call</b><a href="tel:+18014253581">+1 801 425 3581</a></div>
         </div>
@@ -182,8 +183,8 @@ const NAV = [
         <div>
           <a class="mark" href="/" aria-label="Cure Và — home">
             <span class="mark-ring" aria-hidden="true"></span><b>cure và</b></a>
-          <p class="lede" style="margin-top:1rem;font-size:.92rem">Healthy nails, radiant
-            skin, and a room built for five.</p>
+          <p class="lede" style="margin-top:1rem;font-size:.92rem">Waterless nail and skin
+            care, rooted in natural care and zero-gravity comfort.</p>
         </div>
         <div>
           <h4>Studio</h4>

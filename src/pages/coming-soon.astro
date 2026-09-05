@@ -28,6 +28,18 @@ import runtimeUrl from "../../design/version-h/js/runtime.js?url";
 import WaitlistForm from "../components/vh/WaitlistForm.astro";
 import CursorGround from "../components/vh/CursorGround.astro";
 import Seo from "../components/vh/Seo.astro";
+import {
+	OPENING,
+	OPENING_ISO,
+	OPENING_SEASON,
+	OPENING_DAY,
+	showCountdown,
+} from "../data/opening";
+
+/* Decided here, not in the browser: the page is `prerender: false`, so the
+   right thing is already in the HTML and a visitor with JavaScript off gets
+   the date rather than four empty boxes. */
+const countdown = showCountdown();
 ---
 
 <!doctype html>
@@ -37,11 +49,11 @@ import Seo from "../components/vh/Seo.astro";
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0B1410">
 <meta name="color-scheme" content="dark">
-<title>Cure Và — Opening December 2026</title>
-<meta name="description" content="Cure Và — a private, gender-inclusive nail and beauty lounge built around stillness. Opening December 2026 at Legacy Village, Sugar House UT.">
+<title>Cure Và — Opening {OPENING_SEASON}</title>
+<meta name="description" content="Cure Và — a waterless nail and skin care spa rooted in natural care and zero-gravity comfort. Opening Spring 2027 at Legacy Village, Sugar House UT.">
 <Seo
-  title="Cure Và — Opening December 2026"
-  description="Cure Và — a private, gender-inclusive nail and beauty lounge built around stillness. Opening December 2026 at Legacy Village, Sugar House UT."
+  title={`Cure Và — Opening ${OPENING_SEASON}`}
+  description="Cure Và — a waterless nail and skin care spa rooted in natural care and zero-gravity comfort. Opening Spring 2027 at Legacy Village, Sugar House UT."
 />
 
 <!-- The studio itself. This is the page a search for "nail salon Sugar
@@ -52,7 +64,7 @@ import Seo from "../components/vh/Seo.astro";
   "@context": "https://schema.org",
   "@type": "BeautySalon",
   name: "Cure Và",
-  description: "A private, gender-inclusive nail and beauty lounge built around stillness — waterless nail care, clean products and the signature Zero Gravity ritual.",
+  description: "A waterless nail and skin care spa rooted in natural care and zero-gravity comfort — an intentionally quiet space to disconnect, reset, and slow down.",
   url: "https://curevanails.com/",
   image: "https://curevanails.com/og.jpg",
   telephone: "+1-801-425-3581",
@@ -71,8 +83,8 @@ import Seo from "../components/vh/Seo.astro";
   }],
   areaServed: "Salt Lake City, Utah",
   knowsAbout: ["Waterless manicure","Pedicure","Facials","Lash lift","Brow shaping"],
-  slogan: "Enhance what's already beautiful.",
-  foundingDate: "2026-12-01",
+  slogan: "A new way to experience nail care.",
+  foundingDate: OPENING_ISO,
 })} />
 
 <script type="application/ld+json" is:inline set:html={JSON.stringify({
@@ -139,6 +151,22 @@ import Seo from "../components/vh/Seo.astro";
   font-size:clamp(1.5rem,3.4vw,2.1rem);line-height:1;letter-spacing:-.02em;
   color:hsl(var(--primary))}
 .cs-count span{display:block;margin-top:.35rem;font-size:.58rem;font-weight:800;
+  letter-spacing:.2em;text-transform:uppercase;color:hsl(var(--muted-foreground))}
+
+/* ── the open day, when the opening is too far off to count down to ───
+   A counter reading "191 days" is a number, not anticipation, and it ticks
+   for six months while nothing happens. Outside the window the page states
+   the date instead, in the countdown's own plate so the two swap without
+   the section changing shape. */
+.cs-openday{display:inline-block;margin-top:1.9rem;padding:.8rem 1.15rem;
+  border-radius:var(--radius-sm);background:hsl(var(--background) / .5);
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2);text-align:center}
+@media (pointer:coarse){.cs-openday{background:hsl(var(--card))}}
+.cs-openday b{display:block;font-family:Fraunces,"Iowan Old Style",Georgia,serif;
+  font-weight:300;font-variation-settings:"opsz" 144,"SOFT" 12,"WONK" 0;
+  font-size:clamp(1.5rem,3.4vw,2.1rem);line-height:1;letter-spacing:-.02em;
+  color:hsl(var(--primary))}
+.cs-openday span{display:block;margin-top:.4rem;font-size:.58rem;font-weight:800;
   letter-spacing:.2em;text-transform:uppercase;color:hsl(var(--muted-foreground))}
 
 .cs-cta{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.9rem}
@@ -211,7 +239,9 @@ html.ask-open{overflow:hidden}
   .ask-opts{grid-template-columns:1fr}
   .ask-opt{padding:1.25rem 1.2rem}
 }
-.ask h2{font-size:clamp(1.45rem,3.2vw,2rem);margin:.9rem 0 .6rem}
+.ask-tag{margin-top:.85rem;font-size:.62rem;font-weight:800;letter-spacing:.18em;
+  text-transform:uppercase;color:hsl(var(--muted-foreground))}
+.ask h2{font-size:clamp(1.45rem,3.2vw,2rem);margin:.6rem 0}
 .ask h2 em{color:hsl(var(--accent))}
 .ask-say{font-size:.9rem;color:hsl(var(--muted-foreground))}
 .ask-opts{display:grid;gap:.7rem;margin-top:1.6rem}
@@ -259,18 +289,22 @@ html.ask-open{overflow:hidden}
 
   <div class="cs-in">
     <div>
-      <span class="eyebrow">Opening December 2026</span>
-      <h1 class="cs-h">Something calm is <em>coming.</em></h1>
-      <p class="lede cs-say">A private, gender-inclusive nail &amp; beauty lounge built around
-        stillness &mdash; plaster, walnut, real greenery, and the signature Zero Gravity ritual.
-        We&rsquo;re building the founding team now.</p>
+      <span class="eyebrow">Opening {OPENING_SEASON}</span>
+      <h1 class="cs-h">New way to experience nail care is <em>coming.</em></h1>
+      <p class="lede cs-say">A waterless nail &amp; skin care spa rooted in natural care and
+        zero-gravity comfort &mdash; an intentionally quiet space to disconnect, reset, and
+        simply slow down.</p>
 
-      <ul class="cs-count" aria-label="Countdown to opening">
-        <li><b class="num" data-d>&mdash;</b><span>Days</span></li>
-        <li><b class="num" data-h>&mdash;</b><span>Hours</span></li>
-        <li><b class="num" data-m>&mdash;</b><span>Minutes</span></li>
-        <li><b class="num" data-s>&mdash;</b><span>Seconds</span></li>
-      </ul>
+      {countdown ? (
+        <ul class="cs-count" aria-label="Countdown to opening" data-target={OPENING.toISOString()}>
+          <li><b class="num" data-d>&mdash;</b><span>Days</span></li>
+          <li><b class="num" data-h>&mdash;</b><span>Hours</span></li>
+          <li><b class="num" data-m>&mdash;</b><span>Minutes</span></li>
+          <li><b class="num" data-s>&mdash;</b><span>Seconds</span></li>
+        </ul>
+      ) : (
+        <p class="cs-openday"><b class="num">{OPENING_DAY}</b><span>Open day</span></p>
+      )}
 
       <p class="cs-cta">
         <a class="btn" href="/recruit" data-mag>Join the founding team
@@ -279,24 +313,24 @@ html.ask-open{overflow:hidden}
             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
         <a class="btn btn--outline" href="#waitlist" data-mag>Join the waitlist</a>
       </p>
-      <p class="cs-hiring">Now hiring nail artists, estheticians &amp; hosts &mdash; every role
-        open to all genders.</p>
-
-      <p class="cs-meta">
-        <span class="badge badge--outline"><span class="dot" aria-hidden="true"></span>5 Zero Gravity chairs</span>
-        <span class="badge badge--outline">A calmer kind of lounge</span>
-      </p>
+      <p class="cs-hiring">We&rsquo;re hiring Nail Technicians, Estheticians &amp; Hosts
+        &mdash; all experience levels are welcome.</p>
     </div>
 
     <div class="cs-panel" id="waitlist">
-      <h2>Be first through the door.</h2>
-      <p class="cs-panel-say">Leave your email and we&rsquo;ll write once, when booking opens.</p>
-      <WaitlistForm source="coming-soon" label="Join the waitlist" />
+      <h2>Be among the first to experience <em>CURE VÀ.</em></h2>
+      <p class="cs-panel-say">Join our waitlist to be the first to know when we open &mdash; and
+        look out for special gifts, offers, and little surprises throughout our first year.</p>
+      <WaitlistForm
+        source="coming-soon"
+        label="Join the waitlist"
+        fine="No spam. Just opening news and a few CURE VÀ surprises along the way."
+      />
     </div>
   </div>
 
   <div class="cs-foot">
-    <span class="cs-credit">&copy; 2026 Cure Và &middot; The Gallacher Collective</span>
+    <span class="cs-credit">&copy; 2027 Cure Và &middot; The Gallacher Collective</span>
     <ul class="cs-soc">
       <li><a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a></li>
       <li><a href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 3c.3 2.2 1.7 3.9 4 4.2v3c-1.5 0-2.9-.4-4-1.1V15a6 6 0 1 1-6-6c.3 0 .7 0 1 .1v3.1a3 3 0 1 0 2 2.8V3h3Z"/></svg></a></li>
@@ -309,18 +343,19 @@ html.ask-open{overflow:hidden}
 <!-- ══ first visit: which door? ═══════════════════════════════════════ -->
 <dialog class="ask" id="ask" data-nocursor aria-labelledby="askH">
   <div class="ask-in">
-    <span class="eyebrow">Opening December 2026</span>
-    <h2 id="askH">What brings you to <em>Cure Và?</em></h2>
-    <p class="ask-say">Point us the right way and we&rsquo;ll take you straight there.</p>
+    <span class="eyebrow">Opening {OPENING_SEASON}</span>
+    <p class="ask-tag">Waterless &middot; Zero-Gravity &middot; Natural Nail &amp; Skin Care</p>
+    <h2 id="askH">What brings you to <em>CURE VÀ?</em></h2>
+    <p class="ask-say">Point us the right way and we&rsquo;ll take it straight there.</p>
 
     <div class="ask-opts">
       <button class="ask-opt" type="button" data-go="waitlist">
-        <b>I&rsquo;m booking a visit</b>
-        <span>Join the waiting list &mdash; priority booking the day we open.</span>
+        <b>I&rsquo;m here to be a guest</b>
+        <span>Join the waitlist and be first to know when we open.</span>
       </button>
       <a class="ask-opt" href="/recruit/apply" data-go="careers">
-        <b>I&rsquo;m here about a role</b>
-        <span>Go straight to the application — six positions are open.</span>
+        <b>I&rsquo;m here to join the team</b>
+        <span>Explore open positions and come be part of the beginning.</span>
       </a>
     </div>
 
@@ -332,7 +367,9 @@ html.ask-open{overflow:hidden}
 <script is:inline>
 /* ── the countdown ───────────────────────────────────────────────────── */
 (function () {
-  var target = new Date('2026-12-01T09:00:00').getTime();
+  var list = document.querySelector('.cs-count');
+  if (!list) return;                       /* outside the window — the page states the date */
+  var target = new Date(list.getAttribute('data-target')).getTime();
   var elD = document.querySelector('[data-d]'), elH = document.querySelector('[data-h]'),
       elM = document.querySelector('[data-m]'), elS = document.querySelector('[data-s]');
   if (!elD) return;

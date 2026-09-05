@@ -17,8 +17,14 @@ interface Props {
 	/** Recorded on the D1 row — keep it unique per page. */
 	source?: string;
 	label?: string;
+	/** The line under the field. Differs per page, so it is copy, not chrome. */
+	fine?: string;
 }
-const { source = "getready-waitlist", label = "Reserve My Spot" } = Astro.props;
+const {
+	source = "getready-waitlist",
+	label = "Reserve My Spot",
+	fine = "No spam — just opening news, priority booking, and your founding-member invitation.",
+} = Astro.props;
 ---
 
 <div class="wl">
@@ -35,8 +41,7 @@ const { source = "getready-waitlist", label = "Reserve My Spot" } = Astro.props;
   <div class="wl-success js-wl-success" tabindex="-1">
     <p class="js-wl-success-text">You&rsquo;re on the list! We&rsquo;ll be in touch.</p>
   </div>
-  <p class="wl-fine">No spam — just opening news, priority booking, and your
-    founding-member invitation.</p>
+  <p class="wl-fine">{fine}</p>
 </div>
 
 <style is:global>

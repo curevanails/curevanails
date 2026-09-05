@@ -39,6 +39,7 @@ import "../styles/version-h-content.css";
 import "../styles/version-h-mobile.css";
 import runtimeUrl from "../../design/version-h/js/runtime.js?url";
 import CursorGround from "../components/vh/CursorGround.astro";
+import { OPENING_SEASON } from "../data/opening";
 
 interface Props {
 	title: string;
@@ -232,7 +233,7 @@ const NAV = [
 						/>
 					</div>
 					<div class="mp-meta">
-						<div><b>Opening</b>December 2026</div>
+						<div><b>Opening</b>{OPENING_SEASON}</div>
 						<div><b>Where</b>Legacy Village, Sugar House UT</div>
 						<div><b>Call</b><a href="tel:+18014253581">+1 801 425 3581</a></div>
 						{isLoggedIn && <div><b>Signed in</b><a href="/_emdash/admin">Admin</a></div>}

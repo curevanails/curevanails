@@ -12,7 +12,7 @@ This is the **CureVà Beauty Lounge** website -- an EmDash site (a CMS built on 
 | Sessions | Cloudflare KV (binding `SESSION`) |
 | UI islands | React 19 (`@astrojs/react`) |
 | Plugins | `@emdash-cms/plugin-forms`, `@emdash-cms/plugin-webhook-notifier` |
-| Booking | Mangomint embedded online booking widget (Company ID `463532`) |
+| Booking | Mangomint (Company ID `463532`) — **not wired up while booking is closed**; the studio opens Spring 2027 and every CTA leads to the waitlist |
 | Package manager | pnpm |
 
 ## Commands
@@ -39,7 +39,7 @@ After a change, verify end-to-end before committing:
 1. `pnpm build` succeeds (the Cloudflare adapter compiles the Worker).
 2. `pnpm typecheck` passes.
 3. `/` 302s to `/coming-soon`, which renders the version-H holding page with the countdown, the waiting-list form and the first-visit dialog. **Run `pnpm test:e2e`** — `e2e/design.spec.ts` is the display gate (47 checks: template leaks, cursor contrast on both grounds, the accordion at four widths, the month picker, the theme's raised/recessed pair, and every page with JavaScript off).
-4. Booking CTAs on `/early-access` (**Book now**, **Book your visit**) open the Mangomint popup; they fall back to `https://booking.mangomint.com/463532` if the widget script hasn't loaded. Booking must be enabled in the Mangomint account for the popup to appear.
+4. No page offers booking. The studio opens Spring 2027 (`src/data/opening.ts`), so every call to action leads to the waitlist. When booking opens, restore the Mangomint widget on `/early-access` — it is one commit back in the history.
 5. Blog routes respond: `/posts`, a single post, `/search`, `/rss.xml`.
 6. `/_emdash/admin` loads.
 7. If you touched recruit/admin: `/recruit` renders the form; `/admin` redirects to `/admin/login` when signed out; logging in shows the dashboard. (See [`docs/ADMIN.md`](docs/ADMIN.md).) Run `pnpm test:e2e` — the Playwright suite in `e2e/` covers the apply form and the admin dashboard end-to-end (see [`docs/TESTING.md`](docs/TESTING.md)).
@@ -111,7 +111,7 @@ intact and still EmDash's; only its skin changed.
 | Coming soon | `/coming-soon`     | The version-H holding page + waitlist form. **Pixel-locked to the standalone build**                   |
 | Get ready   | `/getready`        | Waiting-list landing; also the root of the standalone `getready` Worker                                |
 | Waitlist    | `/waitlist`        | Waiting-list holding page (near-duplicate of `/getready` — see PORTING.md)                             |
-| Early access| `/early-access`    | The full editorial homepage layout. Loads the Mangomint booking widget                                 |
+| Early access| `/early-access`    | The full editorial homepage layout, as it will read once open. `noindex`                               |
 | All posts   | `/posts`           | Article count, full post list with excerpts and tag chips                                              |
 | Post detail | `/posts/[slug]`    | Featured image, title, body, left meta column (authors + date), right TOC + search + categories gutter |
 | Search      | `/search`          | Full-text search UI                                                                                    |
@@ -189,7 +189,7 @@ records what was copied verbatim, what had to change, and what is still open.
 - **Fonts: one Google Fonts `<link>`** (Fraunces + Manrope), and it is the only
   external request the system makes. There is no `fonts:` block in
   `astro.config.mjs` any more. `/early-access` knowingly breaks this by loading
-  the Mangomint booking widget — see the note at the top of that file.
+  the Google Maps embed on `/recruit/apply` — see the note at the top of that file.
 - **Photography** is the brand's 28 WebP assets in `public/img/`, served at
   `/img/…`, which is exactly where `build-page.py` stamps them.
 

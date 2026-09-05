@@ -21,6 +21,7 @@ export const prerender = false;
 
 import VersionH from "../layouts/VersionH.astro";
 import WaitlistForm from "../components/vh/WaitlistForm.astro";
+import { OPENING_SEASON } from "../data/opening";
 
 const PERKS = [
 	"Priority booking before appointments open to the public",
@@ -65,7 +66,7 @@ const GROW = [
 
 <VersionH
 	title="Get ready"
-	description="Cure Và — a calm, non-toxic beauty lounge opening December 2026 at Legacy Village, Sugar House. Join the waiting list."
+	description="Cure Và — a waterless nail and skin care spa opening Spring 2027 at Legacy Village, Sugar House. Join the waiting list."
 	nav="dark"
 	current="/coming-soon"
 	canonicalPath="/coming-soon"
@@ -75,7 +76,7 @@ const GROW = [
 <section class="sec sec--first" id="hero" aria-labelledby="heroH">
   <div class="wrap gr-hero">
     <div>
-      <span class="eyebrow" data-r="fade">Opening December 2026 · Legacy Village</span>
+      <span class="eyebrow" data-r="fade">Opening {OPENING_SEASON} · Legacy Village</span>
       <h1 class="h-xl gr-h1" id="heroH" data-r style="--d:60ms">Enhance what&rsquo;s already
         <em>beautiful.</em></h1>
       <p class="lede" data-r="fade" style="--d:120ms;margin-top:1.6rem">We&rsquo;re creating the
@@ -162,10 +163,10 @@ const GROW = [
       <span class="eyebrow" data-r="fade">Careers at CURE VÀ</span>
       <h2 class="h-lg" id="carH" data-r style="--d:60ms">Grow with us from <em>day one.</em></h2>
       <p class="lede" data-r="fade" style="--d:120ms;margin-top:1.4rem">We&rsquo;re creating the
-        kind of beauty studio we always wished existed — not just for our clients, but for the
+        kind of nail &amp; skin care spa we always wished existed — not just for our guests, but for the
         professionals who care for them.</p>
-      <p class="lede" data-r="fade" style="--d:160ms;margin-top:1rem">Opening in Sugar House this
-        December, we&rsquo;re looking to connect with:</p>
+      <p class="lede" data-r="fade" style="--d:160ms;margin-top:1rem">Opening in Sugar House in
+        {OPENING_SEASON}, we&rsquo;re looking to connect with:</p>
       <p class="gr-chips" data-r="fade" style="--d:200ms">
         <span class="badge badge--outline">Nail Technicians</span>
         <span class="badge badge--outline">Estheticians</span>

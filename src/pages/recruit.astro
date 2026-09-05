@@ -27,6 +27,7 @@ export const prerender = false;
 
 import VersionH from "../layouts/VersionH.astro";
 import RoleAccordion from "../components/vh/RoleAccordion.astro";
+import { OPENING_ISO, OPENING_SEASON } from "../data/opening";
 
 /* Google Jobs reads JobPosting and shows these in a dedicated results
    panel — for a studio hiring four roles in one city that is the highest-
@@ -34,11 +35,10 @@ import RoleAccordion from "../components/vh/RoleAccordion.astro";
 
    `validThrough` and `datePosted` are required for the rich result to
    appear at all, and a posting past its validThrough is dropped. These are
-   derived from the December opening rather than hard-coded, so they do not
-   silently expire. */
-const OPENING = new Date("2026-12-01T00:00:00Z");
+   derived from src/data/opening.ts rather than hard-coded, so they do not
+   silently expire when the opening moves. */
 const POSTED = "2026-08-01";
-const VALID_THROUGH = OPENING.toISOString().slice(0, 10);
+const VALID_THROUGH = OPENING_ISO;
 
 const JOB_POSTINGS = [
 	{ title: "Nail Technician", openings: 2, description: "Natural-nail work in a waterless studio. We're looking for someone who takes pride in their work, enjoys creating meaningful connections with clients, and wants to grow with a team that's redefining the salon experience. Licensed, or eligible for Utah licensure." },
@@ -75,17 +75,11 @@ const JOB_POSTINGS = [
 	url: "https://curevanails.com/recruit/apply",
 }));
 
-const MATERIALS = [
-	{ n: "01 — Walls", t: "Rounded plaster, 7′ high, with travertine baseboards." },
-	{ n: "02 — Cabinetry", t: "Walnut millwork with contrast stitching and rope pulls." },
-	{ n: "03 — Floors", t: "Oak wood-tile, laid in a soft basketweave grid." },
-	{ n: "04 — Green", t: "Living palms, ferns and monstera throughout." },
-];
 ---
 
 <VersionH
 	title="Careers"
-	description="Cure Và is building its founding team in Sugar House — nail technicians, estheticians, lash & brow specialists and cosmetologists. Opening December 2026."
+	description="Cure Và is building its founding team in Sugar House — nail technicians, estheticians, lash & brow specialists and cosmetologists. Opening Spring 2027."
 	nav="paper"
 	current="/recruit"
 >
@@ -98,14 +92,13 @@ const MATERIALS = [
 <!-- ══ hero ══════════════════════════════════════════════════════════ -->
 <section class="sec sec--first on-light" id="team" aria-labelledby="teamH">
   <div class="wrap">
-    <span class="eyebrow" data-r="fade">Careers at Cure Và · Opening in Sugar House · December</span>
-    <h1 class="h-lg rc-h1" id="teamH" data-r style="--d:60ms">Come make something <em>calm.</em></h1>
+    <span class="eyebrow" data-r="fade">Careers at Cure Và · Opening in Sugar House · {OPENING_SEASON}</span>
+    <h1 class="h-lg rc-h1" id="teamH" data-r style="--d:60ms">Come build something <em>unique.</em></h1>
 
     <div class="rc-top">
       <div>
-        <p class="lede" data-r="fade" style="--d:120ms">We&rsquo;re creating the kind of beauty
-          studio we always wished existed — not just for our clients, but for the professionals
-          who care for them.</p>
+        <p class="lede" data-r="fade" style="--d:120ms">We&rsquo;re creating a different kind of
+          nail &amp; skin care spa — a thoughtful place for guests and professionals alike.</p>
         <p class="rc-chips" data-r="fade" style="--d:180ms">
           <span class="badge badge--outline">Nail Technicians</span>
           <span class="badge badge--outline">Estheticians</span>
@@ -132,80 +125,17 @@ const MATERIALS = [
   <div class="wrap rc-split">
     <span class="eyebrow" id="whyExistH" data-r="fade">Why we exist</span>
     <div>
-      <p class="rc-statement" data-r style="--d:60ms">Most salons are loud, bright, and built for
-        someone else. We&rsquo;re building the opposite — a warm, hushed room of plaster and walnut
-        where every guest, of every gender, is genuinely cared for. That kind of calm doesn&rsquo;t
-        happen by accident. <em>It&rsquo;s made by people who care about the craft.</em></p>
-      <p class="lede" data-r="fade" style="--d:140ms;margin-top:1.6rem">Opening in Sugar House this
-        December — we&rsquo;re looking to connect with nail technicians, estheticians, lash &amp;
-        brow specialists, and cosmetologists who feel the same.</p>
-    </div>
-  </div>
-</section>
-
-<!-- ══ our craft ═════════════════════════════════════════════════════ -->
-<section class="sec sec--tight on-light" id="values" aria-labelledby="valuesH">
-  <span class="ix" aria-hidden="true">02</span>
-  <div class="wrap">
-    <div class="head head--split">
-      <div>
-        <span class="eyebrow" data-r="fade">Our craft</span>
-        <h2 class="h-lg" id="valuesH" data-r style="--d:60ms">Five things we build into
-          <em>every&nbsp;day</em></h2>
-      </div>
-      <p class="lede" data-r="fade" style="--d:120ms">The same principles that shaped our space
-        shape how we work together.</p>
-    </div>
-    <div class="rc-values" data-r="fade">
-      <span class="badge badge--outline"><span class="dot" aria-hidden="true"></span>Intentional</span>
-      <span class="badge badge--outline"><span class="dot" aria-hidden="true"></span>Peaceful</span>
-      <span class="badge badge--outline"><span class="dot" aria-hidden="true"></span>Refreshing</span>
-      <span class="badge badge--outline"><span class="dot" aria-hidden="true"></span>Heritage</span>
-      <span class="badge badge--outline"><span class="dot" aria-hidden="true"></span>Natural</span>
-    </div>
-  </div>
-</section>
-
-<!-- ══ the space ═════════════════════════════════════════════════════ -->
-<section class="sec" id="space" aria-labelledby="spaceH">
-  <span class="ix" aria-hidden="true">03</span>
-  <div class="wrap">
-    <div class="head head--split">
-      <div>
-        <span class="eyebrow" data-r="fade">The space</span>
-        <h2 class="h-lg" id="spaceH" data-r style="--d:60ms">A room made from
-          <em>honest&nbsp;materials</em></h2>
-      </div>
-      <p class="lede" data-r="fade" style="--d:120ms">Rounded plaster walls, walnut cabinetry,
-        travertine, oak wood-tile floors, linen curtains, and real greenery. You&rsquo;ll spend
-        your days somewhere beautiful.</p>
-    </div>
-
-    <div class="rc-mosaic">
-      <div class="fr fr--tall rc-m1" data-r="zoom"><img src="/img/d-linen.webp"
-        width="1200" height="1798" decoding="async" loading="lazy"
-        alt="Linen hanging in daylight"></div>
-      <div class="fr fr--wide" data-r="zoom" style="--d:80ms"><img src="/img/g-chair.webp"
-        width="1200" height="800" decoding="async" loading="lazy"
-        alt="A treatment chair at its station"></div>
-      <div class="fr fr--sq" data-r="zoom" style="--d:140ms"><img src="/img/d-leaf2.webp"
-        width="1200" height="800" decoding="async" loading="lazy"
-        alt="Green leaves against a pale wall"></div>
-      <div class="fr fr--wide" data-r="zoom" style="--d:200ms"><img src="/img/d-linen2.webp"
-        width="1200" height="931" decoding="async" loading="lazy"
-        alt="Folded linen and warm light"></div>
-      <div class="fr fr--sq" data-r="zoom" style="--d:260ms"><img src="/img/d-ripple.webp"
-        width="1400" height="934" decoding="async" loading="lazy"
-        alt="Water rippling in a shallow bowl"></div>
-    </div>
-
-    <div class="rc-materials">
-      {MATERIALS.map((m, i) => (
-        <div data-r="fade" style={`--d:${i * 70}ms`}>
-          <div class="mono num">{m.n}</div>
-          <p class="rc-mat-t">{m.t}</p>
-        </div>
-      ))}
+      <p class="rc-statement" data-r style="--d:60ms">During my pregnancy with my first baby, I
+        started looking at my work as a nail technician differently. I became more aware of the
+        products, dust, sanitation, and overall environment that come with the work. That led to a
+        simple idea: <em>create a different kind of nail care spa</em> — one that considers both
+        guests and the professionals who care for them.</p>
+      <p class="lede" data-r="fade" style="--d:140ms;margin-top:1.6rem">Thoughtful products.
+        Natural nail care. High standards of cleanliness and sanitation. Less dust and odor. A more
+        comfortable way to work.</p>
+      <p class="lede" data-r="fade" style="--d:180ms;margin-top:1rem">Opening in Sugar House in
+        {OPENING_SEASON} — we&rsquo;re looking to connect with nail technicians, estheticians, lash
+        &amp; brow specialists, and cosmetologists who feel the same.</p>
     </div>
   </div>
 </section>
@@ -258,7 +188,7 @@ const MATERIALS = [
     <div class="head">
       <span class="eyebrow" data-r="fade">Who we&rsquo;re hiring</span>
       <h2 class="h-lg" id="rolesH" data-r style="--d:60ms">Four roles, opening
-        <em>this December</em></h2>
+        <em>{OPENING_SEASON}</em></h2>
       <p class="lede" data-r="fade" style="--d:120ms">Six founding-team openings in Sugar House.
         We&rsquo;d love to connect early.</p>
     </div>
@@ -267,68 +197,6 @@ const MATERIALS = [
 
     <p class="rc-note" data-r="fade">Not quite your title but this feels like your kind of place?
       Tell us anyway — we&rsquo;d love to meet you.</p>
-  </div>
-</section>
-
-<!-- ══ life here ═════════════════════════════════════════════════════ -->
-<section class="sec" id="life" aria-labelledby="lifeH">
-  <span class="ix" aria-hidden="true">06</span>
-  <div class="wrap">
-    <div class="head head--split">
-      <div>
-        <span class="eyebrow" data-r="fade">Life here</span>
-        <h2 class="h-lg" id="lifeH" data-r style="--d:60ms">Days at <em>Cure Và</em></h2>
-      </div>
-      <p class="lede" data-r="fade" style="--d:120ms">Slow mornings, good light, real plants, and
-        a team that has each other&rsquo;s backs.</p>
-    </div>
-    <div class="rc-gallery">
-      <div class="fr rc-g-big" data-r="zoom"><img src="/img/d-spa-light.webp"
-        width="1600" height="2400" decoding="async" loading="lazy"
-        alt="Daylight falling across the treatment room"></div>
-      <div class="fr fr--tall" data-r="zoom" style="--d:80ms"><img src="/img/d-work.webp"
-        width="1400" height="2488" decoding="async" loading="lazy"
-        alt="A technician at work"></div>
-      <div class="fr fr--sq" data-r="zoom" style="--d:140ms"><img src="/img/d-leaf3.webp"
-        width="1200" height="1800" decoding="async" loading="lazy" alt="A single leaf, close"></div>
-      <div class="fr fr--wide" data-r="zoom" style="--d:200ms"><img src="/img/d-rest.webp"
-        width="1400" height="933" decoding="async" loading="lazy"
-        alt="Hands resting after a treatment"></div>
-      <div class="fr fr--sq" data-r="zoom" style="--d:260ms"><img src="/img/d-oil.webp"
-        width="1100" height="1375" decoding="async" loading="lazy"
-        alt="Treatment oil on a stone tray"></div>
-    </div>
-  </div>
-</section>
-
-<!-- ══ talent list ═══════════════════════════════════════════════════ -->
-<section class="sec sec--tight on-light" id="apply" aria-labelledby="applyH">
-  <span class="ix" aria-hidden="true">07</span>
-  <div class="wrap rc-apply">
-    <div>
-      <span class="eyebrow" data-r="fade">Join our talent list</span>
-      <h2 class="h-lg" id="applyH" data-r style="--d:60ms">Let&rsquo;s <em>connect.</em></h2>
-      <p class="lede" data-r="fade" style="--d:120ms">One application covers everything — your
-        roles of interest, licensure status, and an optional résumé or portfolio. It takes about
-        two minutes, and we&rsquo;ll personally reach out when interview scheduling begins this
-        fall.</p>
-      <p class="rc-chips rc-chips--stack" data-r="fade" style="--d:180ms">
-        <span class="badge badge--outline"><span class="dot" aria-hidden="true"></span>Nail · Esthetics · Lash &amp; Brow · Cosmetology</span>
-        <span class="badge badge--outline">Opening December · Sugar House</span>
-        <span class="badge badge--outline">We reach out personally</span>
-      </p>
-    </div>
-
-    <article class="card rc-invite" data-r style="--d:120ms">
-      <div class="card-header"><h3 class="h-sm">One form. Two minutes.</h3></div>
-      <div class="card-content">
-        <p class="card-description">Tell us who you are and the work you love — résumé optional.
-          We read every application ourselves.</p>
-        <p style="margin-top:1.6rem"><a class="btn btn--lg" href="/recruit/apply" data-mag>Join our
-          talent list</a></p>
-        <p class="rc-fine">Your data is reviewed only by our hiring team.</p>
-      </div>
-    </article>
   </div>
 </section>
 
@@ -346,7 +214,6 @@ const MATERIALS = [
   .rc-cta{justify-content:flex-end}
 }
 .rc-chips{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.4rem}
-.rc-chips--stack{flex-direction:column;align-items:flex-start;gap:.7rem;margin-top:1.9rem}
 .rc-cta{display:flex;flex-wrap:wrap;gap:.8rem}
 .rc-band{margin-top:clamp(2.4rem,5vw,3.4rem);box-shadow:var(--sh)}
 
@@ -359,23 +226,6 @@ const MATERIALS = [
   font-size:clamp(1.5rem,2.7vw,2.25rem);line-height:1.34;letter-spacing:-.02em;
   color:hsl(var(--foreground));text-wrap:pretty}
 .rc-statement em{color:hsl(var(--accent))}
-
-.rc-values{display:flex;flex-wrap:wrap;gap:.6rem}
-
-/* the mosaic: one tall plate, then four that fill beside it.
-   minmax(0,…) is not decoration. A bare `1fr` is `minmax(auto,1fr)`, and a
-   frame with an aspect-ratio in a tall row reports a large min-content
-   WIDTH — which pushes the track past its share and the whole grid past
-   the wrap. That is what was happening: a square in a 333px column
-   measured 100px wider than the column and got clipped by `.sec`. */
-.rc-mosaic{display:grid;gap:.9rem;grid-template-columns:minmax(0,1fr)}
-@media (min-width:720px){
-  .rc-mosaic{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr)}
-  .rc-m1{grid-row:span 2}
-}
-.rc-materials{display:grid;gap:1.4rem;margin-top:1.9rem}
-@media (min-width:720px){.rc-materials{grid-template-columns:repeat(4,1fr)}}
-.rc-mat-t{margin-top:.5rem;font-size:.92rem;color:hsl(var(--muted-foreground))}
 
 .rc-grid{display:grid;gap:1rem}
 @media (min-width:820px){.rc-grid{grid-template-columns:repeat(3,1fr)}}
@@ -391,27 +241,5 @@ const MATERIALS = [
 
 .rc-note{margin-top:2.2rem;font-size:.92rem;color:hsl(var(--muted-foreground))}
 
-/* THE GALLERY HAD THE SAME BLOWOUT, worse. `.rc-gallery .fr{height:100%}`
-   stretched each frame to its row, and `aspect-ratio` then computed the
-   WIDTH from that height — so a square in a 292px column came out 500px
-   wide and was clipped. Rows are sized explicitly here and the frames fill
-   their cell in both axes, so the aspect-ratio classes no longer drive
-   anything inside this grid. */
-.rc-gallery{display:grid;gap:.9rem;grid-template-columns:minmax(0,1fr);
-  grid-auto-rows:clamp(11rem,42vw,15rem)}
-@media (min-width:720px){
-  .rc-gallery{grid-template-columns:repeat(4,minmax(0,1fr));
-    grid-auto-rows:clamp(9rem,16vw,14rem)}
-  .rc-g-big{grid-column:span 2;grid-row:span 2}
-}
-.rc-gallery .fr{width:100%;height:100%;aspect-ratio:auto}
-
-.rc-apply{display:grid;gap:2rem}
-@media (min-width:960px){.rc-apply{grid-template-columns:.85fr 1.15fr;gap:3.75rem;align-items:start}}
-.rc-invite{padding:clamp(1.6rem,3vw,2.75rem);box-shadow:inset 0 0 0 1px var(--border-hairline-2),var(--sh)}
-.rc-invite .card-header,.rc-invite .card-content{padding:0}
-.rc-invite .card-content{padding-top:.9rem}
-.rc-invite .card-description{font-size:.98rem;max-width:44ch}
-.rc-fine{margin-top:1.1rem;font-size:.78rem;color:hsl(var(--muted-foreground))}
 </style>
 

@@ -181,9 +181,12 @@ three `html/` templates in `cureva-ui`, so `extract.py` keeps carrying it.
 
 One, in one place, and it is commented at the top of the file.
 
-`/early-access` loads the Mangomint booking widget from
-`booking.mangomint.com`, which is a **second external request** — the system
-allows exactly one, the Google Fonts link, and `build-page.py` guard 9 fails a
-build that adds another. Booking is what that page is for, so the widget stays.
-The CTAs are plain anchors to the hosted booking URL, so they still work when
-the script does not load.
+`/recruit/apply` embeds a Google Map, which is a **second external request** —
+the system allows exactly one, the Google Fonts link, and `build-page.py`
+guard 9 fails a build that adds another. "Where is this job" is the second
+thing a candidate asks, so the map stays. It loads lazily, it is titled for
+screen readers, and it carries `data-nocursor` because pointer events belong
+to the iframe the moment the pointer is inside it.
+
+`/early-access` used to be a second exception — the Mangomint booking widget —
+until booking was closed until Spring 2027 and the widget came out with it.

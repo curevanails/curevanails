@@ -38,6 +38,7 @@ export const prerender = false;
 import VersionH from "../../layouts/VersionH.astro";
 import RoleAccordion from "../../components/vh/RoleAccordion.astro";
 import { TOTAL_OPENINGS } from "../../data/roles";
+import { OPENING_SEASON } from "../../data/opening";
 
 /* ── PLACEHOLDER, awaiting the confirmed address ──────────────────────
    A keyword query, not a pinned location: Google resolves
@@ -76,7 +77,7 @@ const MAP_EMBED_SRC =
         <b class="ap-n num"><span data-count-to={TOTAL_OPENINGS}>{TOTAL_OPENINGS}</span><span
           class="ap-plus">+</span></b>
         <span class="ap-sub">founding-team positions are open — nail, esthetics, lash &amp; brow
-          and cosmetology, all starting together when we open this December.</span>
+          and cosmetology, all starting together when we open in {OPENING_SEASON}.</span>
       </h1>
 
       <p class="ap-cta" data-r="fade" style="--d:140ms">
@@ -312,7 +313,7 @@ const MAP_EMBED_SRC =
     <div class="head">
       <span class="eyebrow" data-r="fade">Open roles</span>
       <h2 class="h-lg" id="rolesH" data-r style="--d:60ms">Who we&rsquo;re hiring
-        <em>this December</em></h2>
+        <em>for {OPENING_SEASON}</em></h2>
       <p class="lede" data-r="fade" style="--d:120ms">Six founding-team openings in Sugar House —
         the same application below covers every role.</p>
     </div>

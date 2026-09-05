@@ -7,14 +7,13 @@
  * with; it is built from the version-H system now instead of the warm
  * "Gallacher Collective" one.
  *
- * ⚠ THIS PAGE BREAKS A VERSION-H INVARIANT, deliberately and visibly.
- * The system's rule is one external request — the Google Fonts link — and
- * `build-page.py` guard 9 fails a build that adds a second. This page loads
- * the Mangomint booking widget from booking.mangomint.com, because that is
- * what makes every "Book" CTA open the on-site popup instead of bouncing to
- * a hosted page. Booking is the page's purpose, so the widget stays and the
- * invariant is reported rather than quietly satisfied. The CTAs are plain
- * anchors to BOOK_URL, so they still work when the script does not load.
+ * IT NO LONGER CLAIMS TO BE OPEN. The eyebrow said "Now open · Book your
+ * visit" and every call to action opened the Mangomint booking widget —
+ * on a site whose studio opens in Spring 2027. A visitor could act on
+ * that. Booking is closed, so the CTAs lead to the waitlist and the widget
+ * is gone; it returns the day booking does. Removing it also removed this
+ * page's break of the system's one-external-request rule, which leaves
+ * the map on /recruit/apply as the only one.
  *
  * Also changed, and worth naming:
  *   · the photography was Google `aida-public` URLs, which expire — it is
@@ -27,8 +26,14 @@
 export const prerender = false;
 
 import VersionH from "../layouts/VersionH.astro";
+import { OPENING_SEASON } from "../data/opening";
 
-const BOOK_URL = "https://booking.mangomint.com/463532";
+/* Booking is not open yet — the studio opens in Spring 2027 — so every
+   call to action leads to the waitlist rather than to a booking form that
+   would take a reservation for a room that does not exist. The Mangomint
+   integration comes back the day booking does; it is one commit away in
+   the history, and CompanyId 463532 is the account it used. */
+const WAITLIST_URL = "/coming-soon#waitlist";
 
 const SERVICES = [
 	{
@@ -74,7 +79,7 @@ const PERSONAS = [
 			"Quiet suites with Wi-Fi if you'd rather keep working",
 			"One-tap rebooking and your preferences saved",
 		],
-		cta: "Book a quick reset",
+		cta: "Join the waitlist",
 		img: "/img/d-lounge.webp", w: 1600, h: 900, alt: "The lounge in midday light",
 	},
 	{
@@ -86,7 +91,7 @@ const PERSONAS = [
 			"The Zero Gravity chair takes pressure off your back and legs",
 			"Bolsters, breaks, and positioning whenever you need them",
 		],
-		cta: "Book a safe visit",
+		cta: "Join the waitlist",
 		img: "/img/d-rest.webp", w: 1400, h: 933, alt: "A client resting, fully reclined",
 	},
 	{
@@ -98,7 +103,7 @@ const PERSONAS = [
 			"Mix-and-match services — any combination, any genders",
 			"Add a toast: sparkling or tea, on the house",
 		],
-		cta: "Book for two",
+		cta: "Join the waitlist",
 		img: "/img/d-spa-light.webp", w: 1600, h: 2400, alt: "Two chairs side by side",
 	},
 	{
@@ -110,7 +115,7 @@ const PERSONAS = [
 			"Hand & foot treatments for hard-working skin",
 			"Neutral, no-fuss lounge — no pink, no assumptions",
 		],
-		cta: "Book a grooming session",
+		cta: "Join the waitlist",
 		img: "/img/h-bare.webp", w: 1600, h: 1067, alt: "A hand treatment in progress",
 	},
 ];
@@ -145,7 +150,7 @@ const PARTNERS = ["aēsop", "OLIVE", "Tata H.", "OSEA", "Côte", "Saie",
 ---
 
 <VersionH
-	title="A new kind of nail &amp; beauty lounge"
+	title="A new kind of nail &amp; skin care spa"
 	description="Private suites, pregnancy-safe formulas, and the signature Zero Gravity ritual — a calmer way to be cared for, made for everyone."
 	nav="dark"
 	noindex
@@ -154,25 +159,22 @@ const PARTNERS = ["aēsop", "OLIVE", "Tata H.", "OSEA", "Côte", "Saie",
 		{/* The booking widget. See the note at the top of this file: it is a
 		    second external request, which the system's guard 9 forbids, and it
 		    is here because booking is what this page is for. */}
-		<script is:inline>
-			window.Mangomint = window.Mangomint || {};
-			window.Mangomint.CompanyId = 463532;
-		</script>
-		<script is:inline src="https://booking.mangomint.com/app.js" async></script>
+		{/* No booking widget while booking is closed — which also means this
+		    page no longer breaks the system's one-external-request rule. */}
 	</Fragment>
 
 <!-- ══ hero ══════════════════════════════════════════════════════════ -->
 <section class="sec sec--first" id="hero" aria-labelledby="eaHeroH">
   <div class="wrap ea-hero">
     <div>
-      <span class="eyebrow" data-r="fade">Now open · Book your visit</span>
-      <h1 class="h-xl ea-h1" id="eaHeroH" data-r style="--d:60ms">A new kind of nail &amp; beauty
-        <em>lounge.</em></h1>
+      <span class="eyebrow" data-r="fade">Opening {OPENING_SEASON} · Join the waitlist</span>
+      <h1 class="h-xl ea-h1" id="eaHeroH" data-r style="--d:60ms">A new kind of nail &amp; skin
+        <em>care spa.</em></h1>
       <p class="lede" data-r="fade" style="--d:120ms;margin-top:1.6rem">Private suites,
         pregnancy-safe formulas, and the signature Zero Gravity ritual — a calmer way to be cared
         for, made for everyone.</p>
       <p class="ea-cta" data-r="fade" style="--d:180ms">
-        <a class="btn btn--lg" href={BOOK_URL} data-mag>Book your visit</a>
+        <a class="btn btn--lg" href={WAITLIST_URL} data-mag>Join the waitlist</a>
         <a class="btn btn--outline btn--lg" href="#services" data-mag>Take the tour</a>
       </p>
       <p class="ea-chips" data-r="fade" style="--d:240ms">
@@ -257,7 +259,7 @@ const PARTNERS = ["aēsop", "OLIVE", "Tata H.", "OSEA", "Côte", "Saie",
         you&rsquo;re weightless — pressure lifts off your spine and legs, your breath slows, and
         the treatment becomes the rest of your day.</p>
       <p class="ea-cta" data-r="fade" style="--d:180ms">
-        <a class="btn btn--lg" href={BOOK_URL} data-mag>Reserve the ritual</a>
+        <a class="btn btn--lg" href={WAITLIST_URL} data-mag>Join the waitlist</a>
       </p>
     </div>
   </div>
@@ -294,7 +296,7 @@ const PARTNERS = ["aēsop", "OLIVE", "Tata H.", "OSEA", "Côte", "Saie",
             <h3 class="h-md">{p.t}</h3>
             <p class="lede" style="margin-top:.9rem">{p.d}</p>
             <ul class="ea-points">{p.points.map((x) => <li>{x}</li>)}</ul>
-            <p style="margin-top:1.8rem"><a class="btn" href={BOOK_URL} data-mag>{p.cta}</a></p>
+            <p style="margin-top:1.8rem"><a class="btn" href={WAITLIST_URL} data-mag>{p.cta}</a></p>
           </div>
         </div>
       ))}

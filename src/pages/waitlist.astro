@@ -20,6 +20,7 @@ export const prerender = false;
 
 import VersionH from "../layouts/VersionH.astro";
 import WaitlistForm from "../components/vh/WaitlistForm.astro";
+import { OPENING_SEASON } from "../data/opening";
 
 const PERKS = [
 	"Priority booking before appointments open to the public",
@@ -49,7 +50,7 @@ const DIFFERENCE = [
 
 <VersionH
 	title="Waiting list"
-	description="Enhance what's already beautiful. Cure Và opens December 2026 at Legacy Village, Sugar House — join the waiting list."
+	description="A waterless nail and skin care spa. Cure Và opens Spring 2027 at Legacy Village, Sugar House — join the waiting list."
 	nav="dark"
 	current="/coming-soon"
 	canonicalPath="/coming-soon"
@@ -59,13 +60,13 @@ const DIFFERENCE = [
 <section class="sec sec--first" id="hero" aria-labelledby="wlHeroH">
   <div class="wrap gr-hero">
     <div>
-      <span class="eyebrow" data-r="fade">Opening December 2026 · Legacy Village</span>
+      <span class="eyebrow" data-r="fade">Opening {OPENING_SEASON} · Legacy Village</span>
       <h1 class="h-xl gr-h1" id="wlHeroH" data-r style="--d:60ms">Enhance what&rsquo;s
         <em>Already Beautiful.</em></h1>
       <p class="lede" data-r="fade" style="--d:120ms;margin-top:1.6rem">A private,
-        gender-inclusive nail &amp; beauty lounge built around stillness — and the signature
+        gender-inclusive nail &amp; skin care spa built around stillness — and the signature
         Zero-Gravity experience.</p>
-      <p class="lede" data-r="fade" style="--d:160ms;margin-top:1rem">Opening December 2026 at
+      <p class="lede" data-r="fade" style="--d:160ms;margin-top:1rem">Opening {OPENING_SEASON} at
         Legacy Village.</p>
       <p class="gr-cta" data-r="fade" style="--d:220ms">
         <a class="btn btn--lg" href="#waitlist" data-mag>Join the waiting list</a>
@@ -141,7 +142,7 @@ const DIFFERENCE = [
       <span class="eyebrow" data-r="fade">Careers at Cure Và</span>
       <h2 class="h-lg" id="wlCarH" data-r style="--d:60ms">Why Grow <em>With Us?</em></h2>
       <p class="lede" data-r="fade" style="--d:120ms;margin-top:1.4rem">We&rsquo;re building the
-        founding team of a calmer kind of beauty lounge. Fair pay, a humane pace, and a real say
+        founding team of a calmer kind of nail &amp; skin care spa. Fair pay, a humane pace, and a real say
         in how we do things.</p>
       <p class="gr-cta" data-r="fade" style="--d:180ms">
         <a class="btn btn--lg" href="/recruit/apply" data-mag>Join Our Talent List</a>

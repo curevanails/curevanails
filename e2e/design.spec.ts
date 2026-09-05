@@ -1,4 +1,5 @@
 import { test, expect, type Page } from "@playwright/test";
+import { OPENING, OPENING_DAY, showCountdown } from "../src/data/opening";
 
 /**
  * Version-H design-system E2E — the DISPLAY suite.
@@ -107,7 +108,7 @@ for (const pg of PAGES) {
 				if (!THIRD_PARTY.test(e.message)) errors.push(e.message);
 			});
 			page.on("response", (r) => {
-				// /404 is expected to 404; the booking widget is third-party.
+				// /404 is expected to 404; the map embed is third-party.
 				if (r.status() >= 400 && !r.url().endsWith("/404") && !r.url().includes("mangomint")) {
 					httpFailures.push(`${r.status()} ${r.url()}`);
 				}
@@ -474,25 +475,57 @@ test.describe("without JavaScript", () => {
    7 · /coming-soon — the countdown and the first-visit dialog
    ═══════════════════════════════════════════════════════════════════════ */
 test.describe("coming-soon", () => {
-	test("the countdown runs and shows real figures", async ({ page }) => {
+	test("the 60-day rule decides between a countdown and a date", async ({ page }) => {
+		// The rule itself, at its edges — a boundary that only ever gets
+		// exercised for two months of the year is exactly the one to pin.
+		const day = 86_400_000;
+		expect(showCountdown(new Date(OPENING.getTime() - 61 * day)), "61 days out").toBe(false);
+		expect(showCountdown(new Date(OPENING.getTime() - 60 * day)), "60 days out").toBe(true);
+		expect(showCountdown(new Date(OPENING.getTime() - 1 * day)), "the day before").toBe(true);
+		expect(showCountdown(new Date(OPENING.getTime() + 1 * day)), "the day after").toBe(false);
+
+		// ...and that the page agrees with it today. Whichever branch is live,
+		// exactly one of the two must render.
 		await page.goto("/coming-soon", { waitUntil: "load" });
 		await settle(page);
-
-		const first = await page.evaluate(() => ({
-			days: document.querySelector("[data-d]")!.textContent!.trim(),
-			seconds: document.querySelector("[data-s]")!.textContent!.trim(),
-			tabular: getComputedStyle(document.querySelector("[data-d]")!).fontVariantNumeric,
+		const dom = await page.evaluate(() => ({
+			countdown: !!document.querySelector(".cs-count"),
+			openDay: !!document.querySelector(".cs-openday"),
+			openDayText: document.querySelector(".cs-openday")?.textContent?.trim() ?? null,
+			tabular: getComputedStyle(
+				document.querySelector(".cs-count b, .cs-openday b")!,
+			).fontVariantNumeric,
 		}));
-		expect(first.days, "the countdown never started").toMatch(/^\d+$/);
-		expect(Number(first.days)).toBeGreaterThan(0);
-		// .num — a changing second must not make the row jitter
-		expect(first.tabular).toContain("tabular-nums");
 
-		await page.waitForTimeout(1400);
-		const second = await page.evaluate(() =>
-			document.querySelector("[data-s]")!.textContent!.trim(),
-		);
-		expect(second, "the countdown is frozen").not.toBe(first.seconds);
+		expect(dom.countdown !== dom.openDay, "exactly one of the two should render").toBe(true);
+		expect(dom.countdown, "the page disagrees with showCountdown()").toBe(showCountdown());
+		// tabular figures either way: a ticking second must not reflow the line
+		expect(dom.tabular).toContain("tabular-nums");
+
+		if (dom.openDay) {
+			expect(dom.openDayText).toContain(OPENING_DAY);
+		} else {
+			const first = await page.evaluate(() => ({
+				days: document.querySelector("[data-d]")!.textContent!.trim(),
+				seconds: document.querySelector("[data-s]")!.textContent!.trim(),
+			}));
+			expect(first.days).toMatch(/^\d+$/);
+			await page.waitForTimeout(1400);
+			const later = await page.evaluate(
+				() => document.querySelector("[data-s]")!.textContent!.trim(),
+			);
+			expect(later, "the countdown is frozen").not.toBe(first.seconds);
+		}
+	});
+
+	test("the opening date is stated in one place and read everywhere", async ({ page }) => {
+		// It used to be written out in 25 places, three of them logic. A move of
+		// one season is the change that finds every copy you missed.
+		for (const path of ["/coming-soon", "/recruit", "/recruit/apply", "/getready", "/waitlist"]) {
+			await page.goto(path, { waitUntil: "load" });
+			const text = await page.evaluate(() => document.body.innerText);
+			expect(text, `${path} still says December`).not.toMatch(/December/i);
+		}
 	});
 
 	test("the first-visit dialog opens once, and not again", async ({ page }) => {

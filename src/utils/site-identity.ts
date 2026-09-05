@@ -14,7 +14,7 @@ export interface BlogSiteIdentitySettings {
 
 const DEFAULT_SITE_TITLE = "Cure Và";
 const DEFAULT_SITE_TAGLINE =
-	"Healthy nails, radiant skin, and a room built for five.";
+	"Waterless nail and skin care, rooted in natural care and zero-gravity comfort.";
 
 export function resolveBlogSiteIdentity(settings?: BlogSiteIdentitySettings) {
 	return {
