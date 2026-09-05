@@ -96,6 +96,47 @@ function contrast(a: string, b: string): number {
 	return (x + 0.05) / (y + 0.05);
 }
 
+/**
+ * Read computed styles only once they have STOPPED moving.
+ *
+ * Two earlier versions of the pill check below got this wrong in the same
+ * way: they measured a 300ms crossfade while it was still crossing. The ink
+ * travels dark->light while the fill travels light->dark, so the two pass
+ * each other and contrast dips to ~1.3 for a few frames; the resting state
+ * is 17:1. Which engine caught it was luck — chromium one run, WebKit the
+ * next.
+ *
+ * Polling for "the colour changed" returns on the first frame of the fade.
+ * `getAnimations()` looks right and is worse: called straight after the
+ * click the transition has not been created yet, so it returns [], the
+ * await resolves immediately, and the read happens before the fade starts.
+ * Both are races dressed as conditions.
+ *
+ * Stability is the only honest signal, and it is why this cannot go back to
+ * a fixed delay either: .3s is the authored duration, not the observed one.
+ */
+async function settledStyle(page: Page, selector: string, props: string[]) {
+	return page.evaluate(
+		async ({ selector, props }) => {
+			const el = document.querySelector(selector);
+			if (!el) throw new Error(`settledStyle: no element matches ${selector}`);
+			const read = () => props.map((p) => getComputedStyle(el).getPropertyValue(p)).join("|");
+			let prev = read();
+			let stable = 0;
+			// ~10s at 60fps: generous for a loaded runner, still bounded.
+			for (let i = 0; i < 600 && stable < 5; i++) {
+				await new Promise((r) => requestAnimationFrame(r));
+				const now = read();
+				stable = now === prev ? stable + 1 : 0;
+				prev = now;
+			}
+			const cs = getComputedStyle(el);
+			return Object.fromEntries(props.map((p) => [p, cs.getPropertyValue(p)]));
+		},
+		{ selector, props },
+	);
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    1 · Every page, both viewports — the sweep
    ═══════════════════════════════════════════════════════════════════════ */
@@ -871,31 +912,24 @@ test.describe("apply page", () => {
 		await page.goto("/recruit/apply", { waitUntil: "load" });
 		await settle(page);
 
-		const unchosen = await page.evaluate(() => {
-			const el = document.querySelector(".opt")!;
-			return { bg: getComputedStyle(el).backgroundColor, ink: getComputedStyle(el).color };
-		});
+		const PROPS = ["background-color", "color"];
+		const unchosen = await settledStyle(page, ".opt", PROPS);
 		await page.locator(".opt").first().click();
-		// the fill transitions over .3s; wait for it to arrive rather than
-		// assuming a slow runner got there inside a fixed delay
-		await expect
-			.poll(() =>
-				page.evaluate(
-					() => getComputedStyle(document.querySelector(".opt")!).backgroundColor,
-				),
-			)
-			.not.toBe(unchosen.bg);
-		const chosen = await page.evaluate(() => {
-			const el = document.querySelector(".opt")!;
-			return { bg: getComputedStyle(el).backgroundColor, ink: getComputedStyle(el).color };
-		});
+		// Measure where the crossfade LANDS, not where it passes through.
+		const chosen = await settledStyle(page, ".opt", PROPS);
 
-		// both states have to be readable...
-		expect(contrast(unchosen.ink, unchosen.bg), "unchosen pill").toBeGreaterThan(4.5);
-		expect(contrast(chosen.ink, chosen.bg), "chosen pill").toBeGreaterThan(4.5);
+		expect(chosen["background-color"], "the chosen pill never changed colour").not.toBe(
+			unchosen["background-color"],
+		);
+		// both resting states have to be readable...
+		expect(
+			contrast(unchosen.color, unchosen["background-color"]),
+			"unchosen pill",
+		).toBeGreaterThan(4.5);
+		expect(contrast(chosen.color, chosen["background-color"]), "chosen pill").toBeGreaterThan(4.5);
 		// ...and a chosen pill must be obviously darker, not a hairline change
 		expect(
-			luminance(unchosen.bg) - luminance(chosen.bg),
+			luminance(unchosen["background-color"]) - luminance(chosen["background-color"]),
 			"a chosen pill is not visibly darker than an unchosen one",
 		).toBeGreaterThan(0.3);
 	});

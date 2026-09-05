@@ -38,7 +38,7 @@ After a change, verify end-to-end before committing:
 
 1. `pnpm build` succeeds (the Cloudflare adapter compiles the Worker).
 2. `pnpm typecheck` passes.
-3. `/` 302s to `/coming-soon`, which renders the version-H holding page with the countdown, the waiting-list form and the first-visit dialog. **Run `pnpm test:e2e`** — `e2e/design.spec.ts` is the display gate (47 checks: template leaks, cursor contrast on both grounds, the accordion at four widths, the month picker, the theme's raised/recessed pair, and every page with JavaScript off).
+3. `/` 302s to `/coming-soon`, which renders the version-H holding page with the countdown, the waiting-list form and the first-visit dialog. **Run `pnpm test:e2e`** — `e2e/design.spec.ts` is the display gate (runs in Chromium AND WebKit: template leaks, cursor contrast on both grounds, the accordion at four widths, the month picker, the theme's raised/recessed pair, and every page with JavaScript off).
 4. No page offers booking. The studio opens Spring 2027 (`src/data/opening.ts`), so every call to action leads to the waitlist. When booking opens, restore the Mangomint widget on `/early-access` — it is one commit back in the history.
 5. Blog routes respond: `/posts`, a single post, `/search`, `/rss.xml`.
 6. `/_emdash/admin` loads.
@@ -108,7 +108,7 @@ intact and still EmDash's; only its skin changed.
 | Page        | Path               | What it shows                                                                                          |
 | ----------- | ------------------ | ------------------------------------------------------------------------------------------------------ |
 | Home        | `/`                | 302 → `/coming-soon`                                                                                   |
-| Coming soon | `/coming-soon`     | The version-H holding page + waitlist form. **Pixel-locked to the standalone build**                   |
+| Coming soon | `/coming-soon`     | The holding page: waitlist form, first-visit dialog, and the countdown/date that swaps at 60 days out  |
 | Get ready   | `/getready`        | Waiting-list landing; also the root of the standalone `getready` Worker                                |
 | Waitlist    | `/waitlist`        | Waiting-list holding page (near-duplicate of `/getready` — see PORTING.md)                             |
 | Early access| `/early-access`    | The full editorial homepage layout, as it will read once open. `noindex`                               |
@@ -188,8 +188,8 @@ records what was copied verbatim, what had to change, and what is still open.
   ships no article template, so those are written here, in its idiom.
 - **Fonts: one Google Fonts `<link>`** (Fraunces + Manrope), and it is the only
   external request the system makes. There is no `fonts:` block in
-  `astro.config.mjs` any more. `/early-access` knowingly breaks this by loading
-  the Google Maps embed on `/recruit/apply` — see the note at the top of that file.
+  `astro.config.mjs` any more. The **one** documented exception is the Google
+  Maps embed on `/recruit/apply` — see the note at the top of that file.
 - **Photography** is the brand's 28 WebP assets in `public/img/`, served at
   `/img/…`, which is exactly where `build-page.py` stamps them.
 

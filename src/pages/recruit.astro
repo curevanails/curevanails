@@ -123,9 +123,13 @@ const JOB_POSTINGS = [
 <section class="sec" id="why-we-exist" aria-labelledby="whyExistH">
   <span class="ix" aria-hidden="true">01</span>
   <div class="wrap rc-split">
-    <span class="eyebrow" id="whyExistH" data-r="fade">Why we exist</span>
     <div>
-      <p class="rc-statement" data-r style="--d:60ms">During my pregnancy with my first baby, I
+      <span class="eyebrow" data-r="fade">Why we exist</span>
+      <h2 class="h-lg rc-why-h" id="whyExistH" data-r style="--d:60ms">A different kind of
+        <em>nail care spa.</em></h2>
+    </div>
+    <div>
+      <p class="rc-statement" data-r style="--d:100ms">During my pregnancy with my first baby, I
         started looking at my work as a nail technician differently. I became more aware of the
         products, dust, sanitation, and overall environment that come with the work. That led to a
         simple idea: <em>create a different kind of nail care spa</em> — one that considers both
@@ -220,6 +224,11 @@ const JOB_POSTINGS = [
 /* the statement paragraph — Fraunces at reading size, the one place on
    this page where body copy takes the editorial face */
 .rc-split{display:grid;gap:1.4rem}
+/* The left column is the section's title now, not a lone kicker. Without a
+   heading here the eyebrow was the only title-ish thing in the section —
+   10.88px sitting above a 36px paragraph, which reads as a caption on top
+   of the thing it is meant to introduce. */
+.rc-why-h{margin-top:.9rem;max-width:14ch}
 @media (min-width:960px){.rc-split{grid-template-columns:.9fr 1.1fr;gap:3.75rem;align-items:start}}
 .rc-statement{font-family:Fraunces,"Iowan Old Style",Georgia,serif;font-weight:300;
   font-variation-settings:"opsz" 144,"SOFT" 12,"WONK" 0;
