@@ -354,6 +354,27 @@ const turnstileSite = turnstileSiteKey();
   padding:.75em 0;border-radius:0;transition:border-color .4s var(--ease)}
 .inp::placeholder{color:hsl(var(--muted-foreground) / .55)}
 .inp:focus{outline:0;border-color:hsl(var(--ring))}
+/* CHROME PAINTS AUTOFILLED FIELDS ITSELF — a solid blue-grey slab, from a UA
+   rule carrying !important that `background` cannot beat. The field is a
+   hairline underline on the card here, so the slab arrived as a block of
+   foreign colour sitting on the form.
+
+   `background-clip:text` is the way out that does not name a colour: the UA
+   background still paints, but only inside the glyphs, where the text sits
+   on top of it. Nothing shows. Painting over it with an opaque inset shadow
+   would work too, but only until the ground it is faked against changes —
+   this holds on card, paper or night, and through a theme swap.
+
+   `:autofill` is the standard selector; `:-webkit-autofill` is what actually
+   ships today. They are in separate rules on purpose: one selector the
+   browser cannot parse invalidates the whole list. */
+.inp:autofill,.inp:autofill:hover,.inp:autofill:focus{
+  background-clip:text;-webkit-text-fill-color:hsl(var(--foreground));
+  caret-color:hsl(var(--foreground))}
+.inp:-webkit-autofill,.inp:-webkit-autofill:hover,.inp:-webkit-autofill:focus{
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:hsl(var(--foreground));
+  caret-color:hsl(var(--foreground))}
 textarea.inp{resize:vertical;min-height:5.5em}
 /* the script writes .err; the system's rule is that the state also reaches
    the control, so aria-invalid rides along on the same declaration */

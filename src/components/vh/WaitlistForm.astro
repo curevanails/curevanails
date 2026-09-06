@@ -76,6 +76,19 @@ const turnstileSite = turnstileSiteKey();
 .wl-turnstile:empty{display:none}
 .wl-form .input{flex:1 1 15rem;min-width:0}
 .wl-form .input.err{border-color:hsl(var(--destructive))}
+/* Chrome paints an autofilled field with its own opaque slab, from a UA rule
+   `background` cannot beat. `background-clip:text` confines that paint to the
+   glyphs, where the text covers it — so the underline field stays an
+   underline field on any ground, named colour not required. The standard and
+   the -webkit- selector are split: one unparseable selector would void the
+   whole list. See the same note in recruit/apply.astro. */
+.wl-form .input:autofill,.wl-form .input:autofill:hover,.wl-form .input:autofill:focus{
+  background-clip:text;-webkit-text-fill-color:hsl(var(--foreground));
+  caret-color:hsl(var(--foreground))}
+.wl-form .input:-webkit-autofill,.wl-form .input:-webkit-autofill:hover,.wl-form .input:-webkit-autofill:focus{
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:hsl(var(--foreground));
+  caret-color:hsl(var(--foreground))}
 .wl-msg{font-size:.8rem;color:hsl(var(--muted-foreground));min-height:1em}
 .wl-msg.bad{color:hsl(var(--destructive))}
 .wl-success{display:none;padding:.9rem 1.15rem;border-radius:var(--radius-md);
