@@ -40,7 +40,7 @@ export interface ApplicationSummary {
 	currentStatus: string;
 	graduationDate: string | null;
 	background: string;
-	employmentType: string;
+	employmentType: string[];
 	portfolioLink: string | null;
 	whyCureva: string | null;
 }
@@ -98,7 +98,7 @@ export async function sendRecruitEmails(
 		email: app.email ?? "",
 		current_status: humanize(app.currentStatus),
 		background: humanize(app.background),
-		employment_type: humanize(app.employmentType),
+		employment_type: app.employmentType.map(humanize).join(", "),
 		graduation_date: app.graduationDate ?? "",
 		portfolio_link: app.portfolioLink ?? "",
 		why_cureva: app.whyCureva ?? "",

@@ -13,6 +13,8 @@
  *
  * `source` distinguishes which page a signup came from, so it stays a prop.
  */
+import { turnstileSiteKey } from "../../utils/turnstile";
+
 interface Props {
 	/** Recorded on the D1 row — keep it unique per page. */
 	source?: string;
@@ -25,6 +27,10 @@ const {
 	label = "Reserve My Spot",
 	fine = "No spam — just opening news, priority booking, and your founding-member invitation.",
 } = Astro.props;
+
+/* Empty until TURNSTILE_SITE_KEY is set; the widget then simply does not
+   render and /api/waitlist skips the check to match. */
+const turnstileSite = turnstileSiteKey();
 ---
 
 <div class="wl">
@@ -36,7 +42,23 @@ const {
       <svg class="arw" width="15" height="10" viewBox="0 0 15 10" fill="none"
         aria-hidden="true"><path d="M1 5h12M9 1l4 4-4 4" stroke="currentColor"
         stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    {turnstileSite && (
+      <div
+        class="cf-turnstile wl-turnstile"
+        data-sitekey={turnstileSite}
+        data-action="turnstile-spin-v1"
+        data-appearance="interaction-only"
+      />
+    )}
   </form>
+  {turnstileSite && (
+    <script
+      is:inline
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+      async
+      defer
+    />
+  )}
   <p class="wl-msg js-wl-msg" role="status"></p>
   <div class="wl-success js-wl-success" tabindex="-1">
     <p class="js-wl-success-text">You&rsquo;re on the list! We&rsquo;ll be in touch.</p>
@@ -48,6 +70,10 @@ const {
 /* Composed from tokens; names no colour. */
 .wl{display:grid;gap:.75rem}
 .wl-form{display:flex;flex-wrap:wrap;gap:.7rem;align-items:flex-end}
+/* Its own row when a challenge actually appears; `interaction-only` means it
+   is usually nothing at all, and an empty box must not open a gap. */
+.wl-turnstile{flex-basis:100%}
+.wl-turnstile:empty{display:none}
 .wl-form .input{flex:1 1 15rem;min-width:0}
 .wl-form .input.err{border-color:hsl(var(--destructive))}
 .wl-msg{font-size:.8rem;color:hsl(var(--muted-foreground));min-height:1em}
@@ -86,14 +112,32 @@ const {
       msg.textContent = '';
       msg.className = 'wl-msg js-wl-msg';
 
+      /* The human check, when there is one. Turnstile writes its answer into a
+         hidden input inside this form; empty means the visitor was challenged
+         and has not finished. /api/waitlist checks it again — this is only the
+         message. */
+      var tsWidget = form.querySelector('.cf-turnstile');
+      var tsInput = form.querySelector('[name="cf-turnstile-response"]');
+      if (tsWidget && (!tsInput || !tsInput.value)) {
+        msg.textContent = 'Please complete the human check.';
+        msg.className = 'wl-msg js-wl-msg bad';
+        return;
+      }
+
       var label = btn.textContent;
       btn.disabled = true;
       btn.textContent = 'Reserving…';
 
+      var payload = {
+        email: email,
+        source: form.getAttribute('data-wl-source') || 'waitlist',
+      };
+      if (tsInput && tsInput.value) payload['cf-turnstile-response'] = tsInput.value;
+
       fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ email: email, source: form.getAttribute('data-wl-source') || 'waitlist' }),
+        body: JSON.stringify(payload),
       })
         .then(function (res) {
           return res.json().then(function (data) { return { ok: res.ok, data: data }; });
@@ -114,12 +158,15 @@ const {
           if (r.data && r.data.errors && r.data.errors.email) emailEl.classList.add('err');
           msg.textContent = err;
           msg.className = 'wl-msg js-wl-msg bad';
+          // The token is spent — hand the retry a fresh one.
+          try { if (tsWidget && window.turnstile) window.turnstile.reset(tsWidget); } catch (e2) {}
           btn.disabled = false;
           btn.textContent = label;
         })
         .catch(function () {
           msg.textContent = 'Network error. Please try again.';
           msg.className = 'wl-msg js-wl-msg bad';
+          try { if (tsWidget && window.turnstile) window.turnstile.reset(tsWidget); } catch (e2) {}
           btn.disabled = false;
           btn.textContent = label;
         });

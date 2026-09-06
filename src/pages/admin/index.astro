@@ -73,7 +73,9 @@ function parseList(json: string | null): string[] {
 		const arr = JSON.parse(json);
 		return Array.isArray(arr) ? arr.map(String) : [];
 	} catch {
-		return [];
+		// Rows written before the column held JSON keep a single bare value
+		// (`full_time`, `either`). Read them as the one-item list they are.
+		return [json];
 	}
 }
 function fmtDate(iso: string): string {
@@ -351,6 +353,7 @@ const selectCls =
 									</thead>
 									{applications.map((app) => {
 										const positions = parseList(app.positions);
+										const employment = parseList(app.employment_type);
 										const fullName = `${app.first_name} ${app.last_name}`.trim();
 										const st = statusOf(app.status);
 										const searchBlob = `${fullName} ${app.email ?? ""} ${app.phone}`.toLowerCase();
@@ -359,7 +362,7 @@ const selectCls =
 												class="app-group border-b border-gray-100 last:border-0"
 												data-search={searchBlob}
 												data-status={st}
-												data-employment={app.employment_type}
+												data-employment={employment.join(",")}
 												data-positions={positions.join(",")}
 												data-cstatus={app.current_status}
 												data-background={app.background}
@@ -399,7 +402,7 @@ const selectCls =
 													<td class="px-5 py-3.5 align-middle">
 														<div class="flex flex-wrap gap-1">
 															{positions.map((p) => <span class="rounded-md bg-gray-100 text-gray-600 px-2 py-0.5 text-xs">{label(p)}</span>)}
-															<span class="rounded-md bg-brand-50 text-brand-500 px-2 py-0.5 text-xs">{label(app.employment_type)}</span>
+															{employment.map((e) => <span class="rounded-md bg-brand-50 text-brand-500 px-2 py-0.5 text-xs">{label(e)}</span>)}
 														</div>
 													</td>
 													<td class="px-5 py-3.5 align-middle whitespace-nowrap">
@@ -530,7 +533,7 @@ const selectCls =
 					if (ok && position && !inList(d.positions, position)) ok = false;
 					if (ok && cstatus && d.cstatus !== cstatus) ok = false;
 					if (ok && background && d.background !== background) ok = false;
-					if (ok && employment && d.employment !== employment) ok = false;
+					if (ok && employment && !inList(d.employment, employment)) ok = false;
 					if (ok && from && d.date < from) ok = false;
 					if (ok && to && d.date > to) ok = false;
 					g.classList.toggle("row-hidden", !ok);

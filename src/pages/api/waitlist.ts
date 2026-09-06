@@ -7,6 +7,7 @@ import {
 	normalizePhone,
 } from "../../utils/waitlist-db";
 import { rateLimit } from "../../utils/rate-limit";
+import { TURNSTILE_FIELD, verifyTurnstile } from "../../utils/turnstile";
 import { sendWaitlistWelcome } from "../../utils/waitlist-emails";
 
 // Server-rendered endpoint — never prerender.
@@ -44,11 +45,12 @@ function digitsOnly(s: string): string {
 /** Read `email`, `phone`, `source` from a JSON body or a form POST. */
 async function readFields(
 	request: Request,
-): Promise<{ email: string; phone: string; source: string }> {
+): Promise<{ email: string; phone: string; source: string; token: string }> {
 	const contentType = request.headers.get("content-type") ?? "";
 	let email = "";
 	let phone = "";
 	let source = "";
+	let token = "";
 
 	if (contentType.includes("application/json")) {
 		const body = (await request.json().catch(() => ({}))) as Record<
@@ -58,6 +60,7 @@ async function readFields(
 		email = typeof body.email === "string" ? body.email : "";
 		phone = typeof body.phone === "string" ? body.phone : "";
 		source = typeof body.source === "string" ? body.source : "";
+		token = typeof body[TURNSTILE_FIELD] === "string" ? body[TURNSTILE_FIELD] : "";
 	} else {
 		const form = await request.formData();
 		const get = (k: string) => {
@@ -67,9 +70,15 @@ async function readFields(
 		email = get("email");
 		phone = get("phone");
 		source = get("source");
+		token = get(TURNSTILE_FIELD);
 	}
 
-	return { email: email.trim(), phone: phone.trim(), source: source.trim() };
+	return {
+		email: email.trim(),
+		phone: phone.trim(),
+		source: source.trim(),
+		token: token.trim(),
+	};
 }
 
 export const POST: APIRoute = async ({ request }) => {
@@ -89,11 +98,16 @@ export const POST: APIRoute = async ({ request }) => {
 	let email: string;
 	let phone: string;
 	let source: string;
+	let token: string;
 	try {
-		({ email, phone, source } = await readFields(request));
+		({ email, phone, source, token } = await readFields(request));
 	} catch {
 		return json({ ok: false, error: "Could not read the submission." }, 400);
 	}
+
+	// Bot check before any write. Costs nothing while unconfigured.
+	const human = await verifyTurnstile(token, ip);
+	if (!human.ok) return json({ ok: false, error: human.error }, 400);
 
 	// --- Validate (same rules as the recruit form) ---
 	const errors: Record<string, string> = {};

@@ -18,42 +18,27 @@
  * so it re-themes with the rest of the site.
  *
  * The duplicated open-roles accordion is now <RoleAccordion />, shared with
- * /recruit, and the roles themselves live in src/data/roles.ts so the
- * opening count in the first section is DERIVED from the list rather than
- * typed beside it — a hard-coded "6" next to a list that says 2+2+1+1 is a
- * number that goes wrong the first time a role is filled.
+ * /recruit, and the roles themselves live in src/data/roles.ts.
  *
- * ⚠ THE MAP IS A THIRD-PARTY IFRAME. Like the booking widget on
- * /early-access it is a second external request, which this system allows
- * only for the Google Fonts link. It is here because "where is this job"
- * is the second thing a candidate asks. It loads lazily, it is titled for
- * screen readers, and it carries data-nocursor because pointer events
- * belong to the iframe the moment the pointer is inside it.
- *
- * The map's location is a PLACEHOLDER — a keyword query, not a pinned
- * address — and is one line, MAP_EMBED_SRC below. See the note there.
+ * The page OPENS ON THE FORM. It used to lead with a "6+ positions are
+ * open" count and a Google-Maps embed; both are gone, so a candidate who
+ * followed a link that says "apply" lands on the thing they came to do.
+ * The count and the location still live one click away on /recruit, and
+ * the open roles are still listed under the form. Removing the embed also
+ * takes the page's only third-party iframe with it.
  */
 export const prerender = false;
 
+import { turnstileSiteKey } from "../../utils/turnstile";
 import VersionH from "../../layouts/VersionH.astro";
 import RoleAccordion from "../../components/vh/RoleAccordion.astro";
-import { TOTAL_OPENINGS } from "../../data/roles";
 import { OPENING_SEASON } from "../../data/opening";
 
-/* ── PLACEHOLDER, awaiting the confirmed address ──────────────────────
-   A keyword query, not a pinned location: Google resolves
-   "Legacy Village, Sugar House" to its best guess, which is the same
-   string the rest of the site prints but is NOT a confirmed shopfront.
-   Treat the pin as indicative until it is replaced.
-
-   To replace it, swap this one line for either
-     · a Place ID embed (exact, and survives the business being renamed):
-       https://www.google.com/maps/embed/v1/place?key=KEY&q=place_id:PLACE_ID
-     · or coordinates:
-       https://www.google.com/maps?q=40.7247,-111.8556&z=17&output=embed
-   Nothing else on the page needs to change. */
-const MAP_EMBED_SRC =
-	"https://www.google.com/maps?q=Legacy%20Village%2C%20Sugar%20House%2C%20Salt%20Lake%20City%2C%20UT&output=embed";
+/* Empty until TURNSTILE_SITE_KEY is set, and the widget then simply does not
+   render — the form keeps working exactly as it does today, and the endpoint
+   skips the check to match. Setting the key (and the secret) is what turns
+   bot protection on, in one place, with no code change. */
+const turnstileSite = turnstileSiteKey();
 ---
 
 <VersionH
@@ -64,49 +49,7 @@ const MAP_EMBED_SRC =
 >
 
 <!-- ══ the application ═══════════════════════════════════════════════ -->
-<!-- ══ how many are open, and where ══════════════════════════════════
-     The page opens on the one fact a candidate wants first: the number.
-     It is DERIVED from src/data/roles.ts, so it cannot drift from the list
-     further down the page. ═══════════════════════════════════════════ -->
-<section class="sec sec--first sec--tight on-light" id="open" aria-labelledby="openH">
-  <div class="wrap ap-hero">
-    <div>
-      <span class="eyebrow" data-r="fade">Now hiring · Legacy Village, Sugar House</span>
-
-      <h1 class="ap-h1" id="openH" data-r style="--d:60ms">
-        <b class="ap-n num"><span data-count-to={TOTAL_OPENINGS}>{TOTAL_OPENINGS}</span><span
-          class="ap-plus">+</span></b>
-        <span class="ap-sub">founding-team positions are open — nail, esthetics, lash &amp; brow
-          and cosmetology, all starting together when we open in {OPENING_SEASON}.</span>
-      </h1>
-
-      <p class="ap-cta" data-r="fade" style="--d:140ms">
-        <a class="btn btn--lg" href="#form" data-mag>Apply now</a>
-        <a class="btn btn--outline btn--lg" href="/recruit" data-mag>View the details</a>
-      </p>
-    </div>
-
-    <!-- data-nocursor: pointer events belong to the iframe once the pointer
-         is over it, so the custom ring would freeze mid-map. Hand the
-         region back to the operating system. See DESIGN-SYSTEM.md §6.
-
-         allow="fullscreen" is not optional: the embed calls the Fullscreen
-         API for its expand control, and without the grant WebKit throws
-         "Permission policy 'Fullscreen' check failed" on every load and the
-         control silently does nothing. -->
-    <div class="ap-map" data-nocursor data-r="zoom" style="--d:120ms">
-      <iframe
-        title="Map — Cure Và, Legacy Village, Sugar House, Utah"
-        src={MAP_EMBED_SRC}
-        loading="lazy"
-        referrerpolicy="no-referrer-when-downgrade"
-        allow="fullscreen"></iframe>
-    </div>
-  </div>
-</section>
-
-<!-- ══ the application ═══════════════════════════════════════════════ -->
-<section class="sec on-light" aria-labelledby="formH">
+<section class="sec sec--first on-light" aria-labelledby="formH">
   <div class="wrap ap-wrap">
 
 <div class="app-shell" id="form">
@@ -114,7 +57,7 @@ const MAP_EMBED_SRC =
     <!-- ===== HEADER BAND ===== -->
     <div class="app-head">
       <a class="back" href="#roles">↓ See the open roles</a>
-      <h2 class="h-lg" id="formH">Career <em>Application</em></h2>
+      <h1 class="h-lg" id="formH">Career <em>Application</em></h1>
       <p>Nail · Esthetics · Lash &amp; Brow · Cosmetology — tell us a little about yourself.</p>
     </div>
 
@@ -132,8 +75,18 @@ const MAP_EMBED_SRC =
           <div class="fld"><label for="last_name">Last Name <span class="req">*</span></label><input class="inp" id="last_name" name="last_name" autocomplete="family-name" placeholder="Doe" /></div>
         </div>
         <div class="row2" style="margin-top:20px;">
-          <div class="fld"><label for="email">Email Address <span class="hint">(optional)</span></label><input class="inp" id="email" name="email" type="email" autocomplete="email" placeholder="jane@example.com" /></div>
-          <div class="fld"><label for="phone">Phone Number <span class="req">*</span></label><input class="inp" id="phone" name="phone" type="tel" autocomplete="tel" placeholder="(801) 000-0000" /></div>
+          <div class="fld">
+            <label for="email">Email Address <span class="hint">(optional)</span></label>
+            <input class="inp" id="email" name="email" type="email" autocomplete="email"
+              placeholder="jane@example.com" aria-describedby="emailErr" />
+            <p class="err-note" id="emailErr" role="alert" hidden></p>
+          </div>
+          <div class="fld">
+            <label for="phone">Phone Number <span class="req">*</span></label>
+            <input class="inp" id="phone" name="phone" type="tel" autocomplete="tel"
+              inputmode="tel" maxlength="16" placeholder="(801) 000-0000" aria-describedby="phoneErr" />
+            <p class="err-note" id="phoneErr" role="alert" hidden></p>
+          </div>
         </div>
       </div>
 
@@ -151,7 +104,6 @@ const MAP_EMBED_SRC =
             <label class="opt"><input type="checkbox" name="positions" value="esthetician" /><span class="mk"></span>Esthetician</label>
             <label class="opt"><input type="checkbox" name="positions" value="cosmetologist" /><span class="mk"></span>Cosmetologist</label>
             <label class="opt"><input type="checkbox" name="positions" value="lash_artist" /><span class="mk"></span>Lash Artist</label>
-            <label class="opt"><input type="checkbox" name="positions" value="open_to_multiple" /><span class="mk"></span>I'm open to multiple roles</label>
           </div>
         </div>
 
@@ -224,11 +176,10 @@ const MAP_EMBED_SRC =
         </div>
 
         <div class="fld" style="margin-top:22px;">
-          <span class="q-label">What type of position are you looking for? <span class="req">*</span></span>
+          <span class="q-label">What type of position are you looking for? <span class="req">*</span><span class="hint">(select all that apply)</span></span>
           <div class="inline-opts js-group" data-name="employment_type" style="margin-top:4px;">
-            <label class="iopt"><input type="radio" name="employment_type" value="full_time" /><span class="mk"></span>Full-time</label>
-            <label class="iopt"><input type="radio" name="employment_type" value="part_time" /><span class="mk"></span>Part-time</label>
-            <label class="iopt"><input type="radio" name="employment_type" value="either" /><span class="mk"></span>Either Full-time or Part-time</label>
+            <label class="opt"><input type="checkbox" name="employment_type" value="full_time" /><span class="mk"></span>Full-time</label>
+            <label class="opt"><input type="checkbox" name="employment_type" value="part_time" /><span class="mk"></span>Part-time</label>
           </div>
         </div>
       </div>
@@ -278,9 +229,20 @@ const MAP_EMBED_SRC =
         <label class="consent">
           <input type="checkbox" name="contact_consent" value="yes" />
           <span class="mk"></span>
-          <span>I agree to be contacted about future career opportunities at CURE VÀ.</span>
+          <span>I agree to be contacted about future career opportunities at CURE VÀ. <span class="hint">(optional)</span></span>
         </label>
       </div>
+
+      {turnstileSite && (
+        <div class="turnstile-row">
+          <div
+            class="cf-turnstile"
+            data-sitekey={turnstileSite}
+            data-action="turnstile-spin-v1"
+            data-appearance="interaction-only"
+          />
+        </div>
+      )}
 
       <div class="submit-row">
         <button class="btn btn--lg js-submit" type="submit" style="min-width:280px;">Submit Application</button>
@@ -291,6 +253,15 @@ const MAP_EMBED_SRC =
         </div>
       </div>
     </form>
+
+    {turnstileSite && (
+      <script
+        is:inline
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        async
+        defer
+      />
+    )}
 
     <!-- ===== SUCCESS ===== -->
     <div class="done-card js-done">
@@ -332,49 +303,6 @@ const MAP_EMBED_SRC =
    The class names are the previous page's on purpose: they are the hooks
    the validation script and the endpoint contract are written against.
    ═══════════════════════════════════════════════════════════════════════ */
-/* ── the opening section ──────────────────────────────────────────────
-   The number carries the section, so it is set at display scale in the
-   editorial face while the sentence beside it stays Manrope. The h1 is ONE
-   element, not two, so a screen reader reads "6 founding-team positions
-   are open…" as a single sentence. */
-/* THE SECTION HAS TO SHOW ITS SEAM. It is the page's opening, not a hero,
-   and at full height it filled the viewport — on a 390x844 phone the form
-   below started at 853px, entirely off-screen, so the page looked like it
-   had one section. `.sec--first` is overridden here rather than globally:
-   the padding that clears the fixed bar is still needed, just not the
-   landing-page-sized block padding under it. */
-#open{padding-top:calc(var(--nav-h) + clamp(1.5rem,4vh,3rem));
-  padding-bottom:clamp(2.2rem,5vh,3.4rem)}
-.ap-hero{display:grid;gap:1.6rem;align-items:center}
-@media (min-width:960px){.ap-hero{grid-template-columns:1.05fr .95fr;gap:3rem}}
-.ap-h1{display:grid;gap:.35rem;margin:.7rem 0 0}
-/* The "+" is a SIBLING of the counting element, not part of it: the script
-   writes textContent, so anything sharing that node would be wiped on the
-   first frame. It also keeps the counter's text purely numeric, which is
-   what the tests read. Baseline-aligned and a shade smaller than the
-   numeral — close enough to read as one figure, not as a footnote. */
-.ap-n{display:flex;align-items:baseline;gap:.01em;
-  font-family:Fraunces,"Iowan Old Style",Georgia,serif;font-weight:300;
-  font-variation-settings:"opsz" 144,"SOFT" 12,"WONK" 0;
-  font-size:clamp(3.6rem,10vw,7rem);line-height:.82;letter-spacing:-.05em;
-  color:hsl(var(--foreground))}
-.ap-plus{font-size:.8em;letter-spacing:0;color:hsl(var(--accent))}
-/* the sentence is body copy that happens to live inside the h1 */
-.ap-sub{display:block;font-family:Manrope,-apple-system,"Segoe UI",sans-serif;
-  font-weight:400;font-size:clamp(1.02rem,1.15vw,1.16rem);line-height:1.7;
-  letter-spacing:0;color:hsl(var(--muted-foreground));max-width:44ch;
-  text-wrap:pretty}
-.ap-cta{display:flex;flex-wrap:wrap;gap:.7rem;margin-top:1.5rem}
-
-/* the map — a third-party iframe, see the note at the top of this file */
-/* The map used to be a square on desktop, which alone made the row 549px
-   tall. It is the supporting column, not the subject. */
-.ap-map{position:relative;aspect-ratio:16/10;border-radius:var(--radius-lg);
-  overflow:hidden;background:hsl(var(--muted));
-  box-shadow:inset 0 0 0 1px var(--border-hairline-2),var(--sh)}
-@media (min-width:960px){.ap-map{aspect-ratio:4/3}}
-.ap-map iframe{display:block;width:100%;height:100%;border:0}
-
 .ap-wrap{max-width:64rem}
 /* the form section sits directly under the roles section, and both are paper.
    Recess this one a step so the two still read as two. */
@@ -447,6 +375,9 @@ textarea.inp{resize:vertical;min-height:5.5em}
 .date-btn:hover{color:hsl(var(--accent));background:hsl(var(--muted))}
 .date-btn .cal{width:17px;height:17px}
 .hint-note{margin-top:.45rem;font-size:.72rem;color:hsl(var(--muted-foreground))}
+/* The per-field complaint. Same size and rhythm as `.hint-note` so a field
+   that starts explaining itself does not jump — only the ink changes. */
+.err-note{margin-top:.45rem;font-size:.72rem;color:hsl(var(--destructive))}
 
 /* ── the picker itself — shadcn Popover + Calendar, Cure Và's clothes ──
    Motion is deliberately one short opacity+scale. A panel a visitor has to
@@ -568,6 +499,11 @@ textarea.inp{resize:vertical;min-height:5.5em}
 .consent input:checked~.mk::after{inset:3.5px}
 .consent:focus-within .mk{box-shadow:inset 0 0 0 1.6px hsl(var(--ring))}
 
+/* The widget only takes space when it actually has something to show —
+   `interaction-only` keeps it invisible for the overwhelming majority who
+   are never challenged, so the form does not grow a blank grey box. */
+.turnstile-row{margin-top:20px}
+.turnstile-row:empty{display:none}
 .submit-row{display:grid;gap:1rem;justify-items:start;margin-top:clamp(1.8rem,3.4vw,2.4rem)}
 .form-alert{font-size:.82rem;color:hsl(var(--foreground));min-height:1em}
 .form-alert.bad{color:hsl(var(--destructive))}
@@ -602,50 +538,8 @@ textarea.inp{resize:vertical;min-height:5.5em}
 }
 </style>
 
+
 <script is:inline>
-  /* ── the opening count ──────────────────────────────────────────────
-     The final number is ALREADY IN THE HTML. This only ever counts up TO
-     it — so a visitor with no JavaScript reads the right figure, and one
-     who asked for reduced motion is left alone: motion removed,
-     information kept (DESIGN-SYSTEM.md §6).
-
-     `.num` on the element is not decoration. Tabular figures are what stop
-     the line reflowing on every frame as the digits change width. */
-  (function () {
-    var el = document.querySelector('[data-count-to]');
-    if (!el) return;
-    var target = parseInt(el.getAttribute('data-count-to'), 10);
-    if (!target || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    var started = false;
-    function run() {
-      if (started) return;
-      started = true;
-      var t0 = performance.now(), dur = 900;
-      el.textContent = '0';
-      (function step(now) {
-        var p = Math.min(1, (now - t0) / dur);
-        /* ease-out, so it lands rather than stops */
-        el.textContent = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
-        if (p < 1) requestAnimationFrame(step);
-        else el.textContent = String(target);   /* never leave a rounded value */
-      })(t0);
-    }
-
-    /* Above the fold — which it is, it opens the page — start now. Reading
-       the rect ONCE at startup is not the per-frame measurement the system
-       forbids, and it removes a frame of the server-rendered "6" flashing
-       before the observer's async callback resets it to zero. */
-    var r = el.getBoundingClientRect();
-    if (r.top < innerHeight && r.bottom > 0) { run(); return; }
-
-    if (!('IntersectionObserver' in window)) { run(); return; }
-    var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (e) { if (e.isIntersecting) { run(); io.disconnect(); } });
-    }, { threshold: 0.4 });
-    io.observe(el);
-  })();
-
   (function () {
     'use strict';
     var form = document.querySelector('.js-apply-full');
@@ -699,30 +593,6 @@ textarea.inp{resize:vertical;min-height:5.5em}
       });
     });
 
-    /* ---- "open to multiple roles" rules out the specific ones ---------
-       They are contradictory answers to one question: naming three roles
-       AND saying you are open to any of them tells the hiring team two
-       different things. Choosing it clears and disables the rest; taking
-       it back hands them straight over. The pills stay visible while
-       disabled so the reason is legible. */
-    (function () {
-      var group = form.querySelector('.js-group[data-name="positions"]');
-      if (!group) return;
-      var multi = group.querySelector('input[value="open_to_multiple"]');
-      if (!multi) return;
-      var others = Array.prototype.slice
-        .call(group.querySelectorAll('input[name="positions"]'))
-        .filter(function (i) { return i !== multi; });
-
-      function sync() {
-        others.forEach(function (i) {
-          if (multi.checked) i.checked = false;
-          i.disabled = multi.checked;
-        });
-      }
-      group.addEventListener('change', sync);
-      sync();
-    })();
 
     /* ---- the month picker -------------------------------------------
        The field itself is a plain text input and stays authoritative: it
@@ -872,8 +742,9 @@ textarea.inp{resize:vertical;min-height:5.5em}
 
     /* ---- clear error styling as the user fixes things ---- */
     form.querySelectorAll('.inp').forEach(function (i) {
-      i.addEventListener('input', function () { i.classList.remove('err'); });
-      i.addEventListener('change', function () { i.classList.remove('err'); });
+      var clear = function () { markField(i, ''); };
+      i.addEventListener('input', clear);
+      i.addEventListener('change', clear);
     });
     form.querySelectorAll('.js-group').forEach(function (g) {
       g.addEventListener('change', function () { g.classList.remove('err'); });
@@ -890,13 +761,58 @@ textarea.inp{resize:vertical;min-height:5.5em}
     var monthTextRe = /^(0?[1-9]|1[0-2])\s*\/\s*\d{4}$/;
     var letters = function (v) { return (v.match(/\p{L}/gu) || []).length; };
 
+    /* ---- phone: one canonical shape ---------------------------------
+       The salon hires in Utah, so the field speaks US: ten national
+       digits, worn as (801) 555-0123. A leading country 1 is accepted
+       and dropped rather than rejected — people paste it constantly —
+       and everything past ten digits is simply not taken, which is why
+       the screenshot's 34123123123123 can no longer happen. The same
+       rule runs again on the server; this is the courtesy, not the
+       gate. -------------------------------------------------------- */
+    function phoneDigits(v) {
+      var d = String(v || '').replace(/\D/g, '');
+      if (d.length > 10 && d.charAt(0) === '1') d = d.slice(1);
+      return d.slice(0, 10);
+    }
+    function phoneFormat(d) {
+      if (!d) return '';
+      if (d.length <= 3) return '(' + d;
+      if (d.length <= 6) return '(' + d.slice(0, 3) + ') ' + d.slice(3);
+      return '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6);
+    }
+
     var rules = {
-      first_name: function (v) { return !v ? 1 : /\d/.test(v) ? 1 : letters(v) < 1 ? 1 : 0; },
-      last_name: function (v) { return !v ? 1 : /\d/.test(v) ? 1 : letters(v) < 1 ? 1 : 0; },
-      email: function (v) { return v && !emailRe.test(v) ? 1 : 0; }, // optional
-      phone: function (v) { return !v ? 1 : /[A-Za-z]/.test(v) ? 1 : v.replace(/\D/g, '').length < 10 ? 1 : 0; },
-      graduation_date: function (v) { return v && !monthRe.test(v) && !monthTextRe.test(v) ? 1 : 0; } // optional
+      first_name: function (v) { return !v ? 'First name is required.' : /\d/.test(v) || letters(v) < 1 ? 'Enter your first name — letters only.' : ''; },
+      last_name: function (v) { return !v ? 'Last name is required.' : /\d/.test(v) || letters(v) < 1 ? 'Enter your last name — letters only.' : ''; },
+      // optional — but the moment there IS something in it, it must be an address
+      email: function (v) { return v && !emailRe.test(v) ? 'Enter a valid email address, e.g. jane@example.com.' : ''; },
+      phone: function (v) {
+        if (!v) return 'Phone number is required.';
+        if (/[A-Za-z]/.test(v)) return "Phone number can't contain letters.";
+        return phoneDigits(v).length === 10 ? '' : 'Enter a 10-digit US phone number.';
+      },
+      graduation_date: function (v) { return v && !monthRe.test(v) && !monthTextRe.test(v) ? 'Use the Month / Year format, e.g. 05/2027.' : ''; } // optional
     };
+
+    /* Field-level notes. `validate()` and the live blur checks below both
+       come through here, so a message reads the same whichever raised it. */
+    function noteFor(el) {
+      var id = el.getAttribute('aria-describedby');
+      var n = id ? form.querySelector('#' + id) : null;
+      return n && n.classList.contains('err-note') ? n : null;
+    }
+    function markField(el, msg) {
+      var note = noteFor(el);
+      if (msg) {
+        el.classList.add('err');
+        el.setAttribute('aria-invalid', 'true');
+        if (note) { note.textContent = msg; note.hidden = false; }
+      } else {
+        el.classList.remove('err');
+        el.removeAttribute('aria-invalid');
+        if (note) { note.hidden = true; note.textContent = ''; }
+      }
+    }
 
     function validate() {
       var firstBad = null;
@@ -905,11 +821,9 @@ textarea.inp{resize:vertical;min-height:5.5em}
       Object.keys(rules).forEach(function (name) {
         var el = form.querySelector('[name="' + name + '"]');
         if (!el) return;
-        if (rules[name]((el.value || '').trim())) {
-          el.classList.add('err'); problems++; if (!firstBad) firstBad = el;
-        } else {
-          el.classList.remove('err');
-        }
+        var msg = rules[name]((el.value || '').trim());
+        markField(el, msg);
+        if (msg) { problems++; if (!firstBad) firstBad = el; }
       });
 
       ['positions', 'current_status', 'background', 'employment_type'].forEach(function (name) {
@@ -918,6 +832,19 @@ textarea.inp{resize:vertical;min-height:5.5em}
           g.classList.add('err'); problems++; if (!firstBad) firstBad = g;
         }
       });
+
+      /* The human check, when there is one. Turnstile writes its answer into a
+         hidden input inside this form; an empty one means the visitor was
+         challenged and has not finished. The endpoint checks this again — this
+         is the message, not the enforcement. */
+      var needsHuman = false;
+      var tsWidget = form.querySelector('.cf-turnstile');
+      if (tsWidget) {
+        var tsInput = form.querySelector('[name="cf-turnstile-response"]');
+        if (!tsInput || !tsInput.value) {
+          needsHuman = true; problems++; if (!firstBad) firstBad = tsWidget;
+        }
+      }
 
       // Resume is optional — only flag a file that's the wrong type or too big.
       var resumeRe = /\.(pdf|docx?)$/i;
@@ -929,14 +856,68 @@ textarea.inp{resize:vertical;min-height:5.5em}
         }
       }
 
-      return { problems: problems, firstBad: firstBad };
+      return { problems: problems, firstBad: firstBad, needsHuman: needsHuman };
+    }
+
+    /* ---- live checks -------------------------------------------------
+       Errors arrive on BLUR, never mid-keystroke: telling someone their
+       address is wrong while they are still on the `j` of `jane@` is
+       nagging, not helping. Leaving the field is the moment they have
+       said "done", so that is the moment we answer. Typing again clears
+       it (the .inp listeners above), so the note never argues with a
+       correction in progress. ------------------------------------- */
+    ['first_name', 'last_name', 'email', 'phone', 'graduation_date'].forEach(function (name) {
+      var el = form.querySelector('[name="' + name + '"]');
+      if (!el) return;
+      el.addEventListener('blur', function () {
+        var v = (el.value || '').trim();
+        // An untouched optional field has nothing to complain about, and a
+        // required one is the submit's business, not the cursor's.
+        if (!v) { markField(el, ''); return; }
+        markField(el, rules[name](v));
+      });
+    });
+
+    /* The phone field re-draws itself as it is typed. The caret is kept on
+       the same DIGIT it was on, not the same index, or inserting into
+       "(801) 555" would fling it across the punctuation. A deletion that
+       the reformat would silently undo — backspacing the ")" out of
+       "(801)" — takes a digit with it instead, so the key always moves. */
+    var phoneEl = form.querySelector('[name="phone"]');
+    if (phoneEl) {
+      var draw = function (d, digitsBeforeCaret) {
+        var f = phoneFormat(d);
+        if (f === phoneEl.value) { phoneEl._last = f; return; }
+        phoneEl.value = f;
+        phoneEl._last = f;
+        if (digitsBeforeCaret == null) return;
+        var seen = 0, pos = f.length;
+        if (digitsBeforeCaret <= 0) { pos = 0; }
+        else for (var i = 0; i < f.length; i++) {
+          if (/\d/.test(f.charAt(i))) { seen++; if (seen === digitsBeforeCaret) { pos = i + 1; break; } }
+        }
+        try { phoneEl.setSelectionRange(pos, pos); } catch (err) {}
+      };
+      phoneEl.addEventListener('input', function (e) {
+        var caret = phoneEl.selectionStart;
+        var before = phoneEl.value.slice(0, caret == null ? phoneEl.value.length : caret).replace(/\D/g, '').length;
+        var d = phoneDigits(phoneEl.value);
+        var deleting = e.inputType && e.inputType.indexOf('delete') === 0;
+        if (deleting && d.length && phoneFormat(d) === phoneEl._last) { d = d.slice(0, -1); before = Math.max(0, before - 1); }
+        draw(d, before);
+      });
+      // Paste and autofill land as one lump; tidy on the way out too.
+      phoneEl.addEventListener('blur', function () { draw(phoneDigits(phoneEl.value), null); });
+      phoneEl._last = phoneEl.value;
     }
 
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       var res = validate();
       if (res.problems) {
-        alertEl.textContent = 'Please complete the highlighted fields (' + res.problems + ' remaining).';
+        alertEl.textContent = res.needsHuman && res.problems === 1
+          ? 'Please complete the human check above.'
+          : 'Please complete the highlighted fields (' + res.problems + ' remaining).';
         alertEl.className = 'form-alert js-alert bad';
         if (res.firstBad && res.firstBad.getBoundingClientRect) {
           window.scrollTo({ top: window.pageYOffset + res.firstBad.getBoundingClientRect().top - 140, behavior: 'smooth' });
@@ -946,6 +927,15 @@ textarea.inp{resize:vertical;min-height:5.5em}
 
       alertEl.textContent = '';
       alertEl.className = 'form-alert js-alert';
+      /* A Turnstile token is single-use: once this submit fails for ANY reason
+         the token is spent, and retrying with it would be rejected as a replay.
+         Every failure path below funnels through here first. */
+      var resetHuman = function () {
+        try {
+          var w = form.querySelector('.cf-turnstile');
+          if (w && window.turnstile) window.turnstile.reset(w);
+        } catch (err) {}
+      };
       submitBtn.disabled = true;
       submitBtn.textContent = 'Submitting…';
 
@@ -974,7 +964,7 @@ textarea.inp{resize:vertical;min-height:5.5em}
             var field = form.querySelector('[name="' + key + '"]');
             var g = groupEl(key);
             if (g) g.classList.add('err');
-            else if (field && field.type !== 'file') field.classList.add('err');
+            else if (field && field.type !== 'file') markField(field, data.errors[key]);
             else if (key === 'resume') drop.classList.add('err');
           });
         }
@@ -984,6 +974,8 @@ textarea.inp{resize:vertical;min-height:5.5em}
         alertEl.textContent = 'Network error. Please check your connection and try again.';
         alertEl.className = 'form-alert js-alert bad';
       } finally {
+        // Spent either way — a fresh challenge for any retry.
+        resetHuman();
         submitBtn.disabled = false;
         submitBtn.textContent = 'Submit Application';
       }

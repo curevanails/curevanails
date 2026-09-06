@@ -131,15 +131,13 @@ const JOB_POSTINGS = [
     <div>
       <p class="rc-statement" data-r style="--d:100ms">During my pregnancy with my first baby, I
         started looking at my work as a nail technician differently. I became more aware of the
-        products, dust, sanitation, and overall environment that come with the work. That led to a
+        products, dust, sanitation, and overall environment that come with the work.</p>
+      <p class="rc-statement" data-r style="--d:140ms">That led to a
         simple idea: <em>create a different kind of nail care spa</em> — one that considers both
         guests and the professionals who care for them.</p>
-      <p class="lede" data-r="fade" style="--d:140ms;margin-top:1.6rem">Thoughtful products.
+      <p class="rc-statement" data-r style="--d:180ms">Thoughtful products.
         Natural nail care. High standards of cleanliness and sanitation. Less dust and odor. A more
         comfortable way to work.</p>
-      <p class="lede" data-r="fade" style="--d:180ms;margin-top:1rem">Opening in Sugar House in
-        {OPENING_SEASON} — we&rsquo;re looking to connect with nail technicians, estheticians, lash
-        &amp; brow specialists, and cosmetologists who feel the same.</p>
     </div>
   </div>
 </section>
@@ -235,6 +233,9 @@ const JOB_POSTINGS = [
   font-size:clamp(1.5rem,2.7vw,2.25rem);line-height:1.34;letter-spacing:-.02em;
   color:hsl(var(--foreground));text-wrap:pretty}
 .rc-statement em{color:hsl(var(--accent))}
+/* The three paragraphs are one statement, so the gap is set in `em` — it grows
+   with the type instead of pinching as the clamp opens up on a wide screen. */
+.rc-statement + .rc-statement{margin-top:.72em}
 
 .rc-grid{display:grid;gap:1rem}
 @media (min-width:820px){.rc-grid{grid-template-columns:repeat(3,1fr)}}
