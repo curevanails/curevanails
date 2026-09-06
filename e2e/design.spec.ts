@@ -158,8 +158,14 @@ for (const pg of PAGES) {
 				if (!THIRD_PARTY.test(e.message)) errors.push(e.message);
 			});
 			page.on("response", (r) => {
-				// /404 is expected to 404; the map embed is third-party.
-				if (r.status() >= 400 && !r.url().endsWith("/404") && !r.url().includes("mangomint")) {
+				// /404 is expected to 404, and a third-party widget's own traffic is
+				// not this page's health: the booking embed is one, and Turnstile
+				// is the other — its challenge-platform probes answer 401 to a
+				// headless browser by design, which is the widget working, not the
+				// page failing.
+				const thirdParty =
+					r.url().includes("mangomint") || r.url().includes("challenges.cloudflare.com");
+				if (r.status() >= 400 && !r.url().endsWith("/404") && !thirdParty) {
 					httpFailures.push(`${r.status()} ${r.url()}`);
 				}
 			});
