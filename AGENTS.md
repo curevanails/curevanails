@@ -108,7 +108,7 @@ intact and still EmDash's; only its skin changed.
 | Page        | Path               | What it shows                                                                                          |
 | ----------- | ------------------ | ------------------------------------------------------------------------------------------------------ |
 | Home        | `/`                | 302 → `/coming-soon`                                                                                   |
-| Home preview| `/preview-index`   | The homepage itself, viewable while the root still redirects. `noindex` + robots-disallowed; its two booking CTAs point at `/waitlist` while booking is closed |
+| Home preview| `/preview-index`   | The version-H homepage design (built in the `cureva-ui` repo) served verbatim from `src/pages/_preview-index.html`, viewable while the root still redirects. `noindex` + robots-disallowed |
 | Coming soon | `/coming-soon`     | The holding page: waitlist form, first-visit dialog, and the countdown/date that swaps at 60 days out  |
 | Get ready   | `/getready`        | Waiting-list landing; also the root of the standalone `getready` Worker                                |
 | Waitlist    | `/waitlist`        | Waiting-list holding page (near-duplicate of `/getready` — see PORTING.md)                             |
