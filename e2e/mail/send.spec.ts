@@ -109,11 +109,11 @@ test.describe("POST /api/email/schedule", () => {
 	});
 });
 
-test.describe("dashboard", () => {
+test.describe("compose page", () => {
 	test("the send button is disabled when SES is not configured", async ({ page }) => {
-		// The test env has no AWS secrets, so `sesConfigured` is false and the
-		// dashboard renders the campaign button disabled — a real send is
-		// impossible from the UI here.
+		// The test env has no AWS secrets, so `sesConfigured` is false and Compose
+		// renders the campaign button disabled — a real send is impossible from
+		// the UI here.
 		await expect(page.locator("#send-btn")).toBeDisabled();
 	});
 });

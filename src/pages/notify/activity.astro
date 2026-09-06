@@ -1,0 +1,83 @@
+---
+/**
+ * Activity — the most recent rows of `email_logs` (`/mail/activity`).
+ *
+ * One row per recipient per send, with the delivery status the SES/SNS webhook
+ * has recorded so far.
+ */
+import {
+	loadLogs,
+	loadMailData,
+	loadTemplates,
+	mailDb,
+	templateNamer,
+	type LogRow,
+} from "../../utils/email-data";
+import { PILL, fmtTs, logClass } from "../../utils/email-format";
+import MailLayout from "../../layouts/MailLayout.astro";
+import EmptyState from "../../components/mail/EmptyState.astro";
+
+// Server-rendered, never cached. Gated by the admin auth in src/middleware.ts.
+export const prerender = false;
+
+const { data, error: loadError } = await loadMailData(mailDb(), async (db) => ({
+	logs: await loadLogs(db),
+	templates: await loadTemplates(db),
+}));
+
+const logs: LogRow[] = data?.logs ?? [];
+const templateName = templateNamer(data?.templates ?? []);
+---
+
+<MailLayout
+	title="Activity"
+	description="Every recent send and where it ended up."
+	active="mail-activity"
+	loadError={loadError}
+>
+	{!loadError && logs.length === 0 && (
+		<EmptyState icon="history" title="No emails sent yet." hint="Sends show up here the moment they leave." />
+	)}
+
+	{!loadError && logs.length > 0 && (
+		<section class="bg-white rounded-2xl border border-gray-200 shadow-theme-xs dark:bg-white/[0.03] dark:border-gray-800">
+			<header class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+				<div class="flex items-center gap-2.5">
+					<span class="grid h-9 w-9 place-items-center rounded-lg bg-gray-100 text-gray-600 dark:bg-white/[0.06] dark:text-gray-300">
+						<span class="material-symbols-outlined">history</span>
+					</span>
+					<h2 class="font-semibold text-gray-800 dark:text-white/90">Recent sends</h2>
+				</div>
+				<span class="text-xs text-gray-400 dark:text-gray-500">{logs.length} most recent</span>
+			</header>
+			<div class="overflow-x-auto nice-scroll">
+				<table class="w-full text-sm">
+					<thead class="text-xs font-semibold uppercase text-gray-500 bg-gray-50 border-b border-gray-200 dark:bg-white/[0.02] dark:border-gray-800 dark:text-gray-400">
+						<tr>
+							<th class="px-5 py-3 text-left">Recipient</th>
+							<th class="px-5 py-3 text-left">Template</th>
+							<th class="px-5 py-3 text-left">Status</th>
+							<th class="px-5 py-3 text-left whitespace-nowrap">Sent</th>
+							<th class="px-5 py-3 text-left whitespace-nowrap">Delivered</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+						{logs.map((l) => (
+							<tr class="hover:bg-gray-50/70 dark:hover:bg-white/[0.02] transition">
+								<td class="px-5 py-3.5 font-medium text-gray-800 dark:text-white/90">{l.email}</td>
+								<td class="px-5 py-3.5 text-gray-500 dark:text-gray-400">{templateName(l.template_id)}</td>
+								<td class="px-5 py-3.5">
+									<span class={`${PILL} ${logClass(l.status)}`}>{l.status}</span>
+									{l.bounce_reason && <span class="ml-1.5 text-xs text-warning-600">({l.bounce_reason})</span>}
+									{l.error_message && <span class="ml-1.5 text-xs text-error-500" title={l.error_message}>· error</span>}
+								</td>
+								<td class="px-5 py-3.5 text-gray-400 dark:text-gray-500 whitespace-nowrap">{fmtTs(l.sent_at)}</td>
+								<td class="px-5 py-3.5 text-gray-400 dark:text-gray-500 whitespace-nowrap">{fmtTs(l.delivered_at)}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	)}
+</MailLayout>

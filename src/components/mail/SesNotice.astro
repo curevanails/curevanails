@@ -1,0 +1,17 @@
+---
+/**
+ * Warning banner for the pages that can dispatch mail (Compose, Templates).
+ * Rendered only when the Worker is missing its AWS secrets, in which case every
+ * send button is disabled server-side too — see `sesConfigured()`.
+ */
+---
+<div class="rounded-2xl bg-warning-50 border border-warning-200 px-5 py-4 text-sm text-warning-700 flex items-start gap-3 dark:bg-warning-500/10 dark:border-warning-500/20 dark:text-warning-400">
+	<span class="material-symbols-outlined text-xl mt-0.5">warning</span>
+	<div>
+		<strong class="font-semibold">SES not configured.</strong> Sending is disabled until the AWS secrets are set on this Worker:
+		<code class="px-1.5 py-0.5 rounded bg-warning-100 dark:bg-white/[0.06] text-xs">AWS_REGION</code>,
+		<code class="px-1.5 py-0.5 rounded bg-warning-100 dark:bg-white/[0.06] text-xs">AWS_ACCESS_KEY_ID</code>,
+		<code class="px-1.5 py-0.5 rounded bg-warning-100 dark:bg-white/[0.06] text-xs">AWS_SECRET_ACCESS_KEY</code>.
+		You can still edit &amp; preview templates.
+	</div>
+</div>

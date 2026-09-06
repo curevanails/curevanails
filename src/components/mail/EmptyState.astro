@@ -1,0 +1,17 @@
+---
+/**
+ * The "nothing here yet" card every dashboard page falls back to when its table
+ * is empty. Keeps the page shape identical whether or not there is data.
+ */
+interface Props {
+	icon: string;
+	title: string;
+	hint?: string;
+}
+const { icon, title, hint } = Astro.props;
+---
+<div class="bg-white rounded-2xl border border-gray-200 shadow-theme-xs px-6 py-16 text-center dark:bg-white/[0.03] dark:border-gray-800">
+	<span class="material-symbols-outlined text-3xl text-gray-300 dark:text-gray-600">{icon}</span>
+	<p class="mt-2 text-sm font-medium text-gray-600 dark:text-gray-300">{title}</p>
+	{hint && <p class="mt-1 text-sm text-gray-400 dark:text-gray-500">{hint}</p>}
+</div>

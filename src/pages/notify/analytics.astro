@@ -1,0 +1,140 @@
+---
+/**
+ * Analytics — delivery performance over `email_logs` (`/mail/analytics`).
+ *
+ * All-time totals plus a per-template breakdown. Opens and clicks come from the
+ * SES/SNS event webhook, so they only move once a campaign has actually gone out.
+ */
+import {
+	EMPTY_STATS,
+	loadMailData,
+	loadStats,
+	loadTemplateStats,
+	loadTemplates,
+	mailDb,
+	templateNamer,
+	type Stats,
+	type TemplateStat,
+} from "../../utils/email-data";
+import { PILL, pct } from "../../utils/email-format";
+import MailLayout from "../../layouts/MailLayout.astro";
+import EmptyState from "../../components/mail/EmptyState.astro";
+
+// Server-rendered, never cached. Gated by the admin auth in src/middleware.ts.
+export const prerender = false;
+
+const { data, error: loadError } = await loadMailData(mailDb(), async (db) => ({
+	stats: await loadStats(db),
+	templateStats: await loadTemplateStats(db),
+	templates: await loadTemplates(db),
+}));
+
+const stats: Stats = data?.stats ?? EMPTY_STATS;
+const templateStats: TemplateStat[] = data?.templateStats ?? [];
+const templateName = templateNamer(data?.templates ?? []);
+
+const CARD = "bg-white rounded-2xl border border-gray-200 shadow-theme-xs p-5 dark:bg-white/[0.03] dark:border-gray-800";
+const LABEL = "text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400";
+const VALUE = "text-2xl font-bold text-gray-800 dark:text-white/90 mt-3 tabular-nums";
+---
+
+<MailLayout
+	title="Analytics"
+	description="Delivery, opens and clicks across every email this Worker has sent."
+	active="mail-analytics"
+	loadError={loadError}
+>
+	{!loadError && stats.total === 0 && (
+		<EmptyState
+			icon="monitoring"
+			title="No email activity yet."
+			hint="Open & click stats appear here once you send a campaign."
+		/>
+	)}
+
+	{!loadError && stats.total > 0 && (
+		<div class="space-y-6">
+			<div class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-4">
+				<div class={CARD}>
+					<div class="flex items-center justify-between">
+						<p class={LABEL}>Sent</p>
+						<span class="grid h-8 w-8 place-items-center rounded-full bg-gray-100 text-gray-500 dark:bg-white/[0.06] dark:text-gray-400">
+							<span class="material-symbols-outlined text-base">send</span>
+						</span>
+					</div>
+					<p class={VALUE}>{stats.sent}</p>
+				</div>
+				<div class={CARD}>
+					<div class="flex items-center justify-between">
+						<p class={LABEL}>Delivered</p>
+						<span class={`${PILL} bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500`}>{pct(stats.delivered, stats.sent)}</span>
+					</div>
+					<p class={VALUE}>{stats.delivered}</p>
+				</div>
+				<div class={CARD}>
+					<div class="flex items-center justify-between">
+						<p class={LABEL}>Opened</p>
+						<span class={`${PILL} bg-blue-light-50 text-blue-light-700 dark:bg-blue-light-500/15 dark:text-blue-light-400`}>{pct(stats.opened, stats.delivered)}</span>
+					</div>
+					<p class={VALUE}>{stats.opened}</p>
+				</div>
+				<div class={CARD}>
+					<div class="flex items-center justify-between">
+						<p class={LABEL}>Clicked</p>
+						<span class={`${PILL} bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-400`}>{pct(stats.clicked, stats.delivered)}</span>
+					</div>
+					<p class={VALUE}>{stats.clicked}</p>
+				</div>
+				<div class={CARD}>
+					<div class="flex items-center justify-between">
+						<p class={LABEL}>Bounced</p>
+						<span class={`${PILL} bg-warning-50 text-warning-700 dark:bg-warning-500/15 dark:text-orange-400`}>{pct(stats.bounced, stats.sent)}</span>
+					</div>
+					<p class={VALUE}>{stats.bounced}</p>
+				</div>
+				<div class={CARD}>
+					<div class="flex items-center justify-between">
+						<p class={LABEL}>Complaints</p>
+						{stats.failed > 0 && <span class={`${PILL} bg-error-50 text-error-700 dark:bg-error-500/15 dark:text-error-500`}>{stats.failed} failed</span>}
+					</div>
+					<p class={VALUE}>{stats.complained}</p>
+				</div>
+			</div>
+
+			{templateStats.length > 0 && (
+				<section class="bg-white rounded-2xl border border-gray-200 shadow-theme-xs overflow-hidden dark:bg-white/[0.03] dark:border-gray-800">
+					<header class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+						<h2 class="font-semibold text-gray-800 dark:text-white/90 text-sm">Per template</h2>
+						<span class="text-xs text-gray-400 dark:text-gray-500">all-time</span>
+					</header>
+					<div class="overflow-x-auto nice-scroll">
+						<table class="w-full text-sm">
+							<thead class="text-xs font-semibold uppercase text-gray-500 bg-gray-50 border-b border-gray-200 dark:bg-white/[0.02] dark:border-gray-800 dark:text-gray-400">
+								<tr>
+									<th class="px-5 py-3 text-left">Template</th>
+									<th class="px-5 py-3 text-right">Sent</th>
+									<th class="px-5 py-3 text-right">Delivered</th>
+									<th class="px-5 py-3 text-right">Opened</th>
+									<th class="px-5 py-3 text-right">Clicked</th>
+									<th class="px-5 py-3 text-right">Bounced</th>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+								{templateStats.map((t) => (
+									<tr class="hover:bg-gray-50/70 dark:hover:bg-white/[0.02] transition">
+										<td class="px-5 py-3.5 font-medium text-gray-800 dark:text-white/90">{templateName(t.template_id)}</td>
+										<td class="px-5 py-3.5 text-right text-gray-700 dark:text-gray-300 tabular-nums">{t.sent}</td>
+										<td class="px-5 py-3.5 text-right text-gray-500 dark:text-gray-400 tabular-nums">{t.delivered} <span class="text-gray-300 dark:text-gray-600">({pct(t.delivered, t.sent)})</span></td>
+										<td class="px-5 py-3.5 text-right text-gray-500 dark:text-gray-400 tabular-nums">{t.opened} <span class="text-gray-300 dark:text-gray-600">({pct(t.opened, t.delivered)})</span></td>
+										<td class="px-5 py-3.5 text-right text-gray-500 dark:text-gray-400 tabular-nums">{t.clicked} <span class="text-gray-300 dark:text-gray-600">({pct(t.clicked, t.delivered)})</span></td>
+										<td class="px-5 py-3.5 text-right text-gray-500 dark:text-gray-400 tabular-nums">{t.bounced}</td>
+									</tr>
+								))}
+							</tbody>
+						</table>
+					</div>
+				</section>
+			)}
+		</div>
+	)}
+</MailLayout>

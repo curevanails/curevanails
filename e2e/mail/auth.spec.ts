@@ -3,9 +3,11 @@ import { ADMIN_PASSWORD, ADMIN_USERNAME, login } from "./helpers";
 
 /**
  * The auth gate (src/middleware.ts) for the email dashboard, now served on the
- * admin Worker under `/mail`. The dashboard can trigger real sends and exposes
- * subscriber data, so `/mail[/*]` and every `/api/email/*` action require a valid
- * signed session cookie. Public: `/login`, `/logout`, `/unsubscribe/*`, and the
+ * admin Worker under `/mail` — one page per sidebar item (Compose at `/mail`,
+ * then campaigns/templates/analytics/activity/suppressed/recruit-alerts/
+ * settings). The dashboard can trigger real sends and exposes subscriber data,
+ * so `/mail[/*]` and every `/api/email/*` action require a valid signed session
+ * cookie. Public: `/login`, `/logout`, `/unsubscribe/*`, and the
  * `/api/webhooks/*` SNS receiver.
  */
 
@@ -42,12 +44,23 @@ test.describe("gate — protected surfaces", () => {
 		});
 	}
 
-	// Includes the trailing-slash variants: Astro's default `trailingSlash:
-	// "ignore"` serves `/settings/` from the `/settings` route, so the gate must
-	// match both forms or it can be bypassed (regression guard).
+	// Every dashboard page, including the trailing-slash variants: Astro's
+	// default `trailingSlash: "ignore"` serves `/settings/` from the `/settings`
+	// route, so the gate must match both forms or it can be bypassed
+	// (regression guard).
 	for (const path of [
 		"/mail",
 		"/mail/",
+		"/mail/campaigns",
+		"/mail/campaigns/",
+		"/mail/templates",
+		"/mail/templates/",
+		"/mail/analytics",
+		"/mail/analytics/",
+		"/mail/activity",
+		"/mail/activity/",
+		"/mail/suppressed",
+		"/mail/suppressed/",
 		"/mail/settings",
 		"/mail/settings/",
 		"/mail/recruit-alerts",
@@ -107,7 +120,7 @@ test.describe("credentials", () => {
 		await login(page);
 		await page.goto("/mail");
 		await expect(page).toHaveURL(/\/mail$/);
-		await expect(page.locator("h1", { hasText: "Email dashboard" })).toBeVisible();
+		await expect(page.locator("h1", { hasText: "Compose" })).toBeVisible();
 
 		await page.goto("/logout");
 		await page.goto("/mail");

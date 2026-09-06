@@ -2,8 +2,8 @@ import { type APIRequestContext, expect, test } from "@playwright/test";
 import { ADMIN_PASSWORD, login, uniqueTemplateName } from "./helpers";
 
 /**
- * Template CRUD via `POST /api/email/templates` and the dashboard that renders
- * the list. This endpoint only touches D1 — no AWS SES — so it is exercised
+ * Template CRUD via `POST /api/email/templates` and the Templates page that
+ * renders the list. This endpoint only touches D1 — no AWS SES — so it is exercised
  * fully, including the real create → update → delete lifecycle. Rows carry the
  * `zz-e2e` name prefix and are removed here (and, as a safety net, by
  * global-teardown).
@@ -126,7 +126,7 @@ test.describe("lifecycle (real D1)", () => {
 		}
 	});
 
-	test("a newly created template appears in the dashboard compose dropdown", async ({ page }) => {
+	test("a newly created template appears in the compose dropdown and the list", async ({ page }) => {
 		const name = uniqueTemplateName();
 		const created = await post(page.request, {
 			action: "create",
@@ -137,8 +137,12 @@ test.describe("lifecycle (real D1)", () => {
 		const id = (await created.json()).id as string;
 
 		try {
-			await page.reload();
+			// Compose (the dashboard home) picks it up in the template dropdown…
+			await page.goto("/mail");
 			await expect(page.locator(`#template option[value="${id}"]`)).toHaveText(name);
+			// …and the Templates page lists it.
+			await page.goto("/mail/templates");
+			await expect(page.locator("#tpl-list").getByText(name)).toBeVisible();
 		} finally {
 			await post(page.request, { action: "delete", id }).catch(() => {});
 		}
