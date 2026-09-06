@@ -108,6 +108,7 @@ intact and still EmDash's; only its skin changed.
 | Page        | Path               | What it shows                                                                                          |
 | ----------- | ------------------ | ------------------------------------------------------------------------------------------------------ |
 | Home        | `/`                | 302 → `/coming-soon`                                                                                   |
+| Home preview| `/preview-index`   | The homepage itself, viewable while the root still redirects. `noindex` + robots-disallowed; its two booking CTAs point at `/waitlist` while booking is closed |
 | Coming soon | `/coming-soon`     | The holding page: waitlist form, first-visit dialog, and the countdown/date that swaps at 60 days out  |
 | Get ready   | `/getready`        | Waiting-list landing; also the root of the standalone `getready` Worker                                |
 | Waitlist    | `/waitlist`        | Waiting-list holding page (near-duplicate of `/getready` — see PORTING.md)                             |
@@ -119,10 +120,11 @@ intact and still EmDash's; only its skin changed.
 | Category    | `/category/[slug]` | Posts filtered by category                                                                             |
 | Tag         | `/tag/[slug]`      | Posts filtered by tag                                                                                  |
 | RSS         | `/rss.xml`         | Generated feed                                                                                         |
-| Careers     | `/recruit`         | Careers page (version-H design, original copy); full application at `/recruit/apply` (POSTs to `/api/recruit`) |
+| Careers     | `/recruit`         | Careers page (version-H design, original copy); full application at `/recruit/apply` — which opens straight on the form (POSTs to `/api/recruit`) |
 | Admin login | `/admin/login`     | Styled login form for the admin console                                                                |
-| Admin       | `/admin`           | Recruit dashboard — lists `job_applications`, résumé downloads (auth-gated)                            |
-| Email       | `/admin/mail`      | Email dashboard — compose/send, templates, logs, settings, recruit alerts (auth-gated)                |
+| Admin       | `/admin`           | Dashboard — widgets only: recruit pipeline, waitlist and email at a glance (auth-gated)                |
+| Recruit     | `/admin/recruit`   | Recruit pipeline — the `job_applications` list, résumé downloads, status + notes (auth-gated)          |
+| Email       | `/admin/mail`      | Email dashboard — one page per item: compose, campaigns, templates, analytics, activity, suppressed, recruit alerts, settings (auth-gated) |
 
 ## Recruit & Admin
 
@@ -142,8 +144,12 @@ password-protected dashboard reviews them. **Guides: the form field contract is
 - **Email lives on the `admin` Worker** (the standalone notify service was
   retired — everything is on `admin.curevanails.com`). The email dashboard is
   served under `/mail` (admin Worker) or `/admin/mail` (main Worker), gated by
-  the same admin session, with `/settings` + `/recruit-alerts` sub-pages and the
-  admin-gated `/api/email/*` + `/api/settings` endpoints. The public halves — the
+  the same admin session. Every sidebar item is its own page — `/mail` (Compose),
+  `/mail/campaigns`, `/mail/templates`, `/mail/analytics`, `/mail/activity`,
+  `/mail/suppressed`, `/mail/recruit-alerts`, `/mail/settings` (the set is listed
+  in `EMAIL_SUBPAGES` in `src/middleware.ts`) — sharing
+  `src/layouts/MailLayout.astro`, plus the admin-gated `/api/email/*` +
+  `/api/settings` endpoints. The public halves — the
   `/api/webhooks/ses` SNS receiver and the token-based `/unsubscribe/*` page —
   stay open. The dashboard pages physically live at `src/pages/notify/*` (direct
   `/notify/*` access is blocked; reachable only via the `/mail` rewrite), and

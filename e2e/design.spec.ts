@@ -754,7 +754,7 @@ test.describe("coming-soon", () => {
    8 · /recruit/apply — the layout and contrast decisions, pinned
    ═══════════════════════════════════════════════════════════════════════ */
 test.describe("apply page", () => {
-	test("three sections, in order: the count, the form, the roles", async ({ page }) => {
+	test("two sections, in order: the form, the roles", async ({ page }) => {
 		await page.goto("/recruit/apply", { waitUntil: "load" });
 		await settle(page);
 		const order = await page.evaluate(() =>
@@ -762,150 +762,7 @@ test.describe("apply page", () => {
 				(s) => s.id || s.getAttribute("aria-labelledby"),
 			),
 		);
-		expect(order).toEqual(["open", "formH", "roles"]);
-	});
-
-	test("the opening count matches the roles listed below it", async ({ page }) => {
-		await page.goto("/recruit/apply", { waitUntil: "load" });
-		await settle(page);
-
-		const counted = await page.evaluate(() => {
-			// sum the "N opening(s)" on every role in the list further down
-			const fromList = [...document.querySelectorAll(".rc-role-m")]
-				.map((el) => parseInt(el.textContent!.trim(), 10) || 0)
-				.reduce((a, b) => a + b, 0);
-			const headline = document.querySelector("[data-count-to]")!;
-			return {
-				fromList,
-				attr: Number(headline.getAttribute("data-count-to")),
-				shown: Number(headline.textContent!.trim()),
-				headlineText: headline.closest(".ap-n")!.textContent!.replace(/\s+/g, ""),
-				tabular: getComputedStyle(headline).fontVariantNumeric,
-			};
-		});
-
-		expect(counted.attr, "the headline number drifted from the roles list").toBe(counted.fromList);
-		expect(counted.shown, "the count did not land on its target").toBe(counted.attr);
-		// the visible headline reads "6+" — the suffix is a sibling node, so the
-		// counter's own text stays numeric and the script cannot wipe it
-		expect(counted.headlineText, 'the headline should read "6+"').toBe(`${counted.attr}+`);
-		// tabular figures, or the line reflows on every frame while counting
-		expect(counted.tabular).toContain("tabular-nums");
-	});
-
-	test("the count actually counts, and lands exactly", async ({ page }) => {
-		await page.goto("/recruit/apply", { waitUntil: "commit" });
-
-		// sample the digit every frame while it runs — asserting only the final
-		// value would pass on a number that never moved
-		const seen = await page.evaluate(async () => {
-			const out: string[] = [];
-			const t0 = performance.now();
-			while (performance.now() - t0 < 3000) {
-				const el = document.querySelector("[data-count-to]");
-				if (el) {
-					const v = el.textContent!.trim();
-					if (v !== out[out.length - 1]) out.push(v);
-				}
-				await new Promise((r) => requestAnimationFrame(r));
-			}
-			return out;
-		});
-
-		const el = page.locator("[data-count-to]");
-		const target = (await el.getAttribute("data-count-to"))!;
-		expect(seen.length, `the number never moved: ${JSON.stringify(seen)}`).toBeGreaterThan(2);
-		// The sampler can observe the DOM before the inline script runs, so the
-		// server-rendered figure may be the first thing it records — that is the
-		// JavaScript-off fallback, not a painted frame. What matters is that the
-		// run starts at zero and climbs.
-		expect(seen, "the count never started from zero").toContain("0");
-		const climb = seen.slice(seen.indexOf("0")).map(Number);
-		expect(climb.every((v, i) => i === 0 || v >= climb[i - 1]), "the count went backwards").toBe(true);
-		expect(seen[seen.length - 1]).toBe(target);
-		await expect(el).toHaveText(target);
-	});
-
-	test("it counts on a phone too", async ({ page }) => {
-		await page.setViewportSize({ width: 390, height: 844 });
-		await page.goto("/recruit/apply", { waitUntil: "commit" });
-		const seen = await page.evaluate(async () => {
-			const out: string[] = [];
-			const t0 = performance.now();
-			while (performance.now() - t0 < 3000) {
-				const el = document.querySelector("[data-count-to]");
-				if (el) {
-					const v = el.textContent!.trim();
-					if (v !== out[out.length - 1]) out.push(v);
-				}
-				await new Promise((r) => requestAnimationFrame(r));
-			}
-			return out;
-		});
-		expect(seen.length, "the count did not run on a phone").toBeGreaterThan(2);
-		expect(seen, "the count never started from zero on a phone").toContain("0");
-		expect(seen[seen.length - 1]).toBe("6");
-	});
-
-	test("the opening section leaves the next one in view", async ({ page }) => {
-		// It is the page's opening, not a hero. At full height it filled the
-		// viewport and the form below started off-screen on a phone.
-		for (const vp of [
-			{ width: 1440, height: 900 },
-			{ width: 1280, height: 800 },
-			{ width: 390, height: 844 },
-		]) {
-			await page.setViewportSize(vp);
-			await page.goto("/recruit/apply", { waitUntil: "load" });
-			await settle(page);
-			const peek = await page.evaluate(() => {
-				const next = document.getElementById("open")!.nextElementSibling!;
-				return innerHeight - next.getBoundingClientRect().top;
-			});
-			expect(
-				peek,
-				`only ${Math.round(peek)}px of the next section shows at ${vp.width}x${vp.height}`,
-			).toBeGreaterThan(100);
-		}
-	});
-
-	test("both buttons in the opening section go where they say", async ({ page }) => {
-		await page.goto("/recruit/apply", { waitUntil: "load" });
-		await settle(page);
-		const links = await page.evaluate(() =>
-			[...document.querySelectorAll("#open .ap-cta a")].map((a) => a.getAttribute("href")),
-		);
-		expect(links).toEqual(["#form", "/recruit"]);
-
-		// and "Apply now" actually reaches the form
-		await page.locator('#open .ap-cta a[href="#form"]').click();
-		await page.waitForTimeout(800);
-		const reached = await page.evaluate(() => {
-			const r = document.getElementById("form")!.getBoundingClientRect();
-			return r.top < innerHeight && r.bottom > 0;
-		});
-		expect(reached, "Apply now did not scroll the form into view").toBe(true);
-	});
-
-	test("the map is embedded accessibly and opts out of the custom cursor", async ({ page }) => {
-		await page.goto("/recruit/apply", { waitUntil: "load" });
-		await settle(page);
-		const map = await page.evaluate(() => {
-			const frame = document.querySelector(".ap-map iframe") as HTMLIFrameElement | null;
-			if (!frame) return null;
-			return {
-				title: frame.getAttribute("title"),
-				loading: frame.getAttribute("loading"),
-				src: frame.getAttribute("src"),
-				// the iframe swallows pointer events, so the ring would freeze on it
-				nocursor: !!frame.closest("[data-nocursor]"),
-			};
-		});
-		expect(map, "the map is missing").toBeTruthy();
-		expect(map!.title, "an untitled iframe is unusable with a screen reader").toBeTruthy();
-		expect(map!.loading).toBe("lazy");
-		expect(map!.src).toContain("google.com/maps");
-		expect(map!.nocursor).toBe(true);
+		expect(order).toEqual(["formH", "roles"]);
 	});
 
 	test("a chosen option pill is unmistakable, and legible either way", async ({ page }) => {
@@ -1092,6 +949,29 @@ test.describe("SEO", () => {
 		}
 	});
 
+	test("/preview-index serves the homepage itself, out of the index", async ({ page }) => {
+		// The root still 302s to /coming-soon, so this is the homepage's only
+		// address. It renders /early-access — the editorial homepage layout —
+		// without redirecting, and must not be indexable while the site is
+		// pre-launch. Booking is closed, so no CTA may reach a booking page.
+		await page.goto("/preview-index", { waitUntil: "load" });
+		expect(new URL(page.url()).pathname, "the preview redirected instead of rendering").toBe(
+			"/preview-index",
+		);
+		const state = await page.evaluate(() => ({
+			robots: document.querySelector('meta[name="robots"]')?.getAttribute("content") ?? "",
+			hero: document.querySelector("#hero") !== null,
+			sections: [...document.querySelectorAll("main section")].map((el) => el.id),
+			booking: [...document.querySelectorAll("a[href]")]
+				.map((a) => a.getAttribute("href")!)
+				.filter((h) => /booking|mangomint/i.test(h)),
+		}));
+		expect(state.robots, "the homepage preview is indexable").toContain("noindex");
+		expect(state.hero, "this is not the editorial homepage").toBe(true);
+		expect(state.sections).toContain("services");
+		expect(state.booking, "a live booking link is reachable while booking is closed").toEqual([]);
+	});
+
 	test("/early-access is kept out of the index", async ({ page }) => {
 		// It carries invented journal posts with invented dates, an invented
 		// testimonial and an unconfirmed partner list, and it says "Now open"
@@ -1156,7 +1036,7 @@ test.describe("SEO", () => {
 		const res = await request.get("/robots.txt");
 		expect(res.status()).toBe(200);
 		const txt = await res.text();
-		for (const path of ["/_emdash/", "/admin", "/api/", "/unsubscribe/"]) {
+		for (const path of ["/_emdash/", "/admin", "/api/", "/unsubscribe/", "/preview-index"]) {
 			expect(txt, `${path} is crawlable`).toContain(`Disallow: ${path}`);
 		}
 		expect(txt).toContain("Sitemap:");
@@ -1175,6 +1055,6 @@ test.describe("the visitor dialog's careers door", () => {
 
 		await page.locator('.ask-opt[data-go="careers"]').click();
 		await page.waitForURL("**/recruit/apply");
-		await expect(page.locator("[data-count-to]")).toBeVisible();
+		await expect(page.locator("#form")).toBeVisible();
 	});
 });

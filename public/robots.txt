@@ -8,8 +8,10 @@ Allow: /
 
 # The CMS, the admin console, the email dashboard and the API are not
 # content. /unsubscribe carries a secret token in the URL and must never be
-# crawled or indexed.
+# crawled or indexed. /preview-index is the pre-launch homepage preview: it
+# would compete with /coming-soon for the brand's own name.
 Disallow: /_emdash/
+Disallow: /preview-index
 Disallow: /admin
 Disallow: /admin/
 Disallow: /notify
