@@ -76,9 +76,11 @@ export const BACKGROUND_LABELS: Record<
 };
 
 /**
- * "What type of position are you looking for?" — stored as a JSON array, like
- * `positions`. It was a single-choice radio until the "Either Full-time or
- * Part-time" option retired: ticking both boxes now carries that meaning.
+ * "What type of position are you looking for?" — ONE choice, Full-time or
+ * Part-time. It is still stored as a JSON array, like `positions`: the column,
+ * the admin's reader and every row already written all speak that shape, and a
+ * one-item array costs nothing. The retired "Either Full-time or Part-time"
+ * option still has a label below, for the rows taken while it existed.
  */
 export const EMPLOYMENT_OPTIONS = ["full_time", "part_time"] as const;
 

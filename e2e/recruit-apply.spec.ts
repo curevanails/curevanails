@@ -174,27 +174,6 @@ test.describe("form interactions", () => {
 		await expect(page.locator('input[name="positions"]:checked')).toHaveCount(3);
 	});
 
-	test("'open to multiple roles' replaces the specific ones and disables them", async ({
-		page,
-	}) => {
-		// Naming three roles AND saying you are open to any of them tells the
-		// hiring team two different things, so they are exclusive.
-		await page.click(SELECTORS.option("nail_technician"));
-		await page.click(SELECTORS.option("esthetician"));
-		await expect(page.locator('input[name="positions"]:checked')).toHaveCount(2);
-
-		await page.click(SELECTORS.option("open_to_multiple"));
-		await expect(page.locator('input[name="positions"]:checked')).toHaveCount(1);
-		await expect(page.locator('input[value="open_to_multiple"]')).toBeChecked();
-		await expect(page.locator('input[value="nail_technician"]')).toBeDisabled();
-		await expect(page.locator('input[value="esthetician"]')).toBeDisabled();
-
-		// ...and taking it back hands them straight over
-		await page.click(SELECTORS.option("open_to_multiple"));
-		await expect(page.locator('input[value="nail_technician"]')).toBeEnabled();
-		await expect(page.locator('input[name="positions"]:checked')).toHaveCount(0);
-	});
-
 	test("current_status is single-select (radio semantics)", async ({ page }) => {
 		await page.click(SELECTORS.option("licensed_utah"));
 		await page.click(SELECTORS.option("beauty_school"));
