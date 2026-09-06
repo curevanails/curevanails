@@ -1,10 +1,12 @@
 import { type APIRequestContext, type Page, expect, test } from "@playwright/test";
 import { E2E_SURNAME, RESUME_FILE, devVar, e2eEmail, futureMonth } from "./helpers";
+import { fmtPhone } from "../src/utils/recruit-format";
 
 /**
- * End-to-end coverage for the recruit admin dashboard (`/admin`), its auth gate
- * (src/middleware.ts), and the endpoints it drives — `/admin/file` (R2 resume
- * download) and `/admin/update` (status + recruiter notes).
+ * End-to-end coverage for the admin console — the widget dashboard (`/admin`),
+ * the recruit pipeline that holds the applications list (`/admin/recruit`), the
+ * auth gate (src/middleware.ts), and the endpoints the pipeline drives:
+ * `/admin/file` (R2 resume download) and `/admin/update` (status + notes).
  *
  * The dashboard holds applicant PII, so the auth boundary is tested as
  * carefully as the happy path: every admin path must redirect to the login form
@@ -68,6 +70,12 @@ async function login(page: Page): Promise<void> {
 	]);
 }
 
+/** Sign in and open the applications list, where every row-level test runs. */
+async function loginToRecruit(page: Page): Promise<void> {
+	await login(page);
+	await page.goto("/admin/recruit");
+}
+
 test.describe("auth gate", () => {
 	test("unauthenticated /admin redirects to the login form", async ({ page }) => {
 		await page.goto("/admin");
@@ -83,7 +91,7 @@ test.describe("auth gate", () => {
 		);
 	});
 
-	for (const path of ["/admin", "/admin/waitlist", "/admin/mail"]) {
+	for (const path of ["/admin", "/admin/recruit", "/admin/waitlist", "/admin/mail"]) {
 		test(`unauthenticated ${path} is not served`, async ({ request }) => {
 			const res = await request.get(path, { maxRedirects: 0 });
 			expect(res.status()).toBe(302);
@@ -151,15 +159,37 @@ test.describe("auth gate", () => {
 	});
 });
 
-test.describe("dashboard", () => {
+test.describe("dashboard (widgets)", () => {
+	test("the dashboard shows widgets and links on to the lists", async ({ page, request }) => {
+		await seedApplication(request);
+		await login(page);
+
+		await expect(page.getByRole("heading", { name: "Dashboard" })).toBeVisible();
+		await expect(page.getByRole("heading", { name: "Recruit pipeline" })).toBeVisible();
+		await expect(page.getByRole("heading", { name: "Latest applications" })).toBeVisible();
+		// Widgets only — the applications TABLE lives on /admin/recruit.
+		await expect(page.locator("#apps-table")).toHaveCount(0);
+		await expect(page.locator('a[href="/admin/recruit"]').first()).toBeVisible();
+	});
+
+	test("a dashboard link opens the recruit pipeline", async ({ page }) => {
+		await login(page);
+		await page.locator('a[href="/admin/recruit"]').first().click();
+		await expect(page).toHaveURL(/\/admin\/recruit$/);
+		await expect(page.locator("#apps-table")).toBeVisible();
+	});
+});
+
+test.describe("recruit pipeline", () => {
 	test("a submitted application appears with its details", async ({ page, request }) => {
 		const { firstName, phone } = await seedApplication(request);
-		await login(page);
+		await loginToRecruit(page);
 
 		const row = page.locator(`.app-group[data-search*="${firstName.toLowerCase()}"]`);
 		await expect(row).toHaveCount(1);
 		await expect(row).toContainText(`${firstName} ${E2E_SURNAME}`);
-		await expect(row).toContainText(phone);
+		// Phone is normalised for display — "8015550100" renders as "(801) 555-0100".
+		await expect(row).toContainText(fmtPhone(phone));
 		await expect(row).toHaveAttribute("data-employment", "full_time");
 		await expect(row).toHaveAttribute("data-cstatus", "licensed_utah");
 		await expect(row).toHaveAttribute("data-positions", "nail_technician");
@@ -167,7 +197,7 @@ test.describe("dashboard", () => {
 
 	test("expanding a row reveals the full application", async ({ page, request }) => {
 		const { firstName } = await seedApplication(request);
-		await login(page);
+		await loginToRecruit(page);
 
 		const row = page.locator(`.app-group[data-search*="${firstName.toLowerCase()}"]`);
 		await row.locator(".app-main").click();
@@ -178,7 +208,7 @@ test.describe("dashboard", () => {
 
 	test("search narrows the table to the matching applicant", async ({ page, request }) => {
 		const { firstName } = await seedApplication(request);
-		await login(page);
+		await loginToRecruit(page);
 
 		await page.fill("#f-search", firstName);
 
@@ -188,7 +218,7 @@ test.describe("dashboard", () => {
 	});
 
 	test("search for a term with no matches empties the table", async ({ page }) => {
-		await login(page);
+		await loginToRecruit(page);
 		await page.fill("#f-search", "zzz-no-such-applicant-zzz");
 
 		await expect(page.locator(".app-group:visible")).toHaveCount(0);
@@ -199,7 +229,7 @@ test.describe("dashboard", () => {
 test.describe("resume download (/admin/file)", () => {
 	test("streams the uploaded resume back as an attachment", async ({ page, request }) => {
 		const { firstName } = await seedApplication(request);
-		await login(page);
+		await loginToRecruit(page);
 
 		const row = page.locator(`.app-group[data-search*="${firstName.toLowerCase()}"]`);
 		await row.locator(".app-main").click();
@@ -234,7 +264,7 @@ test.describe("resume download (/admin/file)", () => {
 test.describe("status & notes (/admin/update)", () => {
 	test("a status change persists across a reload", async ({ page, request }) => {
 		const { id, firstName } = await seedApplication(request);
-		await login(page);
+		await loginToRecruit(page);
 
 		const select = page.locator(`select.status-select[data-id="${id}"]`);
 		await expect(select).toHaveValue("new");
@@ -256,7 +286,7 @@ test.describe("status & notes (/admin/update)", () => {
 
 	test("recruiter notes persist across a reload", async ({ page, request }) => {
 		const { id } = await seedApplication(request);
-		await login(page);
+		await loginToRecruit(page);
 
 		const row = page.locator(`.app-group:has(select[data-id="${id}"])`);
 		await row.locator(".app-main").click();
@@ -308,10 +338,8 @@ test.describe("email dashboard (folded in from notify)", () => {
 	test("signed-in admin reaches the email dashboard at /admin/mail", async ({ page }) => {
 		await login(page);
 		await page.goto("/admin/mail");
-		// The notify dashboard renders (not a 404 / redirect back to login).
-		// It has both a header <h1> and a page <h2> "Email dashboard" — assert the
-		// first so the strict-mode locator doesn't trip on the two matches.
-		await expect(page.getByRole("heading", { name: "Email dashboard" }).first()).toBeVisible();
+		// The dashboard home is Compose (not a 404 / redirect back to login).
+		await expect(page.getByRole("heading", { name: "Compose", exact: true })).toBeVisible();
 		await expect(page).toHaveURL(/\/admin\/mail$/);
 	});
 
@@ -320,14 +348,26 @@ test.describe("email dashboard (folded in from notify)", () => {
 		await page.goto("/admin/mail");
 		// Base-aware links (src/utils/email-nav.ts) must point under /admin/mail,
 		// not at the notify Worker's root, so navigation stays in the admin session.
-		await expect(page.locator('a[href="/admin/mail/settings"]').first()).toBeVisible();
-		await expect(page.locator('a[href="/admin/mail/recruit-alerts"]').first()).toBeVisible();
+		for (const sub of ["campaigns", "templates", "analytics", "activity", "suppressed", "recruit-alerts", "settings"]) {
+			await expect(page.locator(`a[href="/admin/mail/${sub}"]`).first()).toBeVisible();
+		}
 	});
 
-	test("settings sub-page loads under the admin session", async ({ page }) => {
-		await login(page);
-		await page.goto("/admin/mail/settings");
-		await expect(page.getByRole("heading", { name: "Settings" })).toBeVisible();
-		await expect(page).toHaveURL(/\/admin\/mail\/settings$/);
-	});
+	// Every sidebar item is its own page — each must resolve under the mount.
+	for (const [sub, heading] of [
+		["campaigns", "Campaigns"],
+		["templates", "Templates"],
+		["analytics", "Analytics"],
+		["activity", "Activity"],
+		["suppressed", "Suppressed"],
+		["recruit-alerts", "Recruit alerts"],
+		["settings", "Settings"],
+	] as const) {
+		test(`the ${sub} page loads under the admin session`, async ({ page }) => {
+			await login(page);
+			await page.goto(`/admin/mail/${sub}`);
+			await expect(page.getByRole("heading", { name: heading, exact: true }).first()).toBeVisible();
+			await expect(page).toHaveURL(new RegExp(`/admin/mail/${sub}$`));
+		});
+	}
 });

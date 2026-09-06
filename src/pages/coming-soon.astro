@@ -1,202 +1,482 @@
 ---
-// CureVà "Coming Soon" splash — the site's public holding page.
-// The root (/) redirects here. Primary CTA → /recruit (join the founding team);
-// secondary CTA → /early-access (the full homepage layout / "waitlist").
-// Standalone document (no Base.astro): renders its own <html>/<head> with the
-// curva.css warm design system inlined + a page-scoped split-layout style.
+/**
+ * /coming-soon — the pre-launch holding page.
+ *
+ * Version-H design, the PREVIOUS page's content: the countdown, the two
+ * calls to action, the hiring line, the socials and the Gallacher
+ * Collective credit all came back across on request.
+ *
+ * ⚠ THIS PAGE IS NO LONGER PIXEL-LOCKED to design/version-h/html/coming-soon.html.
+ * It was, and design/version-h/build/parity.js proved it at 0/1,296,000
+ * pixels — but that lock existed to serve "100% the version-H page", and
+ * the brief changed to "bring the old content back". Both cannot be true.
+ * The design system is still gated (smoke.js + e2e/design.spec.ts); the
+ * byte-for-byte comparison is not, and PORTING.md §5 records why.
+ *
+ * The waitlist form is the REAL one now — <WaitlistForm/> POSTs to
+ * /api/waitlist and writes the D1 row /admin/waitlist reads. Version H's
+ * own form was front-end only, which was the first thing flagged here.
+ *
+ * Like the other splash pages this deliberately does NOT use Base.astro:
+ * it is one screen, with no nav, menu or footer to inherit.
+ */
 export const prerender = false;
 
-const IMG = "https://lh3.googleusercontent.com/aida-public/";
-const INTERIOR_IMG = IMG + "AB6AXuAA_pTTZJjEtqMiDXWYt1JEyX2ZJbOGI16l2ptaLnYflA8SYFiw4jDq4KCcn6TCLhiYB9Shya4OEeonU1r_YkXQjbsUbJHPbrJsnC5py0QOCE9uKbLMFFmZoNIQ7spCZNZOU6-xf94L4YpE703AuSQqllxw-sgf8Sv9nrJhSNKE3j9QedDpR_vdsnWJVPw6HberHspnbquDLXnfbEoL6y8_4luLYCOt0ApoEIl6jRO4iPdquHTuPwAq_QdjRWDyK9KRXvWpV6HmwVJB";
+import "../styles/version-h.css";
+import "../styles/version-h-mobile.css";
+import runtimeUrl from "../../design/version-h/js/runtime.js?url";
+import WaitlistForm from "../components/vh/WaitlistForm.astro";
+import CursorGround from "../components/vh/CursorGround.astro";
+import Seo from "../components/vh/Seo.astro";
+import {
+	OPENING,
+	OPENING_ISO,
+	OPENING_SEASON,
+	OPENING_DAY,
+	showCountdown,
+} from "../data/opening";
+
+/* Decided here, not in the browser: the page is `prerender: false`, so the
+   right thing is already in the HTML and a visitor with JavaScript off gets
+   the date rather than four empty boxes. */
+const countdown = showCountdown();
 ---
 
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CureVà — Coming Soon</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link
-	rel="stylesheet"
-	href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&family=Newsreader:ital,opsz,wght@1,6..72,400;1,6..72,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap"
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1410">
+<meta name="color-scheme" content="dark">
+<title>Cure Và — Opening {OPENING_SEASON}</title>
+<meta name="description" content="Cure Và — a waterless nail and skin care spa rooted in natural care and zero-gravity comfort. Opening Spring 2027 at Legacy Village, Sugar House UT.">
+<Seo
+  title={`Cure Và — Opening ${OPENING_SEASON}`}
+  description="Cure Và — a waterless nail and skin care spa rooted in natural care and zero-gravity comfort. Opening Spring 2027 at Legacy Village, Sugar House UT."
 />
 
-<style is:inline>
-/* ============================================================
-   CureVà — shared design system (WARM INTERIOR MOOD)
-   ============================================================ */
-:root{
-  --primary:#C8A97B;--primary-700:#B08E5E;--primary-100:#F0E7D6;
-  --accent:#EAD9AE;--accent-700:#D9C089;--accent-100:#F6EFDC;
-  --neutral:#B7BE97;--neutral-700:#7C8060;--neutral-100:#E7EBD6;
-  --walnut:#5B4632;--walnut-700:#4a3826;--plaster:#EFE9DE;--sage-deep:#5E6247;
-  --ink:#2B2419;--muted:#7C7160;--line:#E1D8C8;--bg:#F6F1E8;--bg-tint:#EFE9DE;
-  --r-lg:22px;--r-md:16px;--r-sm:12px;--r-pill:999px;
-  --sh-sm:0 6px 20px -12px rgba(43,36,25,.26);
-  --sh-md:0 18px 40px -18px rgba(43,36,25,.30);
-  --sh-lg:0 40px 90px -34px rgba(43,36,25,.40);
-  --serif:'Newsreader',Georgia,'Times New Roman',serif;
-  --sans:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  --mono:'DM Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+<!-- The studio itself. This is the page a search for "nail salon Sugar
+     House" should land on, so it carries the LocalBusiness record: name,
+     address, phone, hours and the opening date. `BeautySalon` is the
+     schema.org type for exactly this. -->
+<script type="application/ld+json" is:inline set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "BeautySalon",
+  name: "Cure Và",
+  description: "A waterless nail and skin care spa rooted in natural care and zero-gravity comfort — an intentionally quiet space to disconnect, reset, and slow down.",
+  url: "https://curevanails.com/",
+  image: "https://curevanails.com/og.jpg",
+  telephone: "+1-801-425-3581",
+  email: "hello@cureva.co",
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "Legacy Village",
+    addressLocality: "Sugar House",
+    addressRegion: "UT",
+    addressCountry: "US",
+  },
+  openingHoursSpecification: [{
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+    opens: "09:00", closes: "19:00",
+  }],
+  areaServed: "Salt Lake City, Utah",
+  knowsAbout: ["Waterless manicure","Pedicure","Facials","Lash lift","Brow shaping"],
+  slogan: "A new way to experience nail care.",
+  foundingDate: OPENING_ISO,
+})} />
+
+<script type="application/ld+json" is:inline set:html={JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Cure Và",
+  url: "https://curevanails.com/",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: { "@type": "EntryPoint", urlTemplate: "https://curevanails.com/search?q={search_term_string}" },
+    "query-input": "required name=search_term_string",
+  },
+})} />
+
+<!-- The only external request this system makes. Guard it: a second one is
+     a regression, not a feature. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..700,0..100,0..1;1,9..144,300..700,0..100,0..1&family=Manrope:wght@300..800&display=swap">
+
+<noscript><style>
+  /* The reveals are opacity:0 until the runtime's observer adds `.in`. With
+     scripting off nothing ever does, and the page would render as an empty
+     ground. Costs nothing when scripts run: <noscript> is inert then. */
+  [data-r]{opacity:1!important;transform:none!important;clip-path:none!important}
+  #pre{display:none!important}
+</style></noscript>
+
+<style is:global>
+/* ═══ coming soon — one screen, one thing to do ═════════════════════════
+   Composed from tokens; names no colour. ═══════════════════════════════ */
+.cs{position:relative;min-height:100svh;display:grid;align-items:end;overflow:clip}
+.cs-shot{position:absolute;inset:0;z-index:0}
+.cs-shot img{width:100%;height:100%;object-fit:cover}
+/* the scrim is cut for WHERE THE COPY IS, not for the whole frame — the
+   right half keeps its daylight. On a phone the copy fills the width, so
+   the scrim becomes a foot to the frame instead. */
+.cs-shot::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,hsl(var(--background) / .66),
+    hsl(var(--background) / .34) 46%,hsl(var(--background) / .88))}
+@media (min-width:900px){
+  .cs-shot::after{background:linear-gradient(100deg,hsl(var(--background) / .92) 14%,
+    hsl(var(--background) / .58) 52%,hsl(var(--background) / .2))}
 }
-/* Smooth cross-document page transitions (supporting browsers only) */
-@view-transition { navigation: auto; }
-@keyframes vt-fade-out { to { opacity: 0; } }
-@keyframes vt-fade-in { from { opacity: 0; transform: translateY(10px); } }
-::view-transition-old(root){animation:vt-fade-out .18s ease both;}
-::view-transition-new(root){animation:vt-fade-in .3s ease both;}
-@media (prefers-reduced-motion:reduce){
-  ::view-transition-old(root),::view-transition-new(root){animation:none;}
+.cs-in{position:relative;z-index:1;width:100%;max-width:var(--maxw);margin-inline:auto;
+  padding:clamp(3rem,10vh,6rem) var(--gut) clamp(1.4rem,3.5vh,2.2rem);
+  display:grid;gap:clamp(1.6rem,3.4vw,2.6rem)}
+@media (min-width:900px){.cs-in{grid-template-columns:1.1fr .9fr;align-items:end}}
+.cs-h{font-size:clamp(2.6rem,7.4vw,6rem);letter-spacing:-.036em;line-height:.96;
+  color:hsl(var(--primary));margin-top:.9rem}
+.cs-h em{font-style:italic;color:hsl(var(--accent))}
+.cs-say{margin-top:1.2rem;max-width:46ch}
+
+/* ── the countdown ────────────────────────────────────────────────────
+   `.num` on every cell: tabular figures, so a changing second does not
+   jitter the row it sits in. */
+.cs-count{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:1.9rem;padding:0;list-style:none}
+.cs-count li{min-width:4.4rem;padding:.7rem .8rem;border-radius:var(--radius-sm);
+  background:hsl(var(--background) / .5);
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2);text-align:center}
+@media (pointer:coarse){.cs-count li{background:hsl(var(--card))}}
+.cs-count b{display:block;font-family:Fraunces,"Iowan Old Style",Georgia,serif;
+  font-weight:300;font-variation-settings:"opsz" 144,"SOFT" 12,"WONK" 0;
+  font-size:clamp(1.5rem,3.4vw,2.1rem);line-height:1;letter-spacing:-.02em;
+  color:hsl(var(--primary))}
+.cs-count span{display:block;margin-top:.35rem;font-size:.58rem;font-weight:800;
+  letter-spacing:.2em;text-transform:uppercase;color:hsl(var(--muted-foreground))}
+
+/* ── the open day, when the opening is too far off to count down to ───
+   A counter reading "191 days" is a number, not anticipation, and it ticks
+   for six months while nothing happens. Outside the window the page states
+   the date instead, in the countdown's own plate so the two swap without
+   the section changing shape. */
+.cs-openday{display:inline-block;margin-top:1.9rem;padding:.8rem 1.15rem;
+  border-radius:var(--radius-sm);background:hsl(var(--background) / .5);
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2);text-align:center}
+@media (pointer:coarse){.cs-openday{background:hsl(var(--card))}}
+.cs-openday b{display:block;font-family:Fraunces,"Iowan Old Style",Georgia,serif;
+  font-weight:300;font-variation-settings:"opsz" 144,"SOFT" 12,"WONK" 0;
+  font-size:clamp(1.5rem,3.4vw,2.1rem);line-height:1;letter-spacing:-.02em;
+  color:hsl(var(--primary))}
+.cs-openday span{display:block;margin-top:.4rem;font-size:.58rem;font-weight:800;
+  letter-spacing:.2em;text-transform:uppercase;color:hsl(var(--muted-foreground))}
+
+.cs-cta{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.9rem}
+.cs-hiring{margin-top:1.1rem;font-size:.8rem;color:hsl(var(--muted-foreground));max-width:52ch}
+.cs-meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.4rem}
+
+.cs-panel{padding:clamp(1.2rem,2.6vw,2rem);border-radius:var(--radius-lg);
+  background:hsl(var(--background) / .68);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2)}
+@media (pointer:coarse){.cs-panel{background:hsl(var(--card));
+  backdrop-filter:none;-webkit-backdrop-filter:none}}
+.cs-panel h2{font-size:clamp(1.15rem,1.6vw,1.4rem);line-height:1.14}
+.cs-panel .cs-panel-say{margin-top:.6rem;font-size:.88rem;color:hsl(var(--muted-foreground))}
+.cs-panel .wl{margin-top:1.4rem}
+
+/* ── the foot: socials + credit ───────────────────────────────────────── */
+.cs-foot{position:relative;z-index:1;width:100%;max-width:var(--maxw);margin-inline:auto;
+  padding:0 var(--gut) clamp(1.4rem,3.5vh,2.2rem);display:flex;flex-wrap:wrap;
+  gap:.9rem 1.4rem;align-items:center;justify-content:space-between}
+.cs-credit{font-size:.72rem;color:hsl(var(--muted-foreground))}
+.cs-soc{display:flex;gap:.5rem;list-style:none;margin:0;padding:0}
+.cs-soc a{display:grid;place-items:center;width:34px;height:34px;border-radius:999px;
+  color:hsl(var(--muted-foreground));box-shadow:inset 0 0 0 1px var(--border-hairline);
+  transition:color .3s var(--ease),box-shadow .3s var(--ease)}
+.cs-soc a:hover{color:hsl(var(--primary));box-shadow:inset 0 0 0 1px hsl(var(--accent))}
+.cs-soc svg{width:16px;height:16px}
+
+/* ══ the first-visit dialog ═══════════════════════════════════════════
+   A real <dialog> opened with showModal(): focus containment, Escape, the
+   inert background and the top layer all come for free, and hand-rolling
+   any of them is how a modal ends up trapping a keyboard
+   (DESIGN-SYSTEM.md §7). The top layer is also why it carries
+   data-nocursor — it paints above the custom cursor, so without it the
+   visitor has no pointer at all (§6). */
+/* The scroll lock is OURS, on <html>, not the system's `body.lock`: the
+   runtime's preloader clears `body.lock` when it finishes, which would
+   unlock the page underneath an open dialog about a second after it
+   opened. */
+html.ask-open{overflow:hidden}
+.ask::backdrop{background:hsl(var(--background) / .72);
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.ask{border:0;padding:0;max-width:min(34rem,calc(100vw - 2rem));width:100%;
+  border-radius:var(--radius-lg);background:hsl(var(--popover));
+  color:hsl(var(--popover-foreground));
+  box-shadow:inset 0 0 0 1px var(--border-hairline),var(--sh-d)}
+/* CENTRED. The dialog box was always centred in the viewport — measured at
+   0px offset on both axes — but its contents were ragged-left inside it,
+   which is what reads as "not centred" when the box is this size and the
+   copy is this short. Two choices and a question want an axis. */
+.ask-in{padding:clamp(1.5rem,4vw,2.4rem);text-align:center}
+.ask-in .eyebrow{justify-content:center}
+.ask-opt{justify-items:center;text-align:center}
+/* ON A PHONE IT IS THE WHOLE SCREEN. A 34rem card floating on a 390px
+   viewport leaves a strip of the page showing round its edges, which
+   invites a tap on something that is not one of the two answers — and this
+   dialog has exactly two answers. 100dvh, not 100vh: vh is the tall
+   viewport on iOS, so the footer would sit under the browser chrome. */
+@media (max-width:639px){
+  .ask{inset:0;width:100%;max-width:none;height:100dvh;max-height:none;
+    border-radius:0;box-shadow:none}
+  /* `display` ONLY on [open] — this line shipped a full-screen panel that
+     never went away. An author `display` on a <dialog> beats the UA's
+     `dialog:not([open]){display:none}` at ANY specificity, because author
+     rules outrank the UA sheet outright. Declaring `display:grid` on `.ask`
+     therefore kept the dialog laid out after close(), covering the page on
+     every screen under 640px. Regression-tested in e2e/design.spec.ts. */
+  .ask[open]{display:grid;align-content:center}
+  .ask-in{padding:1.6rem 1.4rem max(1.6rem,env(safe-area-inset-bottom))}
+  .ask-opts{grid-template-columns:1fr}
+  .ask-opt{padding:1.25rem 1.2rem}
 }
-
-*{box-sizing:border-box;}
-html{scroll-behavior:smooth;}
-body{margin:0;font-family:var(--sans);color:var(--ink);background:var(--bg);font-size:17px;line-height:1.65;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;}
-img{max-width:100%;display:block;}
-a{color:inherit;text-decoration:none;}
-button{font-family:inherit;cursor:pointer;}
-::selection{background:#C8A97B;color:#fff;}
-h1,h2,h3,h4{margin:0;font-family:var(--serif);line-height:1.08;letter-spacing:-.01em;font-weight:500;text-wrap:balance;}
-.serif-i{font-style:italic;}
-p{margin:0;text-wrap:pretty;}
-.muted{color:var(--muted);}
-
-/* Buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;border-radius:var(--r-pill);padding:14px 28px;font-size:15.5px;font-weight:600;border:1.5px solid transparent;transition:transform .18s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease, color .2s ease;white-space:nowrap;}
-.btn:active{transform:translateY(1px);}
-.btn-primary{background:var(--walnut);color:#F6F1E8;box-shadow:var(--sh-sm);}
-.btn-primary:hover{background:var(--walnut-700);box-shadow:var(--sh-md);}
-.btn-outline{background:transparent;color:var(--ink);border-color:#CBBFA9;}
-.btn-outline:hover{border-color:var(--walnut);background:#00000006;}
-.btn-lg{padding:17px 34px;font-size:16.5px;}
-
-/* Logo mark */
-.brand .mark{width:30px;height:30px;border-radius:50% 50% 50% 7px;background:radial-gradient(120% 120% at 35% 25%, var(--primary) 0%, var(--walnut) 100%);box-shadow:inset 0 0 0 3px rgba(255,255,255,.35);transform:rotate(-8deg);}
-
-/* Blobs */
-.blobs{position:absolute;inset:0;overflow:hidden;z-index:0;pointer-events:none;}
-.blob{position:absolute;border-radius:50%;filter:blur(64px);opacity:.4;}
-.blob.b1{width:520px;height:520px;background:var(--primary);}
-.blob.b3{width:380px;height:380px;background:var(--accent);}
-</style>
-
-<style is:inline>
-  /* ---- Coming Soon split layout ---- */
-  html,body{height:100%;}
-  body{overflow:hidden;}
-  .cs{position:relative;min-height:100vh;display:grid;grid-template-columns:1.02fr .98fr;}
-  @media (max-width:900px){.cs{grid-template-columns:1fr;} .cs-media{display:none;} body{overflow:auto;}}
-
-  .cs-left{position:relative;display:flex;flex-direction:column;padding:46px 64px;overflow:hidden;}
-  .cs-left .blobs .blob{opacity:.32;}
-  .cs-brand{display:flex;align-items:center;gap:12px;font-family:var(--serif);font-size:25px;font-weight:500;position:relative;z-index:1;}
-  .cs-body{position:relative;z-index:1;margin:auto 0;max-width:560px;}
-  .cs-kicker{display:inline-flex;align-items:center;gap:10px;padding:9px 16px;border-radius:var(--r-pill);background:var(--plaster);border:1px solid var(--line);font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--sage-deep);}
-  .cs-kicker .pulse{width:8px;height:8px;border-radius:50%;background:var(--neutral-700);position:relative;}
-  .cs-kicker .pulse::after{content:"";position:absolute;inset:-5px;border-radius:50%;border:1.5px solid var(--neutral-700);opacity:.5;animation:ping 2.4s ease-out infinite;}
-  @keyframes ping{0%{transform:scale(.6);opacity:.6}100%{transform:scale(1.6);opacity:0}}
-  @media (prefers-reduced-motion:reduce){.cs-kicker .pulse::after{animation:none;}}
-
-  .cs-h1{font-family:var(--serif);font-weight:400;font-size:clamp(46px,5.6vw,80px);line-height:1.02;letter-spacing:-.01em;margin:26px 0 0;}
-  .cs-h1 .serif-i{color:var(--sage-deep);}
-  .cs-sub{font-size:19px;color:#5f5646;max-width:46ch;margin-top:22px;line-height:1.6;}
-
-  .count{display:flex;gap:14px;margin-top:34px;}
-  .count .u{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 0;width:78px;text-align:center;box-shadow:var(--sh-sm);}
-  .count .u .v{font-family:var(--serif);font-size:34px;line-height:1;color:var(--ink);}
-  .count .u .k{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:7px;}
-
-  .cs-cta{display:flex;gap:14px;flex-wrap:wrap;margin-top:38px;align-items:center;}
-  .cs-note{font-size:14px;color:var(--muted);margin-top:22px;}
-
-  .cs-foot{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:16px;margin-top:auto;padding-top:26px;}
-  .cs-foot .socials{display:flex;gap:10px;}
-  .cs-foot .soc{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:#fff;display:flex;align-items:center;justify-content:center;transition:all .18s;}
-  .cs-foot .soc:hover{background:var(--primary);border-color:var(--primary);transform:translateY(-2px);}
-  .cs-foot .soc svg{width:17px;height:17px;}
-  .cs-foot span{font-size:13.5px;color:var(--muted);}
-
-  .cs-media{position:relative;background:var(--plaster) center/cover;}
-  .cs-media::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,var(--bg) 0%,transparent 22%),linear-gradient(200deg,transparent 50%,rgba(43,36,25,.34));}
-  .cs-chip{position:absolute;bottom:40px;right:40px;z-index:2;display:flex;align-items:center;gap:14px;background:rgba(246,241,232,.92);backdrop-filter:blur(6px);border:1px solid var(--line);border-radius:20px;padding:16px 20px;box-shadow:var(--sh-md);}
-  .cs-chip .ci{width:44px;height:44px;border-radius:12px;background:var(--neutral-100);display:flex;align-items:center;justify-content:center;flex:none;}
-  .cs-chip .ci svg{width:24px;height:24px;}
-  .cs-chip .ct{font-weight:600;font-size:15px;}
-  .cs-chip .cs2{font-size:13px;color:var(--muted);}
+.ask-tag{margin-top:.85rem;font-size:.62rem;font-weight:800;letter-spacing:.18em;
+  text-transform:uppercase;color:hsl(var(--muted-foreground))}
+.ask h2{font-size:clamp(1.45rem,3.2vw,2rem);margin:.6rem 0}
+.ask h2 em{color:hsl(var(--accent))}
+.ask-say{font-size:.9rem;color:hsl(var(--muted-foreground))}
+.ask-opts{display:grid;gap:.7rem;margin-top:1.6rem}
+@media (min-width:520px){.ask-opts{grid-template-columns:1fr 1fr}}
+.ask-opt{display:grid;gap:.35rem;align-content:start;text-decoration:none;
+  padding:1.05rem 1.15rem;border:0;border-radius:var(--radius-md);cursor:pointer;
+  font:inherit;color:inherit;background:hsl(var(--muted));
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2);
+  transition:box-shadow .3s var(--ease),background .3s var(--ease)}
+.ask-opt:hover{box-shadow:inset 0 0 0 1.4px hsl(var(--accent))}
+.ask-opt b{font-size:.98rem;font-weight:700;color:hsl(var(--foreground))}
+.ask-opt span{font-size:.82rem;line-height:1.5;color:hsl(var(--muted-foreground))}
 </style>
 </head>
 <body>
-<main class="cs">
 
-  <!-- LEFT -->
-  <section class="cs-left">
-    <div class="blobs">
-      <span class="blob b1" style="top:-140px;left:-90px;"></span>
-      <span class="blob b3" style="bottom:-160px;left:20%;"></span>
+<div id="pre" role="status" aria-label="Loading">
+  <div class="contour" aria-hidden="true"></div>
+  <div class="pre-in">
+    <span class="pre-mark" aria-hidden="true"></span>
+    <div class="pre-w"><span>cure và</span></div>
+    <span class="pre-rule" aria-hidden="true"></span>
+    <div class="pre-sub">Nail therapy · Sugar House</div>
+  </div>
+</div>
+<div id="grain" aria-hidden="true"></div>
+<div id="cur" aria-hidden="true"><b>view</b></div>
+
+<!-- No nav: there is nowhere to go yet. The mark alone, so the page still
+     identifies itself. -->
+<nav class="nav" id="nav" aria-label="Primary">
+  <div class="bar">
+    <a class="mark" href="/" aria-label="Cure Và">
+      <span class="mark-ring" aria-hidden="true"></span>
+      <b>cure và</b><i>Nail Therapy</i>
+    </a>
+  </div>
+</nav>
+
+<main>
+<header class="cs" id="top">
+  <div class="cs-shot" aria-hidden="true">
+    <img src="/img/e-space.webp" alt="" fetchpriority="high" width="2400" height="1345" decoding="async">
+  </div>
+
+  <div class="cs-in">
+    <div>
+      <span class="eyebrow">Opening {OPENING_SEASON}</span>
+      <h1 class="cs-h">New way to experience nail care is <em>coming.</em></h1>
+      <p class="lede cs-say">A waterless nail &amp; skin care spa rooted in natural care and
+        zero-gravity comfort &mdash; an intentionally quiet space to disconnect, reset, and
+        simply slow down.</p>
+
+      {countdown ? (
+        <ul class="cs-count" aria-label="Countdown to opening" data-target={OPENING.toISOString()}>
+          <li><b class="num" data-d>&mdash;</b><span>Days</span></li>
+          <li><b class="num" data-h>&mdash;</b><span>Hours</span></li>
+          <li><b class="num" data-m>&mdash;</b><span>Minutes</span></li>
+          <li><b class="num" data-s>&mdash;</b><span>Seconds</span></li>
+        </ul>
+      ) : (
+        <p class="cs-openday"><b class="num">{OPENING_DAY}</b><span>Open day</span></p>
+      )}
+
+      <p class="cs-cta">
+        <a class="btn" href="/recruit" data-mag>Join the founding team
+          <svg class="arw" width="15" height="10" viewBox="0 0 15 10" fill="none"
+            aria-hidden="true"><path d="M1 5h12M9 1l4 4-4 4" stroke="currentColor"
+            stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+        <a class="btn btn--outline" href="#waitlist" data-mag>Join the waitlist</a>
+      </p>
+      <p class="cs-hiring">We&rsquo;re hiring Nail Technicians, Estheticians &amp; Hosts
+        &mdash; all experience levels are welcome.</p>
     </div>
 
-    <a class="cs-brand brand" href="/early-access"><span class="mark"></span>CureVà</a>
-
-    <div class="cs-body">
-      <span class="cs-kicker"><span class="pulse"></span>Opening December 2026</span>
-      <h1 class="cs-h1">Something calm is <span class="serif-i">coming.</span></h1>
-      <p class="cs-sub">A private, gender-inclusive nail &amp; beauty lounge built around stillness — plaster, walnut, real greenery, and the signature Zero Gravity ritual. We're building the founding team now.</p>
-
-      <div class="count" id="count" aria-label="Countdown to opening">
-        <div class="u"><div class="v" data-d>—</div><div class="k">Days</div></div>
-        <div class="u"><div class="v" data-h>—</div><div class="k">Hours</div></div>
-        <div class="u"><div class="v" data-m>—</div><div class="k">Minutes</div></div>
-        <div class="u"><div class="v" data-s>—</div><div class="k">Seconds</div></div>
-      </div>
-
-      <div class="cs-cta">
-        <a class="btn btn-primary btn-lg" href="/recruit">Join the founding team <span aria-hidden="true">→</span></a>
-        <a class="btn btn-outline btn-lg" href="/early-access">Join the waitlist</a>
-      </div>
-      <p class="cs-note">Now hiring nail artists, estheticians &amp; hosts — every role open to all genders.</p>
+    <div class="cs-panel" id="waitlist">
+      <h2>Be among the first to experience <em>CURE VÀ.</em></h2>
+      <p class="cs-panel-say">Join our waitlist to be the first to know when we open &mdash; and
+        look out for special gifts, offers, and little surprises throughout our first year.</p>
+      <WaitlistForm
+        source="coming-soon"
+        label="Join the waitlist"
+        fine="No spam. Just opening news and a few CURE VÀ surprises along the way."
+      />
     </div>
+  </div>
 
-    <div class="cs-foot">
-      <span>© 2026 CureVà · The Gallacher Collective</span>
-      <div class="socials">
-        <a class="soc" href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="#7C7160" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="#7C7160" stroke="none"/></svg></a>
-        <a class="soc" href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="#7C7160"><path d="M16 3c.3 2.2 1.7 3.9 4 4.2v3c-1.5 0-2.9-.4-4-1.1V15a6 6 0 1 1-6-6c.3 0 .7 0 1 .1v3.1a3 3 0 1 0 2 2.8V3h3Z"/></svg></a>
-        <a class="soc" href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="#7C7160"><path d="M14 8h2V5h-2c-1.7 0-3 1.3-3 3v2H9v3h2v6h3v-6h2.2l.8-3H14V8.5c0-.3.2-.5.5-.5H14Z"/></svg></a>
-      </div>
-    </div>
-  </section>
-
-  <!-- RIGHT -->
-  <aside class="cs-media" style={`background-image:url('${INTERIOR_IMG}');`}>
-    <div class="cs-chip">
-      <span class="ci"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14a4 4 0 0 1 4-4h2l3-5"/><path d="M4 14h8l4 5"/><path d="M16 19h4"/><path d="M5 14v5"/></svg></span>
-      <div><div class="ct">5 Zero Gravity chairs</div><div class="cs2">A calmer kind of lounge</div></div>
-    </div>
-  </aside>
-
+  <div class="cs-foot">
+    <span class="cs-credit">&copy; 2027 Cure Và &middot; The Gallacher Collective</span>
+    <ul class="cs-soc">
+      <li><a href="#" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a></li>
+      <li><a href="#" aria-label="TikTok"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 3c.3 2.2 1.7 3.9 4 4.2v3c-1.5 0-2.9-.4-4-1.1V15a6 6 0 1 1-6-6c.3 0 .7 0 1 .1v3.1a3 3 0 1 0 2 2.8V3h3Z"/></svg></a></li>
+      <li><a href="#" aria-label="Facebook"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 8h2V5h-2c-1.7 0-3 1.3-3 3v2H9v3h2v6h3v-6h2.2l.8-3H14V8.5c0-.3.2-.5.5-.5H14Z"/></svg></a></li>
+    </ul>
+  </div>
+</header>
 </main>
 
+<!-- ══ first visit: which door? ═══════════════════════════════════════ -->
+<dialog class="ask" id="ask" data-nocursor aria-labelledby="askH">
+  <div class="ask-in">
+    <span class="eyebrow">Opening {OPENING_SEASON}</span>
+    <p class="ask-tag">Waterless &middot; Zero-Gravity &middot; Natural Nail &amp; Skin Care</p>
+    <h2 id="askH">What brings you to <em>CURE VÀ?</em></h2>
+    <p class="ask-say">Point us the right way and we&rsquo;ll take it straight there.</p>
+
+    <div class="ask-opts">
+      <button class="ask-opt" type="button" data-go="waitlist">
+        <b>I&rsquo;m here to be a guest</b>
+        <span>Join the waitlist and be first to know when we open.</span>
+      </button>
+      <a class="ask-opt" href="/recruit/apply" data-go="careers">
+        <b>I&rsquo;m here to join the team</b>
+        <span>Explore open positions and come be part of the beginning.</span>
+      </a>
+    </div>
+
+  </div>
+</dialog>
+
+<script src={runtimeUrl} is:inline></script>
+<CursorGround />
 <script is:inline>
-  // Countdown to opening — Dec 1, 2026
-  (function () {
-    var target = new Date('2026-12-01T09:00:00').getTime();
-    var elD = document.querySelector('[data-d]'), elH = document.querySelector('[data-h]'),
-        elM = document.querySelector('[data-m]'), elS = document.querySelector('[data-s]');
-    if (!elD) return;
-    function pad(n){ return String(n).padStart(2,'0'); }
-    function tick() {
-      var diff = target - Date.now();
-      if (diff < 0) diff = 0;
-      var d = Math.floor(diff / 86400000);
-      var h = Math.floor(diff % 86400000 / 3600000);
-      var m = Math.floor(diff % 3600000 / 60000);
-      var s = Math.floor(diff % 60000 / 1000);
-      elD.textContent = d; elH.textContent = pad(h); elM.textContent = pad(m); elS.textContent = pad(s);
+/* ── the countdown ───────────────────────────────────────────────────── */
+(function () {
+  var list = document.querySelector('.cs-count');
+  if (!list) return;                       /* outside the window — the page states the date */
+  var target = new Date(list.getAttribute('data-target')).getTime();
+  var elD = document.querySelector('[data-d]'), elH = document.querySelector('[data-h]'),
+      elM = document.querySelector('[data-m]'), elS = document.querySelector('[data-s]');
+  if (!elD) return;
+  function pad(n) { return String(n).padStart(2, '0'); }
+  function tick() {
+    var diff = target - Date.now();
+    if (diff < 0) diff = 0;
+    elD.textContent = Math.floor(diff / 86400000);
+    elH.textContent = pad(Math.floor(diff % 86400000 / 3600000));
+    elM.textContent = pad(Math.floor(diff % 3600000 / 60000));
+    elS.textContent = pad(Math.floor(diff % 60000 / 1000));
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+
+/* ── first visit: which door? ─────────────────────────────────────────
+   Shown ONCE PER SESSION. The answer lives in sessionStorage, not
+   localStorage: it is scoped to this tab and it dies with it, so a visitor
+   who comes back tomorrow — or opens the site in a second tab — is asked
+   again. That is the deliberate difference from `localStorage`, which
+   would have answered for them on every visit from this browser, forever,
+   including after the studio opens and the question stops making sense.
+
+   Both APIs throw outright in some privacy modes rather than returning
+   null, so every read and write is guarded and the page is correct when it
+   returns nothing — the cost of that is the dialog showing again, which is
+   the safe direction to fail in.
+
+   It waits for the preloader to leave (two curtains at once is one too
+   many) and never opens for a visitor who arrived with a hash, because
+   they have already said where they were going. */
+(function () {
+  var dlg = document.getElementById('ask');
+  if (!dlg || typeof dlg.showModal !== 'function') return;
+
+  var KEY = 'cureva:visitor';
+  function remembered() { try { return sessionStorage.getItem(KEY); } catch (e) { return null; } }
+  function remember(v) { try { sessionStorage.setItem(KEY, v); } catch (e) {} }
+
+  if (remembered() || location.hash) return;
+
+  /* ── OPEN AT ONCE ─────────────────────────────────────────────────
+     This script sits at the end of <body>, which is the first moment
+     #ask exists — so the question is up before the hero photograph has
+     finished decoding, never mind before the preloader would have lifted.
+
+     THE PRELOADER GOES WITH IT, on this visit only. It is a curtain, and
+     a modal over a curtain is two curtains: the visitor would watch a
+     brand animation through a blurred backdrop for no reason. A second
+     page view in the same session shows no dialog and keeps the normal
+     preloader. */
+  var pre = document.getElementById('pre');
+  if (pre && pre.parentNode) pre.parentNode.removeChild(pre);
+  document.body.classList.remove('lock');
+
+  function open() {
+    if (dlg.open) return;
+    dlg.showModal();
+    document.documentElement.classList.add('ask-open');
+  }
+
+  /* ── THIS DIALOG IS A REQUIRED CHOICE ──────────────────────────────
+     It does not close on the backdrop and it does not close on Escape.
+     `cancel` is the event Escape fires on a <dialog>; preventing it is the
+     only supported way to refuse the dismissal, and it also covers the
+     platform's own close-request gestures. The two options are the only
+     ways out, and both of them go somewhere.
+
+     The accessibility trade this makes, stated plainly: a modal that
+     cannot be dismissed is normally wrong. It is defensible HERE because
+     it is a choice, not a wall — both options are real, both are reachable
+     by keyboard, focus starts inside the dialog, and neither answer costs
+     the visitor anything. It would not be defensible for anything the
+     visitor could reasonably want to refuse. */
+  dlg.addEventListener('cancel', function (e) { e.preventDefault(); });
+
+  /* Release the lock on the dialog's own `close` EVENT, never inside a
+     button handler — the dialog can close by routes a button never sees,
+     and the lock would leak and leave the page unscrollable. */
+  dlg.addEventListener('close', function () {
+    document.documentElement.classList.remove('ask-open');
+  });
+
+  dlg.addEventListener('click', function (e) {
+    /* a click on the <dialog> itself is a click on the backdrop — ignored,
+       deliberately: see the note above */
+    var el = e.target.closest('[data-go]');
+    if (!el) return;
+    var go = el.getAttribute('data-go');
+    if (go === 'careers') { remember('careers'); return; }   // let the anchor navigate
+
+    e.preventDefault();
+    remember('guest');
+    dlg.close();
+
+    if (go === 'waitlist') {
+      var panel = document.getElementById('waitlist');
+      if (!panel) return;
+      panel.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      var field = panel.querySelector('input[type=email]');
+      if (field) setTimeout(function () { field.focus({ preventScroll: true }); }, 500);
     }
-    tick(); setInterval(tick, 1000);
-  })();
+  });
+
+  open();
+})();
 </script>
 </body>
 </html>

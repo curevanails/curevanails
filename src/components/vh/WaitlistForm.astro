@@ -1,0 +1,179 @@
+---
+/**
+ * The waiting-list form — version H, wired to the real endpoint.
+ *
+ * /getready and /waitlist each carried their own copy of this markup and
+ * its submit handler. It is one component now.
+ *
+ * THE SCRIPT IS THE PREVIOUS PAGE'S, VERBATIM, and so are its hooks —
+ * `.js-waitlist`, `[data-wl-email]`, `.js-wl-msg`, `.js-wl-success`,
+ * `.js-wl-success-text` and the `.err` class. It POSTs JSON to
+ * /api/waitlist, which writes the D1 row the /admin/waitlist dashboard
+ * reads. Restyling must not touch any of that.
+ *
+ * `source` distinguishes which page a signup came from, so it stays a prop.
+ */
+import { turnstileSiteKey } from "../../utils/turnstile";
+
+interface Props {
+	/** Recorded on the D1 row — keep it unique per page. */
+	source?: string;
+	label?: string;
+	/** The line under the field. Differs per page, so it is copy, not chrome. */
+	fine?: string;
+}
+const {
+	source = "getready-waitlist",
+	label = "Reserve My Spot",
+	fine = "No spam — just opening news, priority booking, and your founding-member invitation.",
+} = Astro.props;
+
+/* Empty until TURNSTILE_SITE_KEY is set; the widget then simply does not
+   render and /api/waitlist skips the check to match. */
+const turnstileSite = turnstileSiteKey();
+---
+
+<div class="wl">
+  <form class="wl-form js-waitlist" novalidate data-wl-source={source}>
+    <label class="sr" for="wlEmail">Email address</label>
+    <input class="input" id="wlEmail" type="email" name="email" data-wl-email
+      placeholder="Enter your email address" autocomplete="email" inputmode="email">
+    <button class="btn" type="submit" data-mag>{label}
+      <svg class="arw" width="15" height="10" viewBox="0 0 15 10" fill="none"
+        aria-hidden="true"><path d="M1 5h12M9 1l4 4-4 4" stroke="currentColor"
+        stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    {turnstileSite && (
+      <div
+        class="cf-turnstile wl-turnstile"
+        data-sitekey={turnstileSite}
+        data-action="turnstile-spin-v1"
+        data-appearance="interaction-only"
+      />
+    )}
+  </form>
+  {turnstileSite && (
+    <script
+      is:inline
+      src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+      async
+      defer
+    />
+  )}
+  <p class="wl-msg js-wl-msg" role="status"></p>
+  <div class="wl-success js-wl-success" tabindex="-1">
+    <p class="js-wl-success-text">You&rsquo;re on the list! We&rsquo;ll be in touch.</p>
+  </div>
+  <p class="wl-fine">{fine}</p>
+</div>
+
+<style is:global>
+/* Composed from tokens; names no colour. */
+.wl{display:grid;gap:.75rem}
+.wl-form{display:flex;flex-wrap:wrap;gap:.7rem;align-items:flex-end}
+/* Its own row when a challenge actually appears; `interaction-only` means it
+   is usually nothing at all, and an empty box must not open a gap. */
+.wl-turnstile{flex-basis:100%}
+.wl-turnstile:empty{display:none}
+.wl-form .input{flex:1 1 15rem;min-width:0}
+.wl-form .input.err{border-color:hsl(var(--destructive))}
+.wl-msg{font-size:.8rem;color:hsl(var(--muted-foreground));min-height:1em}
+.wl-msg.bad{color:hsl(var(--destructive))}
+.wl-success{display:none;padding:.9rem 1.15rem;border-radius:var(--radius-md);
+  background:hsl(var(--muted));box-shadow:inset 0 0 0 1px hsl(var(--accent));
+  font-size:.92rem;font-weight:700;color:hsl(var(--foreground))}
+.wl-success.show{display:block}
+.wl-fine{font-size:.76rem;color:hsl(var(--muted-foreground));max-width:52ch}
+</style>
+
+<script is:inline>
+  (function () {
+    var EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    var form = document.querySelector('.js-waitlist');
+    if (!form) return;
+
+    var emailEl = form.querySelector('[data-wl-email]');
+    var msg = document.querySelector('.js-wl-msg');
+    var success = document.querySelector('.js-wl-success');
+    var successText = document.querySelector('.js-wl-success-text');
+    var btn = form.querySelector('button[type="submit"]');
+
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = (emailEl.value || '').trim();
+
+      if (!email || !EMAIL_RE.test(email)) {
+        emailEl.classList.add('err');
+        msg.textContent = email ? 'Enter a valid email address.' : 'Email address is required.';
+        msg.className = 'wl-msg js-wl-msg bad';
+        emailEl.focus();
+        return;
+      }
+      emailEl.classList.remove('err');
+      msg.textContent = '';
+      msg.className = 'wl-msg js-wl-msg';
+
+      /* The human check, when there is one. Turnstile writes its answer into a
+         hidden input inside this form; empty means the visitor was challenged
+         and has not finished. /api/waitlist checks it again — this is only the
+         message. */
+      var tsWidget = form.querySelector('.cf-turnstile');
+      var tsInput = form.querySelector('[name="cf-turnstile-response"]');
+      if (tsWidget && (!tsInput || !tsInput.value)) {
+        msg.textContent = 'Please complete the human check.';
+        msg.className = 'wl-msg js-wl-msg bad';
+        return;
+      }
+
+      var label = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Reserving…';
+
+      var payload = {
+        email: email,
+        source: form.getAttribute('data-wl-source') || 'waitlist',
+      };
+      if (tsInput && tsInput.value) payload['cf-turnstile-response'] = tsInput.value;
+
+      fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(payload),
+      })
+        .then(function (res) {
+          return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+        })
+        .then(function (r) {
+          if (r.ok && r.data && r.data.ok) {
+            form.style.display = 'none';
+            successText.textContent = r.data.alreadyJoined
+              ? "You're already on the list — we'll be in touch."
+              : "You're on the list! We'll be in touch before we open.";
+            success.classList.add('show');
+            return;
+          }
+          var err =
+            (r.data && r.data.errors && (r.data.errors.email || r.data.errors.phone)) ||
+            (r.data && r.data.error) ||
+            'Something went wrong. Please try again.';
+          if (r.data && r.data.errors && r.data.errors.email) emailEl.classList.add('err');
+          msg.textContent = err;
+          msg.className = 'wl-msg js-wl-msg bad';
+          // The token is spent — hand the retry a fresh one.
+          try { if (tsWidget && window.turnstile) window.turnstile.reset(tsWidget); } catch (e2) {}
+          btn.disabled = false;
+          btn.textContent = label;
+        })
+        .catch(function () {
+          msg.textContent = 'Network error. Please try again.';
+          msg.className = 'wl-msg js-wl-msg bad';
+          try { if (tsWidget && window.turnstile) window.turnstile.reset(tsWidget); } catch (e2) {}
+          btn.disabled = false;
+          btn.textContent = label;
+        });
+    });
+
+    emailEl.addEventListener('input', function () {
+      emailEl.classList.remove('err');
+    });
+  })();
+</script>

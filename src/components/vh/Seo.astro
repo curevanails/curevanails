@@ -1,0 +1,66 @@
+---
+/**
+ * The head every version-H page shares: canonical, Open Graph, Twitter and
+ * the robots directive.
+ *
+ * The pages on `VersionH.astro` and `/coming-soon` carry their own
+ * documents, so nothing was emitting any of this — they shipped a
+ * `<title>` and a description and nothing else. A page with no canonical
+ * and no og:url is a page whose social preview is a bare link and whose
+ * ranking is split across every URL that can reach it.
+ *
+ * Content pages go through `Base.astro` → `EmDashHead` instead, which
+ * emits its own OG/Twitter tags from the page context; this component is
+ * for the standalone documents so the two never both fire.
+ */
+interface Props {
+	title: string;
+	description: string;
+	/** Absolute or root-relative. Defaults to the brand card. */
+	image?: string;
+	/** og:type — "website" for most pages. */
+	type?: "website" | "article";
+	/**
+	 * Point at another URL when this page is a variant of it. /waitlist and
+	 * /getready make the same offer as /coming-soon, and three URLs
+	 * competing for one query is how a small site buries itself.
+	 */
+	canonicalPath?: string;
+	/** Keep a page out of the index without hiding it from visitors. */
+	noindex?: boolean;
+}
+
+const {
+	title,
+	description,
+	image = "/og.jpg",
+	type = "website",
+	canonicalPath,
+	noindex = false,
+} = Astro.props;
+
+const origin = Astro.site ?? new URL("https://curevanails.com");
+const canonical = new URL(canonicalPath ?? Astro.url.pathname, origin);
+const ogImage = new URL(image, origin);
+---
+
+<link rel="canonical" href={canonical.href} />
+{noindex
+	? <meta name="robots" content="noindex, follow" />
+	: <meta name="robots" content="index, follow, max-image-preview:large" />}
+
+<meta property="og:type" content={type} />
+<meta property="og:site_name" content="Cure Và" />
+<meta property="og:locale" content="en_US" />
+<meta property="og:title" content={title} />
+<meta property="og:description" content={description} />
+<meta property="og:url" content={canonical.href} />
+<meta property="og:image" content={ogImage.href} />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta property="og:image:alt" content="The Cure Và lounge in morning light" />
+
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content={title} />
+<meta name="twitter:description" content={description} />
+<meta name="twitter:image" content={ogImage.href} />

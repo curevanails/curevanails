@@ -87,12 +87,17 @@ middleware serves them at the **root** — the whole Worker *is* the admin:
 
 | Page | Clean URL (admin Worker) | Underlying route |
 | --- | --- | --- |
-| Dashboard | `/` | `/admin` |
-| Talent list | `/talent` | `/admin/talent` |
+| Dashboard (widgets) | `/` | `/admin` |
+| Recruit pipeline | `/recruit` | `/admin/recruit` |
 | Waitlist | `/waitlist` | `/admin/waitlist` |
+| Email dashboard | `/mail[/…]` | `/notify[/…]` (rewrite) |
 | Login / logout | `/login`, `/logout` | `/admin/login`, `/admin/logout` |
 | Résumé download | `/file?key=…` | `/admin/file` |
 | Status/notes update | `POST /update` | `/admin/update` |
+
+On the admin Worker `/recruit` is the applicant pipeline, shadowing the public
+careers page of the same name — that Worker is the console, not the marketing
+site.
 
 - **Legacy `/admin/*` URLs 308-redirect to their clean form** (e.g.
   `/admin/talent` → `/talent`), so old bookmarks and links keep working.
@@ -107,17 +112,27 @@ middleware serves them at the **root** — the whole Worker *is* the admin:
 
 | File                            | Purpose                                                              |
 | ------------------------------- | ------------------------------------------------------------------- |
-| `src/pages/admin/index.astro`   | Dashboard — lists all applications (newest first) as cards          |
+| `src/pages/admin/index.astro`   | Dashboard — widgets only: pipeline counts, latest applications, waitlist + email snapshots |
+| `src/pages/admin/recruit.astro` | Recruit pipeline — the applications list (newest first), filters, status + notes |
+| `src/layouts/AdminLayout.astro` | Shared chrome (sidebar + header) for the dashboard and the pipeline |
 | `src/pages/admin/login.astro`   | Styled login form; handles `GET` (show) and `POST` (validate + set cookie) |
 | `src/pages/admin/logout.ts`     | Clears the session cookie, redirects to login                       |
 | `src/pages/admin/file.ts`       | `GET /admin/file?key=…` — streams a résumé / license file out of R2 (key locked to the `recruit/` prefix) |
 | `src/utils/admin-auth.ts`       | Session-token signing/verification + credential check               |
 | `src/middleware.ts`             | Gates `/admin*`, handles the standalone root rewrite                 |
 
-The dashboard renders each application as an expandable table row with contact
-info, position/employment chips, licensure status, background, the "Why
-CURE VÀ?" answer, and links for the résumé and portfolio. The header shows the
-pipeline stat cards and a **Sign out** button.
+The **dashboard** (`/admin`) is widgets only — pipeline counts, the latest five
+applications, and waitlist + email snapshots — each linking to the page that
+owns the data.
+
+The **recruit pipeline** (`/admin/recruit`) renders each application as an
+expandable table row: contact info (the phone normalised to `(801) 555-0123` at
+render time, whatever shape the row was stored in), position/employment chips,
+and a detail grid with one entry per question on the form — positions, current
+status, expected graduation, background, position type, email, phone,
+future-contact consent, the "Why CURE VÀ?" answer, the résumé (named by its
+uploaded filename) and portfolio link, plus recruiter notes. Above it sit the
+pipeline stat cards, which double as status filters.
 
 ---
 

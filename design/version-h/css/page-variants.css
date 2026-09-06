@@ -1,0 +1,62 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Cure Và · version H — page variants
+   ───────────────────────────────────────────────────────────────────────
+   NEW. Unlike 01–06 this file is NOT extracted from the landing page — it
+   is the part the landing page never needed, and the part every other page
+   does. Load it last.
+
+   Why it exists: the landing page opens on a photograph, so the nav is
+   always over a dark ground and `.mark b` can be cream. A page whose first
+   section is `.on-light` — careers, a policy page, anything text-led —
+   gets a cream wordmark on paper, which is invisible until the visitor
+   scrolls far enough for `.stuck` to paint a night plate behind it.
+
+   That is not a landing-page bug; it is a bug that only appears the moment
+   the system is used for a second page. Add `class="nav nav--paper"` on
+   those pages.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* The nav is outside `.on-light`, so it still sees the dark tokens. Rather
+   than repeat the whole nineteen, re-declare only the ones the bar reads —
+   and then the overrides below can stay on tokens, which is the rule. */
+.nav--paper{
+  --background:43.6 40.7% 94.7%;        /* #F7F4EC */
+  --foreground:37.5 13.3% 11.8%;        /* #221F1A */
+  --muted-foreground:38.8 10.8% 30.8%;  /* #575146 */
+  --border:42 12% 84%;                  /* #DBD8D1 */
+  --primary:153 29% 6%;                 /* #0B1410 — the inverted chip */
+  --primary-foreground:48.9 86.4% 91.4%;
+  --accent:145 27% 30%;                 /* #386149 sage-ink */
+  --accent-foreground:0 0% 100%;
+  --ring:145 27% 30%;
+}
+
+/* the five rules in 05-chrome.css that name a dark brand alias */
+.nav--paper .mark b{color:hsl(var(--foreground))}
+.nav--paper .mark i{color:hsl(var(--muted-foreground));
+  border-left-color:hsl(var(--border))}
+.nav--paper .mark-ring{box-shadow:inset 0 0 0 2px hsl(var(--accent))}
+.nav--paper .mark-ring::after{background:hsl(var(--accent))}
+.nav--paper .links a{color:hsl(var(--muted-foreground))}
+.nav--paper .links a:hover{color:hsl(var(--foreground))}
+.nav--paper .burger{color:hsl(var(--foreground))}
+
+/* and the plate it paints once you scroll past the first screen */
+.nav--paper.stuck{background:hsl(var(--background) / .82);
+  box-shadow:0 1px 0 hsl(var(--border))}
+@media (pointer:coarse){
+  .nav--paper.stuck{background:hsl(var(--background));
+    backdrop-filter:none;-webkit-backdrop-filter:none}
+}
+
+/* The burger opens a night panel over a paper page, so the button's own
+   ink has to flip back while it is open or it disappears against it. */
+.nav--paper.open .burger{color:hsl(var(--primary-foreground))}
+.nav--paper.open .mark b{color:hsl(var(--primary-foreground))}
+.nav--paper.open .mark i{color:hsl(48.9 86.4% 91.4% / .6)}
+
+/* ── a page that has no hero ───────────────────────────────────────────
+   The landing page's first section sits under a full-height banner, so it
+   needs no top offset. A page that starts with a section instead has to
+   clear the fixed bar itself. */
+.sec--first{padding-top:calc(var(--nav-h) + clamp(3.5rem, 9vh, 7rem))}

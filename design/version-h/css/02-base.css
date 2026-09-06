@@ -1,0 +1,56 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Cure Và · version H — reset, document defaults, type atoms
+   ───────────────────────────────────────────────────────────────────────
+   EXTRACTED, NOT REWRITTEN. This is byte-for-byte the CSS running at
+   /version-h/. If you change it here, change it in
+   landing-page-h.template.html too — or better, make that file the
+   source and re-run version-h/build/extract.py.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+*,*::before,*::after{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;
+  scroll-padding-top:calc(var(--nav-h) + 16px)}
+body{margin:0;background:var(--night);color:var(--on-dark);
+  font-family:Manrope,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:1rem;line-height:1.65;font-weight:400;
+  -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+  overflow-x:clip}
+body.lock{overflow:hidden}
+img{max-width:100%;height:auto;display:block}
+a{color:inherit}
+p{margin:0}
+h1,h2,h3,h4{margin:0;font-family:Fraunces,"Iowan Old Style",Georgia,serif;font-weight:300;
+  /* D runs Fraunces optically large and barely soft — an editorial cut,
+     where C runs the same family soft and wonky. Same typeface, opposite
+     end of the axes, and the two builds do not look related. */
+  font-variation-settings:"opsz" 144,"SOFT" 12,"WONK" 0;
+  line-height:.98;letter-spacing:-.028em;text-wrap:balance}
+em{font-style:italic;font-variation-settings:"opsz" 144,"SOFT" 40,"WONK" 1}
+button{font:inherit;color:inherit}
+:where(a,button,input,summary,label):focus-visible{outline:2px solid var(--sage);
+  outline-offset:3px;border-radius:6px}
+.on-light :where(a,button,input,label):focus-visible{outline-color:var(--sage-ink)}
+.wrap{width:100%;max-width:var(--maxw);margin-inline:auto;padding-inline:var(--gut)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ── type atoms ───────────────────────────────────────────────────────── */
+.h-xxl{font-size:clamp(3rem,11.5vw,10rem)}
+.h-xl{font-size:clamp(2.6rem,7.4vw,6rem)}
+.h-lg{font-size:clamp(2.05rem,4.6vw,3.9rem)}
+.h-md{font-size:clamp(1.45rem,2.4vw,2.15rem)}
+.h-sm{font-size:clamp(1.15rem,1.6vw,1.4rem);line-height:1.14}
+.lede{font-size:clamp(1.02rem,1.15vw,1.16rem);line-height:1.7;max-width:58ch;
+  color:var(--on-dark-2)}
+.on-light .lede{color:var(--ink-2)}
+.mono{font-size:.68rem;font-weight:700;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--on-dark-2);line-height:1}
+.on-light .mono{color:var(--ink-3)}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+.eyebrow{display:inline-flex;align-items:center;gap:.65em;font-size:.68rem;font-weight:800;
+  letter-spacing:.22em;text-transform:uppercase;color:var(--sage);line-height:1}
+.eyebrow::before{content:"";width:22px;height:1px;background:currentColor;flex:none;
+  transform-origin:0 50%}
+.on-light .eyebrow{color:var(--sage-ink)}
+.on-light{background:var(--paper);color:var(--ink)}
+

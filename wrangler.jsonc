@@ -38,10 +38,19 @@
 		// until the set is actually created in AWS. Setting it is what makes SES
 		// publish delivery/bounce/complaint events to SNS for /api/webhooks/ses.
 		"SES_CONFIGURATION_SET": "",
+		// Turnstile PUBLIC sitekey (safe in source — it is rendered into the
+		// page). Empty means the widget does not render and /api/recruit and
+		// /api/waitlist skip the check, so the forms behave exactly as they did
+		// before. Set this AND the TURNSTILE_SECRET_KEY secret to turn bot
+		// protection on; setting only one is a misconfiguration the endpoint
+		// logs loudly about.
+		"TURNSTILE_SITE_KEY": "0x4AAAAAAEqCGMiaY9hyOCaI",
 	},
 	// Admin auth secrets (set with `wrangler secret put`, NOT vars):
 	//   ADMIN_PASSWORD  (required — the /admin area 404s when unset)
 	//   ADMIN_USERNAME  (optional, default "admin")
+	//   TURNSTILE_SECRET_KEY (pairs with the TURNSTILE_SITE_KEY var above —
+	//                    `wrangler secret put TURNSTILE_SECRET_KEY`)
 	//   SESSION_SECRET  (recommended — dedicated key for signing session cookies,
 	//                    kept separate from ADMIN_PASSWORD; falls back to it when
 	//                    unset)

@@ -1,0 +1,119 @@
+---
+/**
+ * The four open roles, as a disclosure list.
+ *
+ * /recruit and /recruit/apply carried the same four roles with the same
+ * copy in two hand-maintained copies of the markup. They are one component
+ * now, and the copy itself moved out to src/data/roles.ts so the count in
+ * the /recruit/apply headline is derived from this list rather than typed
+ * beside it.
+ *
+ * <details>/<summary>, not a div with a click handler and a measured
+ * scrollHeight. It opens with JavaScript off, the browser owns the state,
+ * and a screen reader announces it as the disclosure it is. The script only
+ * closes siblings, so one-at-a-time is an enhancement rather than the
+ * mechanism. See design/version-h/DESIGN-SYSTEM.md §7.
+ */
+import { ROLES, roleMeta } from "../../data/roles";
+
+interface Props {
+	/** Where "Apply for this role" points. On /recruit/apply that is the form itself. */
+	applyHref?: string;
+}
+const { applyHref = "/recruit/apply" } = Astro.props;
+---
+
+<div class="rc-roles">
+  {ROLES.map((r, i) => (
+    <details class="rc-role" data-r="fade" style={`--d:${i * 60}ms`}>
+      <summary>
+        <span class="rc-role-t">{r.title}</span>
+        <span class="rc-role-m mono">{roleMeta(r)}</span>
+        <span class="rc-role-x" aria-hidden="true"></span>
+      </summary>
+      <div class="rc-role-b">
+        <p>{r.body}</p>
+        <ul>
+          {r.points.map((p) => <li>{p}</li>)}
+          <li><a class="rc-role-a" href={applyHref}>Apply for this role →</a></li>
+        </ul>
+      </div>
+    </details>
+  ))}
+</div>
+
+<style is:global>
+/* Composed from tokens; names no colour, so it works on either ground. */
+.rc-roles{display:grid;gap:.1rem;margin-top:.5rem}
+.rc-role{position:relative;border-top:1px solid var(--border-hairline);
+  transition:padding-inline .5s var(--ease)}
+.rc-role:last-child{border-bottom:1px solid var(--border-hairline)}
+.rc-role summary{display:grid;grid-template-columns:1fr auto auto;align-items:center;
+  gap:.35rem 1.2rem;padding:1.35rem 0;cursor:pointer;list-style:none;
+  position:relative;z-index:1}
+.rc-role summary::-webkit-details-marker{display:none}
+.rc-role::after{content:"";position:absolute;inset:0;z-index:0;background:hsl(var(--muted));
+  transform:scaleY(0);transform-origin:50% 100%;transition:transform .45s var(--ease)}
+@media (pointer:fine){
+  .rc-role:hover::after,.rc-role:focus-within::after{transform:scaleY(1)}
+  .rc-role:hover{padding-inline:var(--role-pad)}
+}
+/* AN OPEN ROW IS A PANEL, so it keeps the ground and gains the inset. The
+   inset is on the row, not on the summary, so the heading, the body copy and
+   the bullet column all move together — putting it on the summary alone was
+   the bug: the panel's text sat flush against the tint while its heading was
+   indented. */
+.rc-role{--role-pad:clamp(1rem,2.4vw,1.9rem)}
+.rc-role[open]{padding-inline:var(--role-pad)}
+.rc-role[open]::after{transform:scaleY(1)}
+/* ── narrow ───────────────────────────────────────────────────────────
+   THE BUG THIS FIXES: the summary is a 3-column grid with 3 children. On
+   narrow screens it dropped to 2 columns while `.rc-role-m` was told to
+   span 1/-1 — so auto-placement put the title on row 1, the full-width
+   meta on row 2, and pushed the "+" down onto a row of its own.
+
+   Place all three explicitly instead of leaving it to auto-placement: the
+   "+" is pinned beside the title, and the meta takes the row below it.
+   The breakpoint moves up to 720px because the meta is `nowrap` and
+   "2 openings · Full-time / Part-time" stops fitting well before 560px. */
+@media (max-width:719px){
+  .rc-role summary{grid-template-columns:1fr auto;gap:.45rem .9rem}
+  .rc-role-t{grid-column:1;grid-row:1}
+  .rc-role-x{grid-column:2;grid-row:1;align-self:center}
+  .rc-role-m{grid-column:1/-1;grid-row:2;white-space:normal}
+}
+.rc-role-t{font-family:Fraunces,"Iowan Old Style",Georgia,serif;font-weight:300;
+  font-size:clamp(1.3rem,2.4vw,1.9rem);line-height:1.1;letter-spacing:-.028em}
+.rc-role-m{white-space:nowrap}
+.rc-role-x{width:14px;height:14px;flex:none;position:relative}
+.rc-role-x::before,.rc-role-x::after{content:"";position:absolute;left:0;right:0;top:50%;
+  height:1.5px;background:currentColor;transition:transform .45s var(--ease)}
+.rc-role-x::after{transform:rotate(90deg)}
+.rc-role[open] .rc-role-x::after{transform:rotate(0)}
+.rc-role-b{position:relative;z-index:1;display:grid;gap:1.4rem;
+  padding:.35rem 0 1.9rem}
+@media (min-width:820px){.rc-role-b{grid-template-columns:1fr 1fr;gap:2.4rem}}
+.rc-role-b p{font-size:.92rem;color:hsl(var(--muted-foreground));max-width:60ch}
+.rc-role-b ul{list-style:none;margin:0;padding:0;display:grid;gap:.5rem;align-content:start}
+.rc-role-b li{font-size:.92rem;color:hsl(var(--muted-foreground));
+  padding-left:1.1rem;position:relative}
+.rc-role-b li::before{content:"";position:absolute;left:0;top:.62em;width:5px;height:1px;
+  background:hsl(var(--accent))}
+.rc-role-a{color:hsl(var(--accent));font-weight:700;text-decoration:none;
+  text-underline-offset:4px}
+.rc-role-a:hover{text-decoration:underline}
+</style>
+
+<script is:inline>
+/* One open at a time. <details> already works without this — the script
+   only ever closes the others, it never owns the state. */
+(function () {
+  var roles = Array.prototype.slice.call(document.querySelectorAll('.rc-role'));
+  roles.forEach(function (d) {
+    d.addEventListener('toggle', function () {
+      if (!d.open) return;
+      roles.forEach(function (o) { if (o !== d) o.open = false; });
+    });
+  });
+})();
+</script>

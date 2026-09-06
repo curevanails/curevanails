@@ -17,15 +17,16 @@ import { SESSION_COOKIE, resolveSessionSecret, verifySessionToken } from "./util
  *                                                  resolves at /admin/* (gated).
  *
  * The admin console holds recruit PII and can send email, so its pages — which
- * live at `src/pages/admin/*` (recruit, waitlist) and `src/pages/notify/*` (the
- * email dashboard) — are all behind the signed-cookie session. On the standalone
- * `admin` Worker they are exposed at clean roots: `/`, `/waitlist`, `/mail`,
- * `/mail/settings`, `/mail/recruit-alerts`, `/login`, `/logout`. Legacy `/admin/*`
- * URLs 308-redirect to their clean equivalent.
+ * live at `src/pages/admin/*` (dashboard, recruit, waitlist) and
+ * `src/pages/notify/*` (the email dashboard) — are all behind the signed-cookie
+ * session. On the standalone `admin` Worker they are exposed at clean roots:
+ * `/`, `/recruit`, `/waitlist`, `/mail[/*]`, `/login`, `/logout`. Legacy
+ * `/admin/*` URLs 308-redirect to their clean equivalent.
  *
  * Email lives entirely on the admin surface (the standalone notify service was
  * retired): the dashboard under `/mail` (admin Worker) or `/admin/mail` (main
- * Worker), with its `/api/email/*` + `/api/settings` action endpoints admin-gated
+ * Worker) — one page per sidebar item, listed in EMAIL_SUBPAGES — with its
+ * `/api/email/*` + `/api/settings` action endpoints admin-gated
  * on every Worker. The public halves — the SNS `/api/webhooks/*` receiver and the
  * token-based `/unsubscribe/*` page — stay open (each carries its own credential).
  * The physical dashboard pages live at `/notify/*`; direct requests there are
@@ -60,16 +61,32 @@ function signingSecret(password: string): string {
  * Clean admin routes on the standalone admin Worker → the real `/admin/<seg>`
  * pages. `mail` is handled separately (it has sub-pages and rewrites onto the
  * `/notify/*` email dashboard — see emailTarget).
+ *
+ * `recruit` is the applicant pipeline (`src/pages/admin/recruit.astro`). On this
+ * Worker it shadows the public careers page of the same name, which is what we
+ * want: the admin Worker is the console, not the marketing site.
  */
-const ADMIN_PAGES = new Set(["waitlist", "file", "update", "login", "logout"]);
+const ADMIN_PAGES = new Set(["recruit", "waitlist", "file", "update", "login", "logout"]);
 /** These manage their own auth (no session cookie required). */
 const ADMIN_PUBLIC = new Set(["login", "logout"]);
 
-/** Email dashboard sub-pages (relative to the mount point). */
-const EMAIL_SUBPAGES = new Set(["", "settings", "recruit-alerts"]);
+/**
+ * Email dashboard sub-pages (relative to the mount point). One per sidebar
+ * item — "" is Compose, the dashboard's home. See src/pages/notify/*.
+ */
+const EMAIL_SUBPAGES = new Set([
+	"",
+	"campaigns",
+	"templates",
+	"analytics",
+	"activity",
+	"suppressed",
+	"recruit-alerts",
+	"settings",
+]);
 
 /**
- * Map an email dashboard sub-path ("" | "settings" | "recruit-alerts") to the
+ * Map an email dashboard sub-path ("" | "campaigns" | "templates" | …) to the
  * physical `/notify/*` page that backs it, or null if it isn't a dashboard page.
  * The email dashboard is served in-app on the admin surface (admin Worker
  * `/mail`, main Worker `/admin/mail`) using these pages.

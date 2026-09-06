@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1410">
+<meta name="color-scheme" content="dark">
+<title>Careers — Cure Và</title>
+<meta name="description" content="Cure Và is building its team — nail technicians and estheticians, at Legacy Village, Sugar House UT.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..700,0..100,0..1;1,9..144,300..700,0..100,0..1&family=Manrope:wght@300..800&display=swap">
+
+<link rel="stylesheet" href="../css/01-tokens.css">
+<link rel="stylesheet" href="../css/02-base.css">
+<link rel="stylesheet" href="../css/03-components.css">
+<link rel="stylesheet" href="../css/04-motion.css">
+<link rel="stylesheet" href="../css/05-chrome.css">
+<link rel="stylesheet" href="../css/page-variants.css">
+
+<style>
+/* ═══ careers — the page's own three patterns ═══════════════════════════
+   A card row, a list of roles, and a form. All three are compositions of
+   primitives; none of them names a colour. ════════════════════════════ */
+
+/* the page head, which is a section shell with a photograph beside it */
+.cr-top{display:grid;gap:clamp(1.8rem,4vw,3.4rem)}
+@media (min-width:960px){.cr-top{grid-template-columns:1.05fr .95fr;align-items:center}}
+.cr-shots{display:grid;grid-template-columns:1fr 1fr;gap:.8rem}
+.cr-shots .fr:nth-child(1){aspect-ratio:3/4}
+.cr-shots .fr:nth-child(2){aspect-ratio:3/4;margin-top:2.2rem}
+
+/* three Cards, side by side. .card gives the ground, the corner and the
+   ink; the row adds only layout and its own elevation. */
+.cr-grid{display:grid;gap:1rem;margin-top:clamp(2rem,4vw,3rem)}
+@media (min-width:560px){.cr-grid{grid-template-columns:repeat(3,1fr)}}
+.cr-card{border-radius:var(--radius-md);padding:1.3rem;gap:.45rem;align-content:start;
+  box-shadow:inset 0 0 0 1px var(--line-2)}
+.cr-card .card-title{font-size:.94rem}
+.cr-card .card-description{font-size:.84rem}
+
+/* the roles — the site's hairline row rhythm, same as §06 and §07b */
+.cr-roles{list-style:none;margin:0;padding:0;display:grid;gap:.1rem}
+.cr-role{border-top:1px solid var(--border-hairline)}
+.cr-roles li:last-child{border-bottom:1px solid var(--border-hairline)}
+.cr-role a{display:grid;grid-template-columns:1fr auto;align-items:center;gap:.4rem 1.2rem;
+  padding:1.35rem 0;text-decoration:none;color:inherit;position:relative;z-index:1;
+  transition:padding-inline .55s var(--ease),color .45s var(--ease)}
+.cr-role{position:relative}
+.cr-role::after{content:"";position:absolute;inset:0;z-index:0;background:hsl(var(--muted));
+  transform:scaleY(0);transform-origin:50% 100%;transition:transform .45s var(--ease)}
+@media (pointer:fine){
+  .cr-role:hover::after,.cr-role:focus-within::after{transform:scaleY(1)}
+  .cr-role:hover a{padding-inline:clamp(.6rem,1.4vw,1.1rem)}
+}
+.cr-role h3{font-size:clamp(1.3rem,2.4vw,1.9rem)}
+.cr-role .cr-meta{display:flex;flex-wrap:wrap;gap:.45rem;justify-self:end}
+.cr-role p{grid-column:1/-1;font-size:.88rem;color:hsl(var(--muted-foreground));
+  max-width:60ch}
+
+/* the application form — Label + Input + Checkbox + Alert, nothing new */
+.cr-form{display:grid;gap:.9rem;max-width:34rem}
+.cr-field{display:grid;gap:.5rem}
+.cr-err{display:none}
+.cr-form.invalid .cr-err{display:block}
+.cr-consent{display:flex;gap:.65rem;align-items:flex-start;font-size:.78rem;
+  color:hsl(var(--muted-foreground));cursor:pointer}
+.cr-small{font-size:.72rem;color:hsl(var(--muted-foreground))}
+.cr-done{display:none;gap:.6rem;padding:1.2rem 0}
+.cr-form.sent .cr-field,.cr-form.sent .cr-consent,
+.cr-form.sent .cr-btns,.cr-form.sent .cr-err{display:none}
+.cr-form.sent .cr-done{display:grid}
+.cr-btns{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center;margin-top:.3rem}
+</style>
+</head>
+<body>
+
+<div id="pre" role="status" aria-label="Loading">
+  <div class="contour" aria-hidden="true"></div>
+  <div class="pre-in">
+    <span class="pre-mark" aria-hidden="true"></span>
+    <div class="pre-w"><span>cure và</span></div>
+    <span class="pre-rule" aria-hidden="true"></span>
+    <div class="pre-sub">Nail therapy · Sugar House</div>
+  </div>
+</div>
+<div id="grain" aria-hidden="true"></div>
+<div id="prog" aria-hidden="true"></div>
+<div id="cur" aria-hidden="true"><b>view</b></div>
+
+<!-- nav--paper: this page opens on a paper ground, so the bar
+     cannot use the landing page's cream ink. See css/page-variants.css -->
+<nav class="nav nav--paper" id="nav" aria-label="Primary">
+  <div class="bar">
+    <a class="mark" href="/" aria-label="Cure Và — home">
+      <span class="mark-ring" aria-hidden="true"></span>
+      <b>cure và</b><i>Nail Therapy</i>
+    </a>
+    <ul class="links">
+      <li><a href="/#manifesto">Approach</a></li>
+      <li><a href="/#ritual">The visit</a></li>
+      <li><a href="/#menu">Menu</a></li>
+      <li><a href="/#member">Membership</a></li>
+    </ul>
+    <a class="btn cta" href="#apply" data-mag>Apply</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false"
+      aria-controls="menuPanel"><span class="lbl">Menu</span>
+      <span class="bars" aria-hidden="true"><i></i><i></i></span></button>
+  </div>
+</nav>
+
+<div id="menuPanel" aria-hidden="true">
+  <div></div>
+  <div class="mp-in">
+    <nav aria-label="Sections">
+      <ul class="mp-list">
+        <li><a href="/#manifesto" style="--d:60ms">Our approach</a></li>
+        <li><a href="/#ritual" style="--d:110ms">The visit</a></li>
+        <li><a href="/#founder" style="--d:160ms">Our founder</a></li>
+        <li><a href="/#menu" style="--d:210ms">The menu</a></li>
+        <li><a href="/#member" style="--d:260ms">Membership</a></li>
+        <li><a href="/careers/" style="--d:310ms">Careers</a></li>
+      </ul>
+    </nav>
+    <div class="mp-side">
+      <div class="fr fr--drift"><img src="__D_WORK__" alt="A technician at work"></div>
+      <div class="mp-meta">
+        <div><b>Opening</b>December 2026</div>
+        <div><b>Where</b>Legacy Village, Sugar House UT</div>
+        <div><b>Call</b><a href="tel:+18014253581">+1 801 425 3581</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main id="top">
+
+<!-- ══ the invitation ══════════════════════════════════════════════════ -->
+<section class="sec sec--first on-light" id="team" aria-labelledby="teamH">
+  <div class="wrap">
+    <div class="cr-top">
+      <div>
+        <span class="eyebrow" data-r="fade">Careers</span>
+        <h1 class="h-lg" id="teamH" data-r style="--d:60ms;margin-top:.9rem">We&rsquo;re building
+          <em>the team now.</em></h1>
+        <p class="lede" data-r="fade" style="--d:120ms;margin-top:1.4rem">We&rsquo;re creating the
+          kind of beauty studio we always wished existed — not just for our clients, but for the
+          professionals who care for them. We&rsquo;re looking to connect with
+          <b>nail technicians</b> and <b>estheticians</b>.</p>
+
+        <div class="cr-grid" data-r style="--d:160ms">
+          <div class="cr-card card"><b class="card-title">Training</b><span
+            class="card-description">In the techniques and the service experience Cure Và is
+            built on.</span></div>
+          <div class="cr-card card"><b class="card-title">A cleaner environment</b><span
+            class="card-description">The same air our clients get, for the whole shift.</span></div>
+          <div class="cr-card card"><b class="card-title">Comfort by design</b><span
+            class="card-description">From the zero-gravity setup to the service model, built for
+            the person working as much as the person resting.</span></div>
+        </div>
+
+        <p style="margin-top:2.6rem"><a class="btn" href="#apply" data-mag>See open roles</a></p>
+      </div>
+
+      <div class="cr-shots" data-r="zoom">
+        <div class="fr fr--drift"><img src="__D_WORK__" alt="A technician at work"></div>
+        <div class="fr fr--drift"><img src="__D_LINEN__" alt="Linen, folded and lit"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ open roles ══════════════════════════════════════════════════════
+     PLACEHOLDER ROLES. Replace with the real openings — titles, type and
+     the one-line description — before this page goes anywhere. ═══════ -->
+<section class="sec" id="roles" aria-labelledby="rolesH">
+  <span class="ix" aria-hidden="true">01</span>
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow" data-r="fade">Open roles</span>
+      <h2 class="h-lg" id="rolesH" data-r style="--d:60ms">Who we are looking
+        <em>for first.</em></h2>
+    </div>
+
+    <ul class="cr-roles">
+      <li class="cr-role" data-r="fade">
+        <a href="#apply">
+          <h3>Nail Technician</h3>
+          <span class="cr-meta">
+            <span class="badge badge--outline">Full time</span>
+            <span class="badge badge--outline">Sugar House</span>
+          </span>
+          <p>Natural-nail work, waterless, in a room built for five stations rather than a row.</p>
+        </a>
+      </li>
+      <li class="cr-role" data-r="fade" style="--d:60ms">
+        <a href="#apply">
+          <h3>Esthetician</h3>
+          <span class="cr-meta">
+            <span class="badge badge--outline">Full time</span>
+            <span class="badge badge--outline">Sugar House</span>
+          </span>
+          <p>Facials and skin therapy, delivered reclined and alongside nail care.</p>
+        </a>
+      </li>
+      <li class="cr-role" data-r="fade" style="--d:120ms">
+        <a href="#apply">
+          <h3>Front of House</h3>
+          <span class="cr-meta">
+            <span class="badge badge--outline">Part time</span>
+            <span class="badge badge--outline">Sugar House</span>
+          </span>
+          <p>The first minute of the visit and the last — booking, welcome, and the room's calm.</p>
+        </a>
+      </li>
+    </ul>
+  </div>
+</section>
+
+<!-- ══ apply ═══════════════════════════════════════════════════════════ -->
+<section class="sec sec--tight on-light" id="apply" aria-labelledby="applyH">
+  <div class="wrap">
+    <div class="head">
+      <span class="eyebrow" data-r="fade">Apply</span>
+      <h2 class="h-lg" id="applyH" data-r style="--d:60ms">Tell us where to
+        <em>reach you.</em></h2>
+    </div>
+
+    <form class="cr-form" id="crForm" novalidate data-r="fade">
+      <div class="cr-field">
+        <label class="label" for="crName">Your name</label>
+        <input class="input" id="crName" type="text" name="name" autocomplete="name">
+      </div>
+      <div class="cr-field">
+        <label class="label" for="crMail">Email address</label>
+        <input class="input" id="crMail" type="email" name="email" autocomplete="email"
+          inputmode="email" placeholder="you@example.com" aria-describedby="crErr">
+      </div>
+      <div class="cr-field">
+        <label class="label" for="crRole">Role</label>
+        <input class="input" id="crRole" type="text" name="role"
+          placeholder="Nail technician, esthetician, front of house…">
+      </div>
+      <p class="cr-err alert alert--destructive" id="crErr" role="alert">Please enter an email
+        address we can actually reach you at.</p>
+      <label class="cr-consent"><input class="checkbox" type="checkbox" id="crKeep" checked>
+        <span>Keep my details on file for future openings.</span></label>
+      <div class="cr-btns">
+        <button class="btn" type="submit" data-mag>Send
+          <svg class="arw" width="15" height="10" viewBox="0 0 15 10" fill="none"
+            aria-hidden="true"><path d="M1 5h12M9 1l4 4-4 4" stroke="currentColor"
+            stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span class="cr-small">We read everything that comes in.</span>
+      </div>
+      <div class="cr-done">
+        <h3 class="h-sm">Thank you — that&rsquo;s with us.</h3>
+        <p class="cr-small">We&rsquo;ll be in touch as the team comes together.</p>
+      </div>
+    </form>
+  </div>
+</section>
+
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="mark" href="/" aria-label="Cure Và — home">
+          <span class="mark-ring" aria-hidden="true"></span><b>cure và</b></a>
+        <p class="lede" style="margin-top:1rem;font-size:.92rem">Healthy nails, radiant
+          skin, and a room built for five.</p>
+      </div>
+      <div>
+        <h4>Studio</h4>
+        <address>Legacy Village<br>Sugar House, UT<br>
+          <a href="tel:+18014253581">+1 801 425 3581</a><br>
+          Mon–Sat, 9:00 AM – 7:00 PM</address>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="/#menu">Menu</a></li>
+          <li><a href="/#member">Membership</a></li>
+          <li><a href="/#founder">About</a></li>
+          <li><a href="/careers/">Careers</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Follow</h4>
+        <ul>
+          <li><a href="/#waitlist">Instagram</a></li>
+          <li><a href="/#waitlist">Facebook</a></li>
+          <li><a href="/#waitlist">TikTok</a></li>
+        </ul>
+        <p style="margin-top:1rem"><a class="btn btn--outline btn--sm" href="/#waitlist" data-mag
+          style="font-size:.74rem;padding:.85em 1.3em">Join the waitlist</a></p>
+      </div>
+    </div>
+    <div class="bigmark" aria-hidden="true">
+      <b>c</b><b>u</b><b>r</b><b>e</b><b>&nbsp;</b><b>v</b><b>à</b>
+    </div>
+    <div class="foot-legal">
+      <div class="l"><span>© 2026 Cure Và. All rights reserved.</span></div>
+      <div class="l"><a href="/">Terms</a><a href="/">Privacy</a>
+        <a href="/">Accessibility</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="../js/runtime.js"></script>
+<script>
+/* FRONT-END ONLY — wire it before anyone applies. */
+(function(){
+  var form = document.getElementById('crForm');
+  if (!form) return;
+  var mail = document.getElementById('crMail');
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail.value.trim());
+    form.classList.toggle('invalid', !ok);
+    mail.setAttribute('aria-invalid', ok ? 'false' : 'true');
+    if (!ok){ mail.focus(); return; }
+    form.classList.add('sent');
+    var h = form.querySelector('.cr-done h3');
+    if (h){ h.setAttribute('tabindex','-1'); h.focus({preventScroll:true}); }
+  });
+  mail.addEventListener('input', function(){
+    form.classList.remove('invalid');
+    mail.setAttribute('aria-invalid','false');
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,420 @@
+---
+/**
+ * Templates — create, edit, delete and test-send email templates
+ * (`/mail/templates`).
+ *
+ * The list is rendered server-side and rebuilt client-side after a save/delete
+ * (the API returns the full list back), so the page never needs a reload.
+ */
+import { loadMailData, loadTemplates, mailDb, sesConfigured, type TemplateRow } from "../../utils/email-data";
+import MailLayout from "../../layouts/MailLayout.astro";
+import SesNotice from "../../components/mail/SesNotice.astro";
+
+// Server-rendered, never cached. Gated by the admin auth in src/middleware.ts.
+export const prerender = false;
+
+const ses = sesConfigured();
+
+const { data, error: loadError } = await loadMailData(mailDb(), (db) => loadTemplates(db));
+const templates: TemplateRow[] = data ?? [];
+
+const templatesForClient = templates.map((t) => ({
+	id: t.id,
+	name: t.name,
+	subject: t.subject,
+	html: t.html,
+}));
+---
+
+<MailLayout
+	title="Templates"
+	description="The email bodies you can send. Variables are filled in per subscriber."
+	active="mail-templates"
+	loadError={loadError}
+>
+	<button
+		slot="actions"
+		type="button"
+		onclick="openTemplateEditor()"
+		class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition"
+	>
+		<span class="material-symbols-outlined text-base">add</span><span class="hidden sm:inline">New template</span>
+	</button>
+
+	{!ses && <SesNotice />}
+
+	{!loadError && (
+		<section class="bg-white rounded-2xl border border-gray-200 shadow-theme-xs dark:bg-white/[0.03] dark:border-gray-800">
+			<header class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+				<div class="flex items-center gap-2.5">
+					<span class="grid h-9 w-9 place-items-center rounded-lg bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+						<span class="material-symbols-outlined">description</span>
+					</span>
+					<h2 class="font-semibold text-gray-800 dark:text-white/90">Templates
+						<span id="tpl-count" class="ml-1 text-xs font-medium text-gray-400 dark:text-gray-500">({templates.length})</span>
+					</h2>
+				</div>
+				<button type="button" onclick="openTemplateEditor()" class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 hover:border-brand-300 hover:text-brand-500 dark:border-gray-700 dark:text-gray-300 dark:hover:border-brand-700 dark:hover:text-brand-400 transition">
+					<span class="material-symbols-outlined text-base">add</span>New template
+				</button>
+			</header>
+			<div id="tpl-list" class="divide-y divide-gray-200 dark:divide-gray-800">
+				{templates.length === 0 ? (
+					<div class="px-6 py-12 text-center text-sm text-gray-400 dark:text-gray-500">No templates yet. Create one to start sending.</div>
+				) : (
+					templates.map((t) => (
+						<div class="px-5 py-4 flex items-center justify-between gap-4 hover:bg-gray-50/70 dark:hover:bg-white/[0.02] transition">
+							<div class="flex items-center gap-3 min-w-0">
+								<div class="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400">
+									<span class="material-symbols-outlined text-lg">mail</span>
+								</div>
+								<div class="min-w-0">
+									<p class="text-sm font-medium text-gray-800 dark:text-white/90 truncate">{t.name}</p>
+									<p class="text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5">{t.subject}</p>
+								</div>
+							</div>
+							<div class="flex items-center gap-1.5 shrink-0">
+								<button type="button" onclick={`openTestModal(${JSON.stringify(t.id)}, ${JSON.stringify(t.name)})`} title="Send a test email to yourself"
+									class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:border-blue-light-300 hover:text-blue-light-700 dark:border-gray-700 dark:text-gray-300 dark:hover:border-blue-light-500/50 dark:hover:text-blue-light-400 transition">
+									<span class="material-symbols-outlined text-sm">forward_to_inbox</span>Send test
+								</button>
+								<button type="button" onclick={`openTemplateEditor(${JSON.stringify(t.id)})`} title="Edit"
+									class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/[0.06] dark:hover:text-white transition">
+									<span class="material-symbols-outlined text-base">edit</span>
+								</button>
+								<button type="button" onclick={`deleteTemplate(${JSON.stringify(t.id)}, ${JSON.stringify(t.name)})`} title="Delete"
+									class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-error-50 hover:text-error-600 dark:hover:bg-error-500/10 dark:hover:text-error-400 transition">
+									<span class="material-symbols-outlined text-base">delete</span>
+								</button>
+							</div>
+						</div>
+					))
+				)}
+			</div>
+		</section>
+	)}
+
+	<Fragment slot="scripts">
+		{/* ---- Template editor modal ---- */}
+		<div id="tpl-modal" class="hidden fixed inset-0 z-[60] bg-gray-900/50 p-4 sm:p-6 overflow-y-auto fade-in backdrop-blur-sm">
+			<div class="max-w-6xl mx-auto my-4 bg-white rounded-2xl border border-gray-200 shadow-theme-lg flex flex-col max-h-[92vh] pop-in dark:bg-gray-900 dark:border-gray-800">
+				<div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between shrink-0">
+					<h2 id="tpl-modal-title" class="font-semibold text-gray-800 dark:text-white/90">New template</h2>
+					<button type="button" onclick="closeTemplateEditor()" class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/[0.06] dark:hover:text-white transition">
+						<span class="material-symbols-outlined text-base">close</span>
+					</button>
+				</div>
+				<div class="p-5 grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-0 overflow-y-auto nice-scroll">
+					<div class="space-y-4">
+						<input type="hidden" id="tpl-id" />
+						<div>
+							<label for="tpl-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Name</label>
+							<input id="tpl-name" type="text" placeholder="e.g. Spring promo" oninput="updateEditorPreview()"
+								class="form-input w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 shadow-theme-xs focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
+						</div>
+						<div>
+							<label for="tpl-subject" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Subject</label>
+							<input id="tpl-subject" type="text" placeholder="Subject line" oninput="updateEditorPreview()"
+								class="form-input w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 shadow-theme-xs focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
+						</div>
+						<div>
+							<label for="tpl-html" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">HTML body</label>
+							<textarea id="tpl-html" rows="20" oninput="updateEditorPreview()" spellcheck="false"
+								class="form-textarea w-full h-[clamp(320px,58vh,640px)] resize-y rounded-lg border border-gray-300 bg-gray-50 px-3 py-2.5 text-sm font-mono leading-relaxed text-gray-800 shadow-theme-xs focus:bg-white focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:bg-gray-950 nice-scroll"></textarea>
+							<p class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">
+								Use <code class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/[0.06] text-brand-500 font-medium">{"{{name}}"}</code>
+								<code class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/[0.06] text-brand-500 font-medium">{"{{discount_code}}"}</code>
+								<code class="px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/[0.06] text-brand-500 font-medium">{"{{unsubscribe_url}}"}</code> — variables are detected automatically.
+							</p>
+						</div>
+						<div id="tpl-error" class="hidden rounded-lg px-4 py-3 text-sm bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400"></div>
+					</div>
+					<div class="space-y-2 flex flex-col min-h-0">
+						<div class="text-xs text-gray-500 dark:text-gray-400 shrink-0">Preview subject: <span id="tpl-preview-subject" class="font-medium text-gray-800 dark:text-white/90"></span></div>
+						<iframe id="tpl-preview-frame" title="Template preview" class="w-full flex-1 min-h-[clamp(320px,56vh,620px)] rounded-lg border border-gray-200 bg-white dark:border-gray-800"></iframe>
+						<p class="text-xs text-gray-400 dark:text-gray-500 shrink-0">Preview uses sample values (<code class="px-1 rounded bg-gray-100 dark:bg-white/[0.06]">name → Ava</code>).</p>
+					</div>
+				</div>
+				<div class="px-5 py-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-end gap-2 shrink-0">
+					<button type="button" onclick="closeTemplateEditor()" class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-white/[0.03] transition">Cancel</button>
+					<button type="button" id="tpl-save-btn" onclick="saveTemplate()" class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition">
+						<span class="material-symbols-outlined text-base">save</span>Save template
+					</button>
+				</div>
+			</div>
+		</div>
+
+		{/* ---- Send-test modal ---- */}
+		<div id="test-modal" class="hidden fixed inset-0 z-[60] bg-gray-900/50 p-4 sm:p-6 overflow-y-auto fade-in backdrop-blur-sm">
+			<div class="max-w-md mx-auto mt-14 bg-white rounded-2xl border border-gray-200 shadow-theme-lg pop-in dark:bg-gray-900 dark:border-gray-800">
+				<div class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+					<h2 class="font-semibold text-gray-800 dark:text-white/90">Send test email</h2>
+					<button type="button" onclick="closeTestModal()" class="grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/[0.06] dark:hover:text-white transition">
+						<span class="material-symbols-outlined text-base">close</span>
+					</button>
+				</div>
+				<div class="p-5 space-y-4">
+					<p class="text-sm text-gray-500 dark:text-gray-400">Template: <span id="test-tpl-name" class="font-medium text-gray-800 dark:text-white/90"></span></p>
+					<input type="hidden" id="test-tpl-id" />
+					<div>
+						<label for="test-to" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Send to</label>
+						<input id="test-to" type="email" placeholder="you@example.com" autocomplete="email"
+							class="form-input w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 shadow-theme-xs focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
+					</div>
+					<div id="test-discount-wrap" class="hidden">
+						<label for="test-discount" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Discount code <span class="text-xs font-normal text-gray-400 dark:text-gray-500">— optional</span></label>
+						<input id="test-discount" type="text" placeholder="CUREVA15"
+							class="form-input w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 shadow-theme-xs focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
+					</div>
+					{!ses && (
+						<div class="rounded-lg bg-warning-50 border border-warning-200 px-3.5 py-3 text-xs text-warning-800 flex items-start gap-2 dark:bg-warning-500/10 dark:border-warning-500/30 dark:text-warning-400">
+							<span class="material-symbols-outlined text-sm mt-0.5 text-warning-500">warning</span>
+							<span>SES isn't configured, so this Worker can't send yet. Set the <code class="px-1 rounded bg-warning-100 dark:bg-white/[0.06]">AWS_*</code> secrets first.</span>
+						</div>
+					)}
+					<div id="test-result" class="hidden rounded-lg px-4 py-3 text-sm"></div>
+				</div>
+				<div class="px-5 py-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-end gap-2">
+					<button type="button" onclick="closeTestModal()" class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-white/[0.03] transition">Cancel</button>
+					<button type="button" id="test-send-btn" onclick="sendTest()" disabled={!ses}
+						class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition disabled:opacity-40 disabled:cursor-not-allowed">
+						<span class="material-symbols-outlined text-base">send</span>Send test email
+					</button>
+				</div>
+			</div>
+		</div>
+
+		<script is:inline define:vars={{ templatesForClient, ses }}>
+			let TEMPLATES = templatesForClient;
+
+			function fillSample(str, discount) {
+				return String(str)
+					.replace(/\{\{\s*name\s*\}\}/g, "Ava")
+					.replace(/\{\{\s*discount_code\s*\}\}/g, discount || "CUREVA15")
+					.replace(/\{\{\s*unsubscribe_url\s*\}\}/g, "#")
+					.replace(/\{\{\s*email\s*\}\}/g, "ava@example.com");
+			}
+
+			// Rebuild the list + count from the in-memory TEMPLATES array — used
+			// after a save/delete so the page refreshes live, without a reload.
+			function renderTemplates() {
+				const countEl = document.getElementById("tpl-count");
+				if (countEl) countEl.textContent = `(${TEMPLATES.length})`;
+
+				const list = document.getElementById("tpl-list");
+				if (!list) return;
+				list.innerHTML = "";
+				if (TEMPLATES.length === 0) {
+					const empty = document.createElement("div");
+					empty.className = "px-6 py-12 text-center text-sm text-gray-400 dark:text-gray-500";
+					empty.textContent = "No templates yet. Create one to start sending.";
+					list.appendChild(empty);
+					return;
+				}
+				for (const t of TEMPLATES) {
+					const row = document.createElement("div");
+					row.className = "px-5 py-4 flex items-center justify-between gap-4 hover:bg-gray-50/70 dark:hover:bg-white/[0.02] transition";
+
+					const info = document.createElement("div");
+					info.className = "flex items-center gap-3 min-w-0";
+					const icon = document.createElement("div");
+					icon.className = "grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-brand-50 text-brand-500 dark:bg-brand-500/15 dark:text-brand-400";
+					icon.innerHTML = '<span class="material-symbols-outlined text-lg">mail</span>';
+					const txt = document.createElement("div");
+					txt.className = "min-w-0";
+					const nm = document.createElement("p");
+					nm.className = "text-sm font-medium text-gray-800 dark:text-white/90 truncate";
+					nm.textContent = t.name;
+					const su = document.createElement("p");
+					su.className = "text-xs text-gray-400 dark:text-gray-500 truncate mt-0.5";
+					su.textContent = t.subject;
+					txt.append(nm, su);
+					info.append(icon, txt);
+
+					const actions = document.createElement("div");
+					actions.className = "flex items-center gap-1.5 shrink-0";
+					const testBtn = document.createElement("button");
+					testBtn.type = "button";
+					testBtn.title = "Send a test email to yourself";
+					testBtn.className = "inline-flex items-center gap-1.5 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-600 hover:border-blue-light-300 hover:text-blue-light-700 dark:border-gray-700 dark:text-gray-300 dark:hover:border-blue-light-500/50 dark:hover:text-blue-light-400 transition";
+					testBtn.innerHTML = '<span class="material-symbols-outlined text-sm">forward_to_inbox</span>Send test';
+					testBtn.addEventListener("click", () => openTestModal(t.id, t.name));
+					const editBtn = document.createElement("button");
+					editBtn.type = "button";
+					editBtn.title = "Edit";
+					editBtn.className = "grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-white/[0.06] dark:hover:text-white transition";
+					editBtn.innerHTML = '<span class="material-symbols-outlined text-base">edit</span>';
+					editBtn.addEventListener("click", () => openTemplateEditor(t.id));
+					const delBtn = document.createElement("button");
+					delBtn.type = "button";
+					delBtn.title = "Delete";
+					delBtn.className = "grid h-8 w-8 place-items-center rounded-lg text-gray-400 hover:bg-error-50 hover:text-error-600 dark:hover:bg-error-500/10 dark:hover:text-error-400 transition";
+					delBtn.innerHTML = '<span class="material-symbols-outlined text-base">delete</span>';
+					delBtn.addEventListener("click", () => deleteTemplate(t.id, t.name));
+					actions.append(testBtn, editBtn, delBtn);
+
+					row.append(info, actions);
+					list.appendChild(row);
+				}
+			}
+
+			// ---- Template editor ----
+			function openTemplateEditor(id) {
+				const tpl = id ? TEMPLATES.find((t) => t.id === id) : null;
+				document.getElementById("tpl-modal-title").textContent = tpl ? "Edit template" : "New template";
+				document.getElementById("tpl-id").value = tpl ? tpl.id : "";
+				document.getElementById("tpl-name").value = tpl ? tpl.name : "";
+				document.getElementById("tpl-subject").value = tpl ? tpl.subject : "";
+				document.getElementById("tpl-html").value = tpl ? tpl.html : "";
+				document.getElementById("tpl-error").classList.add("hidden");
+				document.getElementById("tpl-modal").classList.remove("hidden");
+				updateEditorPreview();
+			}
+
+			function closeTemplateEditor() {
+				document.getElementById("tpl-modal").classList.add("hidden");
+			}
+
+			function updateEditorPreview() {
+				const subject = document.getElementById("tpl-subject").value;
+				const html = document.getElementById("tpl-html").value;
+				document.getElementById("tpl-preview-subject").textContent = fillSample(subject, "");
+				document.getElementById("tpl-preview-frame").srcdoc = fillSample(html, "");
+			}
+
+			async function saveTemplate() {
+				const id = document.getElementById("tpl-id").value;
+				const name = document.getElementById("tpl-name").value.trim();
+				const subject = document.getElementById("tpl-subject").value.trim();
+				const html = document.getElementById("tpl-html").value;
+				const err = document.getElementById("tpl-error");
+				const btn = document.getElementById("tpl-save-btn");
+				if (!name || !subject || !html.trim()) {
+					err.textContent = "Name, subject and HTML body are all required.";
+					err.classList.remove("hidden");
+					return;
+				}
+				const body = { action: id ? "update" : "create", name, subject, html };
+				if (id) body.id = id;
+				btn.disabled = true;
+				const original = btn.innerHTML;
+				btn.innerHTML = "Saving…";
+				try {
+					const res = await fetch("/api/email/templates", {
+						method: "POST",
+						headers: { "content-type": "application/json" },
+						body: JSON.stringify(body),
+					});
+					const data = await res.json();
+					if (res.ok && data.ok) {
+						if (Array.isArray(data.templates)) TEMPLATES = data.templates;
+						renderTemplates();
+						closeTemplateEditor();
+						btn.disabled = false;
+						btn.innerHTML = original;
+						return;
+					}
+					err.textContent = data.error || "Save failed.";
+					err.classList.remove("hidden");
+				} catch (e) {
+					err.textContent = "Network error. Please try again.";
+					err.classList.remove("hidden");
+				}
+				btn.disabled = false;
+				btn.innerHTML = original;
+			}
+
+			async function deleteTemplate(id, name) {
+				if (!confirm(`Delete template "${name}"? This cannot be undone.`)) return;
+				try {
+					const res = await fetch("/api/email/templates", {
+						method: "POST",
+						headers: { "content-type": "application/json" },
+						body: JSON.stringify({ action: "delete", id }),
+					});
+					const data = await res.json();
+					if (res.ok && data.ok) {
+						if (Array.isArray(data.templates)) TEMPLATES = data.templates;
+						renderTemplates();
+						return;
+					}
+					alert(data.error || "Delete failed.");
+				} catch (e) {
+					alert("Network error. Please try again.");
+				}
+			}
+
+			// ---- Send test email ----
+			function openTestModal(id, name) {
+				const tpl = TEMPLATES.find((t) => t.id === id);
+				document.getElementById("test-tpl-id").value = id;
+				document.getElementById("test-tpl-name").textContent = name;
+				document.getElementById("test-to").value = "";
+				document.getElementById("test-result").className = "hidden rounded-lg px-4 py-3 text-sm";
+				// Show the discount field only for templates that use {{discount_code}}.
+				const usesDiscount = tpl && /\{\{\s*discount_code\s*\}\}/.test(tpl.html + tpl.subject);
+				document.getElementById("test-discount-wrap").classList.toggle("hidden", !usesDiscount);
+				document.getElementById("test-modal").classList.remove("hidden");
+				document.getElementById("test-to").focus();
+			}
+
+			function closeTestModal() {
+				document.getElementById("test-modal").classList.add("hidden");
+			}
+
+			async function sendTest() {
+				if (!ses) return;
+				const id = document.getElementById("test-tpl-id").value;
+				const to = document.getElementById("test-to").value.trim();
+				const discount = (document.getElementById("test-discount") || {}).value || "";
+				const result = document.getElementById("test-result");
+				const btn = document.getElementById("test-send-btn");
+				if (!to) {
+					result.className = "rounded-lg px-4 py-3 text-sm bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400";
+					result.textContent = "Enter an email address.";
+					return;
+				}
+				const body = { template_id: id, to };
+				if (discount) body.discount_code = discount;
+				btn.disabled = true;
+				const original = btn.innerHTML;
+				btn.innerHTML = "Sending…";
+				result.className = "hidden rounded-lg px-4 py-3 text-sm";
+				try {
+					const res = await fetch("/api/email/test", {
+						method: "POST",
+						headers: { "content-type": "application/json" },
+						body: JSON.stringify(body),
+					});
+					const data = await res.json();
+					if (res.ok && data.ok) {
+						result.className = "rounded-lg px-4 py-3 text-sm bg-success-50 border border-success-200 text-success-700 dark:bg-success-500/10 dark:border-success-500/30 dark:text-success-500";
+						result.textContent = `Test sent to ${data.to}. Check the inbox (and spam).`;
+					} else {
+						result.className = "rounded-lg px-4 py-3 text-sm bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400";
+						result.textContent = data.error || "Send failed.";
+					}
+				} catch (e) {
+					result.className = "rounded-lg px-4 py-3 text-sm bg-error-50 border border-error-200 text-error-700 dark:bg-error-500/10 dark:border-error-500/30 dark:text-error-400";
+					result.textContent = "Network error. Please try again.";
+				}
+				btn.disabled = false;
+				btn.innerHTML = original;
+			}
+
+			// Astro wraps an `is:inline` + `define:vars` script in an IIFE, so these
+			// functions are NOT global by default — but the inline onclick/oninput
+			// attributes in the markup resolve against `window`. Expose them.
+			Object.assign(window, {
+				openTemplateEditor,
+				closeTemplateEditor,
+				updateEditorPreview,
+				saveTemplate,
+				deleteTemplate,
+				openTestModal,
+				closeTestModal,
+				sendTest,
+			});
+		</script>
+	</Fragment>
+</MailLayout>

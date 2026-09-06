@@ -1,0 +1,183 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Cure Và · version H — the theme — every colour on the site, twice
+   ───────────────────────────────────────────────────────────────────────
+   EXTRACTED, NOT REWRITTEN. This is byte-for-byte the CSS running at
+   /version-h/. If you change it here, change it in
+   landing-page-h.template.html too — or better, make that file the
+   source and re-run version-h/build/extract.py.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ═══ shadcn/ui theme tokens ════════════════════════════════════════════
+   H is G rebuilt on the shadcn/ui theme kit. shadcn keeps a whole palette
+   in one flat set of semantic tokens held as bare HSL channels, so any
+   colour can be used at any alpha — hsl(var(--border) / .4) — and a theme
+   is swapped by redefining the set, never by touching a component.
+
+   The tokens below ARE the delivered Cure Và palette: every triplet was
+   round-tripped back to hex before it was written here, so not one colour
+   has moved between G and H. What moved is the direction of the naming —
+   the brand names at the bottom of this block are now aliases OF the
+   tokens instead of the source, which is what lets one theme edit reach
+   all 1,000 lines of section CSS and not just the component layer.
+
+   :root is the dark ground, which is D's invention and still this page's
+   default. shadcn ships one alternate theme and hangs it off a class; the
+   site is dark-first, so the light scope is the exception and it is
+   attached to .on-light — the class the light sections already carry.
+   ════════════════════════════════════════════════════════════════════ */
+:root{
+  /* ── base ── */
+  /* full precision, not 153 29% 6%: both round-trip to #0B1410 in 8 bits,
+     but color-mix() works in float and the studio's ground is mixed at
+     55% and 68% in two places, where the rounded triplet drifts by
+     0.13/255 against D. Invisible, and free to get right. */
+  --background:153.3333 29.0323% 6.0784%;  /* #0B1410 */
+  --foreground:86.7 27.3% 93.5%;        /* #EFF3EA */
+
+  /* ── surfaces ── */
+  --card:147.7 27.7% 9.2%;              /* #111E17 */
+  --card-foreground:86.7 27.3% 93.5%;
+  --popover:144.7 26.2% 12.7%;          /* #18291F */
+  --popover-foreground:86.7 27.3% 93.5%;
+  --muted:147.7 27.7% 9.2%;
+  --muted-foreground:138 11.6% 66.3%;   /* #9FB3A5 — 8.44:1 on ground */
+
+  /* ── intent ───────────────────────────────────────────────────────
+     shadcn's --primary is what a default Button is filled with, and
+     --ring is what it is outlined with when focused. Cream is this
+     brand's call-to-action fill and sage is its focus colour, so the
+     pair maps onto shadcn's without inventing a colour. */
+  --primary:48.9 86.4% 91.4%;           /* #FCF5D6 cream */
+  --primary-foreground:153 29% 6%;
+  --secondary:144.7 26.2% 12.7%;        /* #18291F */
+  --secondary-foreground:86.7 27.3% 93.5%;
+  --accent:144.8 26.7% 66.3%;           /* #92C0A5 sage */
+  --accent-foreground:153 29% 6%;
+  --destructive:14.6 71.2% 79.6%;       /* #F0B8A6 — 10.80:1 on ground */
+  --destructive-foreground:153 29% 6%;
+
+  /* ── lines ──
+     --border is shadcn's, solid, for anything sitting on a flat ground.
+     D draws most of its hairlines OVER photography, where a solid line
+     reads as a box drawn on top of the picture instead of an edge
+     belonging to it — so the translucent pair is a token too, and it is
+     re-themed under .on-light exactly like the rest. The component layer
+     may not name a colour, and these are how it reaches D's own edges. */
+  --border:146.7 8.7% 20.2%;
+  --input:146.7 8.7% 20.2%;
+  --ring:144.8 26.7% 66.3%;
+  --border-hairline:rgba(239,243,234,.16);
+  --border-hairline-2:rgba(239,243,234,.07);
+
+  /* ── radius ───────────────────────────────────────────────────────
+     shadcn derives every corner on the page from one number. D's three
+     radii are 22 / 14 / 9px and they are load-bearing — the image frames
+     and the masks are cut to them — so --radius is the middle one and
+     the other two are offsets that reproduce D exactly, rather than
+     shadcn's stock −2px / −4px steps which would have moved them. */
+  --radius:0.875rem;                            /* 14px */
+  --radius-lg:calc(var(--radius) + 0.5rem);     /* 22px */
+  --radius-md:var(--radius);                    /* 14px */
+  --radius-sm:calc(var(--radius) - 0.3125rem);  /*  9px */
+
+  /* ── elevation ──
+     --shadow-btn is D's button shadow, verbatim. It is a token rather
+     than a literal in the Button rule for one reason: guard 6 forbids the
+     component layer from naming a colour, and that guard is worth more
+     than the convenience of writing the rgba where it is used. */
+  --shadow-btn:0 1px 2px rgba(0,0,0,.16),0 18px 34px -26px rgba(0,0,0,.8);
+  --shadow-sm:0 1px 2px 0 rgba(11,20,16,.30);
+  --shadow:0 1px 3px 0 rgba(11,20,16,.36),0 1px 2px -1px rgba(11,20,16,.36);
+  --shadow-md:0 4px 6px -1px rgba(11,20,16,.38),0 2px 4px -2px rgba(11,20,16,.38);
+
+  /* ── brand aliases ────────────────────────────────────────────────
+     Custom properties substitute at the element that DECLARES them, so
+     each of these resolves once here against :root's tokens and then
+     inherits as a flat colour. That is the behaviour we want: --night-2
+     stays night inside .on-light, where --card has become paper. */
+  --night:hsl(var(--background)); --night-2:hsl(var(--card));
+  --night-3:hsl(var(--popover));
+  --paper:#F7F4EC; --paper-2:#EEEBE0; --white:#fff;
+  --cream:hsl(var(--primary)); --sage:hsl(var(--accent));
+  --blue:hsl(191.5 27.5% 66.5%); --khaki:hsl(47 17% 58%);
+
+  /* brand colours are surfaces only — text uses the derived companions */
+  --sage-ink:hsl(145 27% 30%); --teal-ink:hsl(193 28% 30%);
+  --khaki-ink:hsl(46 15.8% 37.3%);
+  /* ink-3 is the small uppercase label colour: at #857E70 it measured
+     3.66:1 on paper, which passes only as large text and it is never
+     large. #726B5C clears AA at 4.81:1 and still reads as the quiet
+     tier — it is .on-light's --muted-foreground's quieter neighbour. */
+  --ink:hsl(37.5 13.3% 11.8%); --ink-2:hsl(38.8 10.8% 30.8%);
+  --ink-3:hsl(40.9 10.7% 40.4%);
+  --on-dark:hsl(var(--foreground)); --on-dark-2:hsl(var(--muted-foreground));
+  /* the one warm accent left on the page: the form's error state */
+  --warn:hsl(var(--destructive));
+
+  /* The two line pairs that stay translucent. shadcn's --border is a
+     solid colour because a shadcn page is a solid ground; four of these
+     rules draw over photography, where a solid line reads as a box drawn
+     on top of the picture instead of an edge belonging to it. */
+  --line:rgba(34,31,26,.13); --line-2:rgba(34,31,26,.06);
+  --line-d:rgba(239,243,234,.16); --line-d2:rgba(239,243,234,.07);
+
+  --gut:clamp(1.15rem,4.5vw,3.4rem);
+  --maxw:1320px;
+  --nav-h:64px;
+  --r-lg:var(--radius-lg); --r-md:var(--radius-md); --r-sm:var(--radius-sm);
+  --ease:cubic-bezier(.22,1,.36,1);
+  --ease-io:cubic-bezier(.65,0,.35,1);
+  /* F's smoothing pass is three curves, not a longer duration everywhere.
+     --ease-soft leaves almost instantly and lands over a very long tail,
+     which is what makes a big move (a room arriving, a card turning over)
+     read as settling rather than stopping. --ease-spring gives chips and
+     pills a half-degree of overshoot. Neither is used for anything a
+     visitor has to read mid-flight. */
+  --ease-soft:cubic-bezier(.32,.72,0,1);
+  --ease-spring:cubic-bezier(.16,1.06,.3,1);
+  --sh:0 1px 2px rgba(34,31,26,.05),0 24px 60px -44px rgba(34,31,26,.7);
+  --sh-d:0 30px 80px -50px #000;
+}
+
+/* ── the light theme ──────────────────────────────────────────────────
+   Same token names, paper ground. Everything underneath re-themes with
+   no component-level override, which is the whole point of the kit: the
+   Card in §04 and the Card in §10 are one rule, on two grounds. */
+.on-light{
+  --background:43.6 40.7% 94.7%;        /* #F7F4EC */
+  --foreground:37.5 13.3% 11.8%;        /* #221F1A */
+  /* A card on paper is the RAISED surface, so --card is white and the
+     recessed tray is --muted. Getting that pair the wrong way round is
+     the one mistake that makes a themed page look unthemed: every card
+     sinks into its own section and the lift D drew is gone. */
+  --card:0 0% 100%;                     /* #FFFFFF */
+  --card-foreground:37.5 13.3% 11.8%;
+  --popover:0 0% 100%;
+  --popover-foreground:37.5 13.3% 11.8%;
+  --muted:47.1 29.2% 90.6%;             /* #EEEBE0 */
+  --muted-foreground:38.8 10.8% 30.8%;  /* #575146 — 7.15:1 on paper */
+  /* shadcn's own light theme makes --primary the DARK chip (its stock
+     value is near-black on white), and that is exactly what D does: the
+     button on a paper section is night with cream on it. So --primary is
+     night here, not sage-ink, and D's hand-written `btn--dark` opposite
+     stops being a class — the default variant already is it. Sage-ink
+     stays where D put it, on --accent, which is the fill that rises on
+     hover and the focus ring. */
+  --primary:153 29% 6%;                 /* #0B1410 night */
+  --primary-foreground:48.9 86.4% 91.4%;/* #FCF5D6 cream — 17.09:1 */
+  --secondary:47.1 29.2% 90.6%;
+  --secondary-foreground:46 15.8% 37.3%;/* #6E6750 — 4.73:1 on #EEEBE0 */
+  --accent:145 27% 30%;                 /* #386149 sage-ink */
+  --accent-foreground:0 0% 100%;        /* D hovers this one to pure white */
+  /* no light-ground error state exists in the brand package and the one
+     form on this page sits on night; this is here so the kit is complete
+     and it is the only token on the page derived rather than delivered */
+  --destructive:14.6 62% 34%;           /* #8C3B21 — 6.92:1 on paper */
+  --destructive-foreground:43.6 40.7% 94.7%;
+  --border:42 12% 84%;
+  --input:42 12% 84%;
+  --ring:145 27% 30%;
+  --border-hairline:rgba(34,31,26,.13);
+  --border-hairline-2:rgba(34,31,26,.06);
+}
+

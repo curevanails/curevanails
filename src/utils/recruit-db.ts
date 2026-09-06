@@ -30,10 +30,14 @@ export const POSITION_OPTIONS = [
 	"esthetician",
 	"cosmetologist",
 	"lash_artist",
-	"open_to_multiple",
 ] as const;
 
-export const POSITION_LABELS: Record<(typeof POSITION_OPTIONS)[number], string> = {
+/**
+ * Keyed loosely so the admin can still name `open_to_multiple`, retired when
+ * the group became a plain multi-select — ticking several boxes now says the
+ * same thing — but still present on applications taken before that.
+ */
+export const POSITION_LABELS: Record<string, string> = {
 	nail_technician: "Nail Technician",
 	esthetician: "Esthetician",
 	cosmetologist: "Cosmetologist",
@@ -71,13 +75,17 @@ export const BACKGROUND_LABELS: Record<
 	salon_experience: "Salon or spa experience",
 };
 
-/** "What type of position are you looking for?" */
-export const EMPLOYMENT_OPTIONS = ["full_time", "part_time", "either"] as const;
+/**
+ * "What type of position are you looking for?" — ONE choice, Full-time or
+ * Part-time. It is still stored as a JSON array, like `positions`: the column,
+ * the admin's reader and every row already written all speak that shape, and a
+ * one-item array costs nothing. The retired "Either Full-time or Part-time"
+ * option still has a label below, for the rows taken while it existed.
+ */
+export const EMPLOYMENT_OPTIONS = ["full_time", "part_time"] as const;
 
-export const EMPLOYMENT_LABELS: Record<
-	(typeof EMPLOYMENT_OPTIONS)[number],
-	string
-> = {
+/** Loosely keyed so `either` still reads well on pre-multi-select rows. */
+export const EMPLOYMENT_LABELS: Record<string, string> = {
 	full_time: "Full-time",
 	part_time: "Part-time",
 	either: "Full-time or Part-time",

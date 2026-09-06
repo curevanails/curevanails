@@ -67,8 +67,15 @@ jobs:
             echo "ADMIN_PASSWORD=ci-test-password"
           } > .dev.vars
 
-      - name: Install Playwright Chromium
-        run: pnpm exec playwright install --with-deps chromium
+      # Chromium AND WebKit. e2e/design.spec.ts runs in both: most of this
+      # site's visitors are on Safari, or on iOS where every browser is
+      # WebKit, and that is where a Chromium-only suite misses a layout
+      # break — `overflow:clip`, `100svh`/`100dvh`, `:has()`,
+      # `@starting-style` and the Popover API all diverge across engines and
+      # this design uses every one of them. It has already caught a real bug
+      # Chromium did not report.
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium webkit
 
       # `pnpm test:e2e` builds the Worker and runs it via `astro preview`
       # (local D1 + R2), then drives the recruit form end to end.

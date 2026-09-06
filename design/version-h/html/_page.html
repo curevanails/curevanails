@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1410">
+<meta name="color-scheme" content="dark">
+<title>__TITLE__ — Cure Và</title>
+<meta name="description" content="__DESCRIPTION__">
+
+<!-- The only external request this system makes. Guard it: a second one is
+     a regression, not a feature. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..700,0..100,0..1;1,9..144,300..700,0..100,0..1&family=Manrope:wght@300..800&display=swap">
+
+<!-- ORDER MATTERS. Tokens before anything that reads them; components before
+     the sections that compose them. Inline these into one <style> at build
+     time — the shipped page makes no stylesheet request but the fonts. -->
+<link rel="stylesheet" href="../css/01-tokens.css">
+<link rel="stylesheet" href="../css/02-base.css">
+<link rel="stylesheet" href="../css/03-components.css">
+<link rel="stylesheet" href="../css/04-motion.css">
+<link rel="stylesheet" href="../css/05-chrome.css">
+<link rel="stylesheet" href="../css/page-variants.css">
+<!-- <link rel="stylesheet" href="page.css">   ← this page's own sections -->
+</head>
+<body>
+
+<!-- ══ preloader ══════════════════════════════════════════════════════
+     Hides itself in CSS at 2.4s whether or not the script runs, so a
+     failed script can never leave a visitor at a closed curtain. The
+     runtime only ever hides it EARLIER. Keep it on every page. ══════ -->
+<div id="pre" role="status" aria-label="Loading">
+  <div class="contour" aria-hidden="true"></div>
+  <div class="pre-in">
+    <span class="pre-mark" aria-hidden="true"></span>
+    <div class="pre-w"><span>cure và</span></div>
+    <span class="pre-rule" aria-hidden="true"></span>
+    <div class="pre-sub">Nail therapy · Sugar House</div>
+  </div>
+</div>
+
+<div id="grain" aria-hidden="true"></div>
+<div id="prog" aria-hidden="true"></div>
+<div id="cur" aria-hidden="true"><b>view</b></div>
+
+<!-- ══ nav ════════════════════════════════════════════════════════════
+     Links are root-relative so this chrome works on any page. On the
+     landing page itself they resolve to the same-page anchors. ═════ -->
+<!-- nav--paper: this page opens on a paper ground, so the bar
+     cannot use the landing page's cream ink. See css/page-variants.css -->
+<nav class="nav nav--paper" id="nav" aria-label="Primary">
+  <div class="bar">
+    <a class="mark" href="/" aria-label="Cure Và — home">
+      <span class="mark-ring" aria-hidden="true"></span>
+      <b>cure và</b><i>Nail Therapy</i>
+    </a>
+    <ul class="links">
+      <li><a href="/#manifesto">Approach</a></li>
+      <li><a href="/#ritual">The visit</a></li>
+      <li><a href="/#difference">Difference</a></li>
+      <li><a href="/#menu">Menu</a></li>
+      <li><a href="/#member">Membership</a></li>
+    </ul>
+    <a class="btn cta" href="/#waitlist" data-mag>Join the waitlist</a>
+    <button class="burger" id="burger" type="button" aria-expanded="false"
+      aria-controls="menuPanel"><span class="lbl">Menu</span>
+      <span class="bars" aria-hidden="true"><i></i><i></i></span></button>
+  </div>
+</nav>
+
+<div id="menuPanel" aria-hidden="true">
+  <div></div>
+  <div class="mp-in">
+    <nav aria-label="Sections">
+      <ul class="mp-list">
+        <li><a href="/#manifesto" style="--d:60ms">Our approach</a></li>
+        <li><a href="/#ritual" style="--d:110ms">The visit</a></li>
+        <li><a href="/#founder" style="--d:160ms">Our founder</a></li>
+        <li><a href="/#menu" style="--d:210ms">The menu</a></li>
+        <li><a href="/#member" style="--d:260ms">Membership</a></li>
+        <li><a href="/careers/" style="--d:310ms">Careers</a></li>
+      </ul>
+    </nav>
+    <div class="mp-side">
+      <div class="fr fr--drift"><img src="__D_HERO_HANDS__"
+        alt="Two hands resting, nails bare and shaped"></div>
+      <div class="mp-meta">
+        <div><b>Opening</b>December 2026</div>
+        <div><b>Where</b>Legacy Village, Sugar House UT</div>
+        <div><b>Call</b><a href="tel:+18014253581">+1 801 425 3581</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<main id="top">
+
+  <!-- ══ a section ═══════════════════════════════════════════════════
+       The shell every section on the site uses. `.sec` for the night
+       ground, `.sec on-light` for paper — the theme re-themes itself,
+       you write no second set of colours. `.sec--tight` for a shorter
+       one. `.ix` is the corner index and is optional. ═══════════════ -->
+  <section class="sec sec--first" id="__ID__" aria-labelledby="__ID__H">
+    <div class="wrap">
+      <div class="head">
+        <span class="eyebrow" data-r="fade">__EYEBROW__</span>
+        <h2 class="h-lg" id="__ID__H" data-r style="--d:60ms">__HEADING__
+          <em>__HEADING_TURN__</em></h2>
+      </div>
+
+      <!-- content. Stagger reveals with style="--d:120ms". -->
+      <p class="lede" data-r="fade" style="--d:120ms">__LEDE__</p>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══ footer ═════════════════════════════════════════════════════════ -->
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-grid">
+      <div>
+        <a class="mark" href="/" aria-label="Cure Và — home">
+          <span class="mark-ring" aria-hidden="true"></span><b>cure và</b></a>
+        <p class="lede" style="margin-top:1rem;font-size:.92rem">Healthy nails, radiant
+          skin, and a room built for five.</p>
+      </div>
+      <div>
+        <h4>Studio</h4>
+        <address>Legacy Village<br>Sugar House, UT<br>
+          <a href="tel:+18014253581">+1 801 425 3581</a><br>
+          Mon–Sat, 9:00 AM – 7:00 PM</address>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="/#menu">Menu</a></li>
+          <li><a href="/#member">Membership</a></li>
+          <li><a href="/#founder">About</a></li>
+          <li><a href="/careers/">Careers</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Follow</h4>
+        <ul>
+          <li><a href="/#waitlist">Instagram</a></li>
+          <li><a href="/#waitlist">Facebook</a></li>
+          <li><a href="/#waitlist">TikTok</a></li>
+        </ul>
+        <!-- the inline size is deliberate: `.foot a` is (0,1,1) and beats
+             `.btn--sm` at (0,1,0). See DESIGN-SYSTEM.md §5. -->
+        <p style="margin-top:1rem"><a class="btn btn--outline btn--sm" href="/#waitlist" data-mag
+          style="font-size:.74rem;padding:.85em 1.3em">Join the waitlist</a></p>
+      </div>
+    </div>
+
+    <div class="bigmark" aria-hidden="true">
+      <b>c</b><b>u</b><b>r</b><b>e</b><b>&nbsp;</b><b>v</b><b>à</b>
+    </div>
+
+    <div class="foot-legal">
+      <div class="l"><span>© 2026 Cure Và. All rights reserved.</span></div>
+      <div class="l"><a href="/">Terms</a><a href="/">Privacy</a>
+        <a href="/">Accessibility</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="../js/runtime.js"></script>
+</body>
+</html>

@@ -9,6 +9,7 @@ import {
 } from "../../utils/recruit-db";
 import { rateLimit } from "../../utils/rate-limit";
 import { sendRecruitEmails } from "../../utils/recruit-emails";
+import { TURNSTILE_FIELD, verifyTurnstile } from "../../utils/turnstile";
 
 // Server-rendered endpoint — never prerender.
 export const prerender = false;
@@ -42,6 +43,22 @@ const MAX_EMAIL_LENGTH = 254;
 // C0 controls + DEL — used to reject newlines/control chars in free-text fields
 // that flow into the recruiter alert email.
 const CONTROL_CHARS_RE = /[\u0000-\u001f\u007f]/;
+
+/**
+ * Ten US national digits, or `null` when the input is not that. A leading
+ * country `1` is accepted and dropped — people paste it constantly — which
+ * mirrors the formatter on the apply form exactly.
+ */
+function nationalPhone(raw: string): string | null {
+	let d = digitsOnly(raw);
+	if (d.length === 11 && d.startsWith("1")) d = d.slice(1);
+	return d.length === 10 ? d : null;
+}
+
+/** `8015550123` -> `(801) 555-0123`, so the admin and the alert emails agree. */
+function formatPhone(d: string): string {
+	return `(${d.slice(0, 3)}) ${d.slice(3, 6)}-${d.slice(6)}`;
+}
 
 function letterCount(s: string): number {
 	return (s.match(/\p{L}/gu) ?? []).length;
@@ -147,11 +164,19 @@ export const POST: APIRoute = async ({ request }) => {
 	const currentStatus = str(form, "current_status");
 	const graduationRaw = str(form, "graduation_date");
 	const background = str(form, "background");
-	const employmentType = str(form, "employment_type");
+	const employmentType = form
+		.getAll("employment_type")
+		.filter((v): v is string => typeof v === "string" && EMPLOYMENT.has(v));
 	const portfolioLink = str(form, "portfolio_link");
 	const whyCureva = str(form, "why_cureva");
 	const contactConsent = str(form, "contact_consent") === "yes" ? 1 : 0;
 	const resume = form.get("resume");
+	const turnstileToken = str(form, TURNSTILE_FIELD);
+
+	// Bot check before the R2 upload and the D1 write — an unverified caller
+	// should not get to spend either. Costs nothing while unconfigured.
+	const human = await verifyTurnstile(turnstileToken, ip);
+	if (!human.ok) return json({ ok: false, error: human.error }, 400);
 
 	const errors: Record<string, string> = {};
 
@@ -171,11 +196,15 @@ export const POST: APIRoute = async ({ request }) => {
 	if (email && (email.length > MAX_EMAIL_LENGTH || !EMAIL_RE.test(email)))
 		errors.email = "Enter a valid email address.";
 
+	let phoneNational: string | null = null;
 	if (!phone) errors.phone = "Phone number is required.";
 	else if (/[A-Za-z]/.test(phone) || !PHONE_ALLOWED_RE.test(phone))
 		errors.phone = "Phone number can't contain letters.";
-	else if (digitsOnly(phone).length < 10 || digitsOnly(phone).length > 15)
-		errors.phone = "Enter a valid phone number (at least 10 digits).";
+	else {
+		phoneNational = nationalPhone(phone);
+		if (!phoneNational)
+			errors.phone = "Enter a 10-digit US phone number.";
+	}
 
 	// Professional information
 	if (positions.length === 0)
@@ -194,7 +223,7 @@ export const POST: APIRoute = async ({ request }) => {
 	if (!BACKGROUNDS.has(background))
 		errors.background = "Select the option that best describes you.";
 
-	if (!EMPLOYMENT.has(employmentType))
+	if (employmentType.length === 0)
 		errors.employment_type = "Select the type of position you're looking for.";
 
 	// Portfolio (both optional — resume OR a social/portfolio link)
@@ -230,6 +259,10 @@ export const POST: APIRoute = async ({ request }) => {
 		return json({ ok: false, error: "Failed to store the uploaded file." }, 500);
 	}
 
+	// Everything past validation uses the canonical shape, so the admin table,
+	// the recruiter alert and the candidate ack all read the same number.
+	const storedPhone = formatPhone(phoneNational as string);
+
 	// --- Persist to D1 ---
 	try {
 		await ensureApplicationsSchema(db);
@@ -247,12 +280,12 @@ export const POST: APIRoute = async ({ request }) => {
 				firstName,
 				lastName,
 				email || null,
-				phone,
+				storedPhone,
 				JSON.stringify(positions),
 				currentStatus,
 				graduationDate,
 				background,
-				employmentType,
+				JSON.stringify(employmentType),
 				resumeMeta?.key ?? null,
 				resumeMeta?.filename ?? null,
 				portfolioLink || null,
@@ -274,7 +307,7 @@ export const POST: APIRoute = async ({ request }) => {
 			firstName,
 			lastName,
 			email: email || null,
-			phone,
+			phone: storedPhone,
 			positions,
 			currentStatus,
 			graduationDate,

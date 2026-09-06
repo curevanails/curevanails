@@ -1,0 +1,62 @@
+---
+/**
+ * Suppressed — addresses this service will never mail again (`/mail/suppressed`).
+ *
+ * Filled by the SES/SNS webhook (hard bounces, complaints) and by the
+ * unsubscribe link. Every send path checks this list first.
+ */
+import { loadMailData, loadSuppressed, mailDb, type SuppressionRow } from "../../utils/email-data";
+import { PILL, fmtTs } from "../../utils/email-format";
+import MailLayout from "../../layouts/MailLayout.astro";
+import EmptyState from "../../components/mail/EmptyState.astro";
+
+// Server-rendered, never cached. Gated by the admin auth in src/middleware.ts.
+export const prerender = false;
+
+const { data, error: loadError } = await loadMailData(mailDb(), (db) => loadSuppressed(db));
+const suppressed: SuppressionRow[] = data ?? [];
+---
+
+<MailLayout
+	title="Suppressed"
+	description="Bounces, complaints and unsubscribes — these addresses are skipped on every send."
+	active="mail-suppressed"
+	loadError={loadError}
+>
+	{!loadError && suppressed.length === 0 && (
+		<EmptyState icon="block" title="Nothing suppressed." hint="Bounces, complaints and unsubscribes land here." />
+	)}
+
+	{!loadError && suppressed.length > 0 && (
+		<section class="bg-white rounded-2xl border border-gray-200 shadow-theme-xs dark:bg-white/[0.03] dark:border-gray-800">
+			<header class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center gap-2.5">
+				<span class="grid h-9 w-9 place-items-center rounded-lg bg-error-50 text-error-600 dark:bg-error-500/15 dark:text-error-500">
+					<span class="material-symbols-outlined">block</span>
+				</span>
+				<h2 class="font-semibold text-gray-800 dark:text-white/90">Suppressed addresses
+					<span class="ml-1 text-xs font-medium text-gray-400 dark:text-gray-500">({suppressed.length})</span>
+				</h2>
+			</header>
+			<div class="overflow-x-auto nice-scroll">
+				<table class="w-full text-sm">
+					<thead class="text-xs font-semibold uppercase text-gray-500 bg-gray-50 border-b border-gray-200 dark:bg-white/[0.02] dark:border-gray-800 dark:text-gray-400">
+						<tr>
+							<th class="px-5 py-3 text-left">Address</th>
+							<th class="px-5 py-3 text-left">Reason</th>
+							<th class="px-5 py-3 text-right whitespace-nowrap">Added</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+						{suppressed.map((s) => (
+							<tr class="hover:bg-gray-50/70 dark:hover:bg-white/[0.02] transition">
+								<td class="px-5 py-3.5 font-medium text-gray-700 dark:text-gray-300">{s.email}</td>
+								<td class="px-5 py-3.5"><span class={`${PILL} bg-gray-100 text-gray-600 dark:bg-white/[0.06] dark:text-gray-400`}>{s.reason}</span></td>
+								<td class="px-5 py-3.5 text-gray-400 dark:text-gray-500 whitespace-nowrap text-right">{fmtTs(s.added_at)}</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	)}
+</MailLayout>

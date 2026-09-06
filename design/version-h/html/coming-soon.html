@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1410">
+<meta name="color-scheme" content="dark">
+<title>Cure Và — Opening December 2026</title>
+<meta name="description" content="Cure Và — a calm, non-toxic nail and skin studio. Opening December 2026 at Legacy Village, Sugar House UT.">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT,WONK@0,9..144,300..700,0..100,0..1;1,9..144,300..700,0..100,0..1&family=Manrope:wght@300..800&display=swap">
+
+<link rel="stylesheet" href="../css/01-tokens.css">
+<link rel="stylesheet" href="../css/02-base.css">
+<link rel="stylesheet" href="../css/03-components.css">
+<link rel="stylesheet" href="../css/04-motion.css">
+<link rel="stylesheet" href="../css/05-chrome.css">
+<link rel="stylesheet" href="../css/page-variants.css">
+
+<style>
+/* ═══ coming soon — one screen, one thing to do ═════════════════════════
+   The only page-specific CSS. Everything else is the system.
+   Composed from tokens; names no colour. ═══════════════════════════════ */
+.cs{position:relative;min-height:100svh;display:grid;align-items:end;overflow:clip}
+.cs-shot{position:absolute;inset:0;z-index:0}
+.cs-shot img{width:100%;height:100%;object-fit:cover}
+/* the scrim is cut for WHERE THE COPY IS, not for the whole frame — the
+   right half keeps its daylight. On a phone the copy fills the width, so
+   the scrim becomes a foot to the frame instead. */
+.cs-shot::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(11,20,16,.62),rgba(11,20,16,.30) 46%,rgba(11,20,16,.86))}
+@media (min-width:900px){
+  .cs-shot::after{background:linear-gradient(100deg,rgba(11,20,16,.90) 14%,
+    rgba(11,20,16,.55) 52%,rgba(11,20,16,.18))}
+}
+.cs-in{position:relative;z-index:1;width:100%;max-width:var(--maxw);margin-inline:auto;
+  padding:clamp(3rem,10vh,7rem) var(--gut) clamp(2.5rem,7vh,5rem);
+  display:grid;gap:clamp(1.6rem,3.4vw,2.6rem)}
+@media (min-width:900px){.cs-in{grid-template-columns:1.1fr .9fr;align-items:end}}
+.cs-h{font-size:clamp(2.6rem,7.4vw,6rem);letter-spacing:-.036em;line-height:.96;
+  color:hsl(var(--primary));margin-top:.9rem}
+.cs-h em{font-style:italic;color:hsl(var(--accent))}
+.cs-say{margin-top:1.2rem;max-width:44ch}
+.cs-form{display:grid;gap:.85rem;padding:clamp(1.2rem,2.6vw,2rem);
+  border-radius:var(--radius-lg);background:hsl(var(--background) / .68);
+  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2)}
+@media (pointer:coarse){.cs-form{background:hsl(var(--background));
+  backdrop-filter:none;-webkit-backdrop-filter:none}}
+.cs-field{display:grid;gap:.5rem}
+.cs-err{display:none}
+.cs-form.invalid .cs-err{display:block}
+.cs-consent{display:flex;gap:.65rem;align-items:flex-start;font-size:.78rem;
+  color:hsl(var(--muted-foreground));cursor:pointer}
+.cs-small{font-size:.72rem;color:hsl(var(--muted-foreground))}
+.cs-done{display:none;gap:.7rem;text-align:center;padding:1.4rem .4rem}
+.cs-form.sent .cs-field,.cs-form.sent .cs-consent,
+.cs-form.sent .cs-btns,.cs-form.sent .cs-err{display:none}
+.cs-form.sent .cs-done{display:grid}
+.cs-btns{display:flex;flex-wrap:wrap;gap:.7rem;align-items:center;margin-top:.3rem}
+.cs-meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.4rem}
+</style>
+</head>
+<body>
+
+<div id="pre" role="status" aria-label="Loading">
+  <div class="contour" aria-hidden="true"></div>
+  <div class="pre-in">
+    <span class="pre-mark" aria-hidden="true"></span>
+    <div class="pre-w"><span>cure và</span></div>
+    <span class="pre-rule" aria-hidden="true"></span>
+    <div class="pre-sub">Nail therapy · Sugar House</div>
+  </div>
+</div>
+<div id="grain" aria-hidden="true"></div>
+<div id="cur" aria-hidden="true"><b>view</b></div>
+
+<!-- No nav: there is nowhere to go yet. The mark alone, so the page still
+     identifies itself. -->
+<nav class="nav" id="nav" aria-label="Primary">
+  <div class="bar">
+    <a class="mark" href="/" aria-label="Cure Và">
+      <span class="mark-ring" aria-hidden="true"></span>
+      <b>cure và</b><i>Nail Therapy</i>
+    </a>
+  </div>
+</nav>
+
+<main>
+<header class="cs" id="top">
+  <div class="cs-shot" aria-hidden="true">
+    <img src="__E_SPACE__" alt="" fetchpriority="high">
+  </div>
+
+  <div class="cs-in">
+    <div>
+      <span class="eyebrow">Opening December 2026</span>
+      <h1 class="cs-h">Enhance what&rsquo;s already <em>beautiful.</em></h1>
+      <p class="lede cs-say">Nail and skin therapy at Legacy Village, Sugar House &mdash;
+        natural nails, clean products, and a chair you can rest in.</p>
+      <p class="cs-meta">
+        <span class="badge badge--outline"><span class="dot" aria-hidden="true"></span>Legacy Village</span>
+        <span class="badge badge--outline">Sugar House, UT</span>
+      </p>
+    </div>
+
+    <form class="cs-form" id="csForm" novalidate>
+      <div class="cs-field">
+        <label class="label" for="csMail">Email address</label>
+        <input class="input" id="csMail" type="email" name="email" autocomplete="email"
+          inputmode="email" placeholder="you@example.com" aria-describedby="csErr">
+      </div>
+      <p class="cs-err alert alert--destructive" id="csErr" role="alert">Please enter an email
+        address we can actually reach you at.</p>
+      <label class="cs-consent"><input class="checkbox" type="checkbox" id="csNews" checked>
+        <span>Yes, tell me when booking opens. Unsubscribe any time.</span></label>
+      <div class="cs-btns">
+        <button class="btn" type="submit" data-mag>Join the waitlist
+          <svg class="arw" width="15" height="10" viewBox="0 0 15 10" fill="none"
+            aria-hidden="true"><path d="M1 5h12M9 1l4 4-4 4" stroke="currentColor"
+            stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <span class="cs-small">No spam. Opening news only.</span>
+      </div>
+      <div class="cs-done">
+        <h2 class="h-sm">You&rsquo;re on the list.</h2>
+        <p class="cs-small">We&rsquo;ll write once, when booking opens.</p>
+      </div>
+    </form>
+  </div>
+</header>
+</main>
+
+<script src="../js/runtime.js"></script>
+<script>
+/* ── the form ──────────────────────────────────────────────────────────
+   FRONT-END ONLY. It validates and it says thank you; it sends nothing
+   anywhere. Wire it to a real endpoint before this page is public.
+
+   The invalid state goes on the CONTROL (aria-invalid), not only on a
+   class on the form — so the field announces itself rather than only
+   looking wrong. */
+(function(){
+  var form = document.getElementById('csForm');
+  if (!form) return;
+  var mail = document.getElementById('csMail');
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var ok = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(mail.value.trim());
+    form.classList.toggle('invalid', !ok);
+    mail.setAttribute('aria-invalid', ok ? 'false' : 'true');
+    if (!ok){ mail.focus(); return; }
+    form.classList.add('sent');
+    var h = form.querySelector('.cs-done h2');
+    if (h){ h.setAttribute('tabindex','-1'); h.focus({preventScroll:true}); }
+  });
+  mail.addEventListener('input', function(){
+    form.classList.remove('invalid');
+    mail.setAttribute('aria-invalid','false');
+  });
+})();
+</script>
+</body>
+</html>

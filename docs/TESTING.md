@@ -2,7 +2,8 @@
 
 End-to-end tests for the two flows that touch applicant data: the public
 **Hiring Form** (`/recruit/apply` → `POST /api/recruit`) and the **admin
-dashboard** (`/admin` and its `/admin/file`, `/admin/update` endpoints).
+dashboard** (`/admin`, the recruit pipeline at `/admin/recruit`, and its
+`/admin/file`, `/admin/update` endpoints).
 
 They run with [Playwright](https://playwright.dev) against the **built
 Cloudflare Worker** — not the dev server — so they exercise the real endpoints
@@ -53,7 +54,7 @@ npx playwright install chromium
 | --- | --- |
 | `e2e/helpers.ts` | Shared fixtures, selectors, `fillApplication()`, `devVar()` |
 | `e2e/recruit-apply.spec.ts` | The Hiring Form UI + `POST /api/recruit` |
-| `e2e/admin.spec.ts` | Auth gate, dashboard, `/admin/file`, `/admin/update` |
+| `e2e/admin.spec.ts` | Auth gate, dashboard widgets, recruit pipeline, `/admin/file`, `/admin/update`, the email dashboard's pages |
 | `e2e/global-teardown.ts` | Deletes the rows real-API tests insert |
 
 ### What each spec proves
@@ -72,8 +73,9 @@ npx playwright install chromium
 
 **`admin.spec.ts`**
 
-- **Auth gate:** every admin path (`/admin`, `/admin/talent`, `/admin/file`,
-  `/admin/update`) redirects to the login form without a valid session; wrong
+- **Auth gate:** every admin path (`/admin`, `/admin/recruit`, `/admin/waitlist`,
+  `/admin/mail`, `/admin/file`, `/admin/update`) redirects to the login form
+  without a valid session; wrong
   credentials and a forged cookie are rejected; logout ends the session.
 - **Dashboard:** a seeded application appears with its fields; expand, search,
   and empty-search behave.

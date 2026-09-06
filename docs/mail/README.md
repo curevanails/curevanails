@@ -33,7 +33,17 @@ Architecture (diagrams): [`ARCHITECTURE.md`](ARCHITECTURE.md) · design doc: [`E
 src/utils/email/        SES client, Handlebars render, suppression, SNS verify, send loop
 src/utils/email-db.ts   email tables + default-template seeding (lazy schema)
 src/utils/waitlist-db.ts subscriber schema (unsubscribe_token, email_status)
-src/pages/index.astro             dashboard at / — compose / preview / templates / logs (auth-gated)
+src/layouts/MailLayout.astro      shared chrome for every dashboard page (sidebar, header, theme)
+src/utils/email-data.ts           per-page D1 loaders (templates, logs, stats, campaigns…)
+src/utils/email-format.ts         shared formatting (Mountain Time, badges, percentages)
+src/pages/notify/index.astro      Compose      — /mail            (auth-gated)
+src/pages/notify/campaigns.astro  Campaigns    — /mail/campaigns
+src/pages/notify/templates.astro  Templates    — /mail/templates  (editor + test send)
+src/pages/notify/analytics.astro  Analytics    — /mail/analytics
+src/pages/notify/activity.astro   Activity     — /mail/activity
+src/pages/notify/suppressed.astro Suppressed   — /mail/suppressed
+src/pages/notify/recruit-alerts.astro  Recruit alerts — /mail/recruit-alerts
+src/pages/notify/settings.astro   Settings     — /mail/settings
 src/pages/api/email/send.ts       POST /api/email/send       — campaign send (auth-gated)
 src/pages/api/email/templates.ts  POST /api/email/templates  — template CRUD (auth-gated)
 src/pages/api/email/test.ts       POST /api/email/test       — single test send (auth-gated)

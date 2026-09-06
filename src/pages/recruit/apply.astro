@@ -1,269 +1,63 @@
 ---
-import RecruitHead from "../../components/recruit/RecruitHead.astro";
-
-// Full "Career Application" form for CureVà, warm "Gallacher Collective" theme.
-// Standalone document (no Base.astro). Posts multipart/form-data to
-// /api/recruit, which validates, stores the optional resume in R2, and writes
-// the row into the D1 `job_applications` table. The option groups use real
-// <input>s (styled as pills / toggles) so the browser serialises them into
-// FormData with the exact field names + values the endpoint expects.
-//
-// Field set follows the July 2026 "Hiring Form" doc: contact info, positions
-// of interest, licensure status, background, employment type, an optional
-// resume OR social/portfolio link, a short "why CURE VÀ" answer, and a
-// contact-consent checkbox.
+/**
+ * /recruit/apply — the Hiring Form.
+ *
+ * CONTENT AND PIPELINE PRESERVED, DESIGN REPLACED.
+ *
+ * The <form> markup below is the previous page's, VERBATIM: the same 13
+ * field names, the same option values, the same `js-*` hooks, the same
+ * multipart POST to /api/recruit. The submit/validation script is verbatim
+ * too. That is deliberate and it is not tidiness — those names are the
+ * contract with src/pages/api/recruit.ts, the D1 `job_applications`
+ * columns, the R2 `recruit/` keys and the /admin dashboard that reads
+ * them. Restyling must not touch them. See docs/RECRUIT.md.
+ *
+ * What changed is the shell and the skin: the standalone plaster/walnut
+ * document became the version-H layout, and the form's own CSS is composed
+ * from tokens (`.label`, `.input`, `.checkbox`, `.alert`, `.card`, `.btn`)
+ * so it re-themes with the rest of the site.
+ *
+ * The duplicated open-roles accordion is now <RoleAccordion />, shared with
+ * /recruit, and the roles themselves live in src/data/roles.ts.
+ *
+ * The page OPENS ON THE FORM. It used to lead with a "6+ positions are
+ * open" count and a Google-Maps embed; both are gone, so a candidate who
+ * followed a link that says "apply" lands on the thing they came to do.
+ * The count and the location still live one click away on /recruit, and
+ * the open roles are still listed under the form. Removing the embed also
+ * takes the page's only third-party iframe with it.
+ */
 export const prerender = false;
+
+import { turnstileSiteKey } from "../../utils/turnstile";
+import VersionH from "../../layouts/VersionH.astro";
+import RoleAccordion from "../../components/vh/RoleAccordion.astro";
+import { OPENING_SEASON } from "../../data/opening";
+
+/* Empty until TURNSTILE_SITE_KEY is set, and the widget then simply does not
+   render — the form keeps working exactly as it does today, and the endpoint
+   skips the check to match. Setting the key (and the secret) is what turns
+   bot protection on, in one place, with no code change. */
+const turnstileSite = turnstileSiteKey();
 ---
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>CureVà — Career Application</title>
-<RecruitHead />
-<style is:inline>
-  body{background:var(--travertine);
-    background-image:radial-gradient(1200px 600px at 50% -200px, var(--plaster), transparent);}
-  .app-page{padding:44px 20px 80px;display:flex;justify-content:center;}
-  .app-shell{width:100%;max-width:900px;background:var(--oat);border:1px solid var(--line);
-    border-radius:26px;box-shadow:var(--sh-lg);overflow:hidden;}
+<VersionH
+	title="Career Application"
+	description="Apply to join the Cure Và founding team in Sugar House — nail technicians, estheticians, lash & brow specialists and cosmetologists."
+	nav="paper"
+	current="/recruit/apply"
+>
 
-  /* header band */
-  .app-head{background:var(--walnut);color:#F4EDE0;padding:38px 46px;position:relative;overflow:hidden;}
-  .app-head::after{content:"";position:absolute;right:-40px;top:-40px;width:200px;height:200px;border-radius:50%;
-    background:radial-gradient(circle at 35% 35%, rgba(200,169,123,.5), transparent 70%);pointer-events:none;}
-  .app-head .back{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:#d8ccb7;
-    font-weight:500;margin-bottom:16px;opacity:.9;transition:opacity .15s;}
-  .app-head .back:hover{opacity:1;}
-  .app-head h1{font-size:38px;font-weight:400;color:#F6F1E8;letter-spacing:-.01em;}
-  .app-head p{margin-top:8px;color:#d8ccb7;font-size:16px;}
+<!-- ══ the application ═══════════════════════════════════════════════ -->
+<section class="sec sec--first on-light" aria-labelledby="formH">
+  <div class="wrap ap-wrap">
 
-  .app-body{padding:44px 46px 46px;}
-
-  /* section */
-  .sec{margin-top:44px;}
-  .sec:first-child{margin-top:0;}
-  .sec-h{display:flex;align-items:center;gap:11px;margin-bottom:22px;}
-  .sec-h .si{width:34px;height:34px;border-radius:10px;background:var(--plaster);border:1px solid var(--line);
-    display:flex;align-items:center;justify-content:center;flex:none;}
-  .sec-h .si svg{width:19px;height:19px;}
-  .sec-h h2{font-family:var(--sans);font-size:17px;font-weight:600;letter-spacing:.01em;color:var(--sage-deep);}
-
-  /* fields */
-  .row2{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
-  .fld{display:flex;flex-direction:column;gap:8px;}
-  .fld > label,.q-label{font-size:14px;font-weight:500;color:var(--ink);}
-  .q-label .req,.fld label .req{color:var(--clay);margin-left:1px;}
-  .q-label .hint,.fld label .hint{color:var(--muted);font-weight:400;margin-left:6px;font-size:13px;}
-  .help{font-size:12.5px;color:var(--muted);font-style:italic;margin-top:2px;line-height:1.45;}
-
-  .inp{width:100%;border:1.5px solid transparent;background:var(--plaster);border-radius:12px;
-    padding:14px 16px;font-size:15px;color:var(--ink);font-family:var(--sans);
-    transition:border-color .15s, box-shadow .15s, background .15s;}
-  .inp::placeholder{color:#a99e88;}
-  .inp:focus{outline:none;border-color:var(--walnut);background:var(--oat);box-shadow:0 0 0 4px rgba(91,70,50,.09);}
-  .inp.err{border-color:var(--clay);box-shadow:0 0 0 4px rgba(176,122,91,.13);background:#fbf4ee;}
-  textarea.inp{resize:vertical;min-height:96px;}
-  .date-wrap{position:relative;}
-  .date-wrap .cal{position:absolute;right:15px;top:50%;transform:translateY(-50%);width:18px;height:18px;pointer-events:none;color:var(--muted);}
-
-  /* selectable option pills (multi + single) — real inputs, visually hidden */
-  .opts{display:flex;flex-wrap:wrap;gap:12px;}
-  .opt{display:inline-flex;align-items:center;gap:11px;padding:14px 20px;border-radius:var(--r-pill);
-    background:var(--plaster);border:1.5px solid var(--line);cursor:pointer;user-select:none;
-    font-size:14.5px;font-weight:500;color:var(--ink);transition:all .16s ease;}
-  .opt:hover{border-color:var(--line-2);}
-  .opt input,.iopt input{position:absolute;opacity:0;width:0;height:0;margin:0;pointer-events:none;}
-  .opt .mk{width:19px;height:19px;border-radius:6px;border:1.6px solid var(--line-2);flex:none;position:relative;transition:all .16s;}
-  .opt .mk::after{content:"";position:absolute;inset:0;opacity:0;transition:opacity .15s;}
-  .opt:has(input:checked){background:#E7EBD6;border-color:var(--sage);color:var(--sage-deep);}
-  .opt:has(input:checked) .mk{border-color:var(--sage-deep);background:var(--sage-deep);}
-  .opt:has(input:checked) .mk::after{opacity:1;background:no-repeat center/12px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F6F1E8' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");}
-  .opt:focus-within{border-color:var(--walnut);box-shadow:0 0 0 4px rgba(91,70,50,.09);}
-  .opts.err .opt{border-color:var(--clay);}
-
-  /* inline / stacked radios */
-  .inline-opts{display:flex;gap:22px;align-items:center;flex-wrap:wrap;}
-  .inline-opts.stack{flex-direction:column;align-items:flex-start;gap:13px;}
-  .iopt{display:inline-flex;align-items:center;gap:9px;cursor:pointer;font-size:15px;color:var(--ink);position:relative;}
-  .iopt .mk{width:20px;height:20px;border-radius:50%;border:1.6px solid var(--line-2);position:relative;transition:all .15s;flex:none;}
-  .iopt:has(input:checked) .mk{border-color:var(--walnut);}
-  .iopt:has(input:checked) .mk::after{content:"";position:absolute;inset:4px;border-radius:50%;background:var(--walnut);}
-  .iopt:focus-within .mk{box-shadow:0 0 0 4px rgba(91,70,50,.09);}
-  .inline-opts.err .mk{border-color:var(--clay);}
-
-  /* dropzone */
-  .drop{border:2px dashed var(--line-2);border-radius:18px;padding:46px 24px;text-align:center;
-    background:var(--plaster);cursor:pointer;transition:all .18s;}
-  .drop:hover{border-color:var(--sage);background:#EDEFE0;}
-  .drop.drag{border-color:var(--sage-deep);background:#E7EBD6;}
-  .drop.err{border-color:var(--clay);background:#fbf4ee;}
-  .drop.filled{border-style:solid;border-color:var(--sage);background:#E7EBD6;}
-  .drop .dz-ico{width:44px;height:44px;margin:0 auto 12px;color:var(--sage-deep);}
-  .drop .dz-t{font-weight:600;color:var(--sage-deep);font-size:15.5px;}
-  .drop .dz-t .hint{color:var(--muted);font-weight:400;font-size:13px;margin-left:6px;}
-  .drop .dz-s{font-size:14px;color:var(--muted);margin-top:4px;}
-  .drop .dz-file{font-family:var(--mono);font-size:13.5px;color:var(--ink);margin-top:6px;}
-
-  /* "OR" divider between resume + link */
-  .or-row{display:flex;align-items:center;gap:16px;margin:22px 0;}
-  .or-row::before,.or-row::after{content:"";flex:1;height:1px;background:var(--line);}
-  .or-row span{font-size:13px;font-weight:700;letter-spacing:.12em;color:var(--muted);}
-
-  /* consent checkbox */
-  .consent{display:flex;align-items:flex-start;gap:12px;cursor:pointer;user-select:none;
-    font-size:14.5px;color:var(--ink);line-height:1.5;}
-  .consent input{position:absolute;opacity:0;width:0;height:0;margin:0;pointer-events:none;}
-  .consent .mk{width:20px;height:20px;border-radius:6px;border:1.6px solid var(--line-2);flex:none;margin-top:1px;position:relative;transition:all .16s;}
-  .consent .mk::after{content:"";position:absolute;inset:0;opacity:0;transition:opacity .15s;}
-  .consent:has(input:checked) .mk{border-color:var(--sage-deep);background:var(--sage-deep);}
-  .consent:has(input:checked) .mk::after{opacity:1;background:no-repeat center/12px url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F6F1E8' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");}
-  .consent:focus-within .mk{box-shadow:0 0 0 4px rgba(91,70,50,.09);}
-
-  .app-divider{height:1px;background:var(--line);border:none;margin:44px 0 0;}
-
-  .submit-row{margin-top:40px;text-align:center;}
-  .app-foot-note{display:flex;align-items:center;justify-content:center;gap:8px;
-    margin-top:20px;font-size:13.5px;color:var(--muted);}
-  .app-foot-note svg{width:15px;height:15px;}
-  .form-alert{margin-top:16px;font-size:14.5px;font-weight:600;min-height:1.2em;text-align:center;}
-  .form-alert.bad{color:var(--clay);}
-  .submit-row .btn[disabled]{opacity:.6;cursor:not-allowed;}
-
-  /* success overlay */
-  .done-card{display:none;text-align:center;padding:70px 40px;}
-  .done-card.show{display:block;}
-  .done-card .seal{width:76px;height:76px;border-radius:50%;background:#E7EBD6;border:1px solid var(--sage);
-    display:flex;align-items:center;justify-content:center;margin:0 auto 24px;}
-  .done-card .seal svg{width:38px;height:38px;}
-  .done-card h2{font-family:var(--serif);font-size:38px;font-weight:400;}
-  .done-card p{margin-top:14px;color:#5f5646;font-size:17px;max-width:44ch;margin-left:auto;margin-right:auto;}
-
-  @media (max-width:720px){
-    .app-body{padding:30px 22px;}
-    .app-head{padding:30px 24px;}
-    .row2{grid-template-columns:1fr;}
-  }
-</style>
-</head>
-<body>
-
-<!-- ===================== NAV ===================== -->
-<header class="nav">
-  <div class="wrap nav-inner">
-    <a class="brand" href="/"><span class="mark"></span>CureVà</a>
-    <nav class="nav-links">
-      <a href="/recruit#space">The space</a>
-      <a href="/recruit#values">Our craft</a>
-      <a href="#roles">Open roles</a>
-      <a href="/recruit#life">Life here</a>
-    </nav>
-    <div class="nav-right">
-      <a class="nav-signin" href="/recruit">Back to careers</a>
-      <a class="btn btn-primary btn-sm" href="#form">Apply now</a>
-    </div>
-  </div>
-</header>
-
-<!-- ===================== OPEN ROLES (for quick-appliers) ===================== -->
-<section class="section tight" id="roles" style="padding-top:56px;padding-bottom:0;">
-  <div class="wrap" style="max-width:900px;">
-    <div class="center" style="margin-bottom:44px;">
-      <span class="eyebrow">Open Roles</span>
-      <h2 style="margin-top:18px;">Who we're hiring this December</h2>
-      <p class="lede center" style="margin:16px auto 0;">Six founding-team openings in Sugar House — the same application below covers every role.</p>
-    </div>
-
-    <div class="js-roles">
-      <div class="role">
-        <button class="role-head" type="button">
-          <span class="role-title">Nail Technician</span>
-          <span class="role-meta">2 openings · Full-time / Part-time</span>
-          <span class="role-toggle"></span>
-        </button>
-        <div class="role-body"><div class="role-body-inner">
-          <div>
-            <p>We're looking for someone who takes pride in their work, enjoys creating meaningful connections with clients, and wants to grow with a team that's redefining the salon experience.</p>
-          </div>
-          <ul>
-            <li>Licensed (or eligible for Utah licensure)</li>
-            <li>Kind, dependable, and detail-oriented</li>
-            <li>Excited to learn and grow with us</li>
-            <li><a href="#form" style="color:var(--walnut);font-weight:600;">Apply below ↓</a></li>
-          </ul>
-        </div></div>
-      </div>
-
-      <div class="role">
-        <button class="role-head" type="button">
-          <span class="role-title">Esthetician</span>
-          <span class="role-meta">2 openings · Full-time / Part-time</span>
-          <span class="role-toggle"></span>
-        </button>
-        <div class="role-body"><div class="role-body-inner">
-          <div>
-            <p>We're looking for someone who genuinely enjoys helping others feel confident, values a calm and welcoming environment, and wants to be part of building something special from the beginning.</p>
-          </div>
-          <ul>
-            <li>Licensed (or eligible for Utah licensure)</li>
-            <li>Warm, caring, and professional</li>
-            <li>Passionate about continuous learning</li>
-            <li><a href="#form" style="color:var(--walnut);font-weight:600;">Apply below ↓</a></li>
-          </ul>
-        </div></div>
-      </div>
-
-      <div class="role">
-        <button class="role-head" type="button">
-          <span class="role-title">Lash &amp; Brow Specialist</span>
-          <span class="role-meta">1 opening · Full-time / Part-time</span>
-          <span class="role-toggle"></span>
-        </button>
-        <div class="role-body"><div class="role-body-inner">
-          <div>
-            <p>We're looking for someone who appreciates natural beauty, pays attention to the little details, and enjoys building lasting relationships with every client.</p>
-          </div>
-          <ul>
-            <li>Licensed (or eligible for Utah licensure)</li>
-            <li>Patient, reliable, and detail-oriented</li>
-            <li>Committed to delivering a thoughtful experience</li>
-            <li><a href="#form" style="color:var(--walnut);font-weight:600;">Apply below ↓</a></li>
-          </ul>
-        </div></div>
-      </div>
-
-      <div class="role">
-        <button class="role-head" type="button">
-          <span class="role-title">Cosmetologist</span>
-          <span class="role-meta">1 opening · Full-time / Part-time</span>
-          <span class="role-toggle"></span>
-        </button>
-        <div class="role-body"><div class="role-body-inner">
-          <div>
-            <p>We're looking for someone who enjoys working with people, embraces learning new techniques, and wants to help shape the culture of a growing wellness-focused studio.</p>
-          </div>
-          <ul>
-            <li>Licensed (or eligible for Utah licensure)</li>
-            <li>Positive, adaptable, and team-oriented</li>
-            <li>Interested in growing with CURE VÀ</li>
-            <li><a href="#form" style="color:var(--walnut);font-weight:600;">Apply below ↓</a></li>
-          </ul>
-        </div></div>
-      </div>
-    </div>
-
-    <p class="center muted" style="margin-top:34px;font-size:15px;">Not quite your title but this feels like your kind of place? Apply anyway — we'd love to meet you.</p>
-  </div>
-</section>
-
-<div class="app-page">
-  <div class="app-shell" id="form">
+<div class="app-shell" id="form">
 
     <!-- ===== HEADER BAND ===== -->
     <div class="app-head">
-      <a class="back" href="/recruit">← Back to open roles</a>
-      <h1>Career Application</h1>
+      <a class="back" href="#roles">↓ See the open roles</a>
+      <h1 class="h-lg" id="formH">Career <em>Application</em></h1>
       <p>Nail · Esthetics · Lash &amp; Brow · Cosmetology — tell us a little about yourself.</p>
     </div>
 
@@ -271,8 +65,8 @@ export const prerender = false;
     <form class="app-body js-apply-full" action="/api/recruit" method="POST" enctype="multipart/form-data" novalidate>
 
       <!-- Contact Information -->
-      <div class="sec">
-        <div class="sec-h">
+      <div class="ap-grp">
+        <div class="ap-grp-h">
           <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span>
           <h2>Contact Information</h2>
         </div>
@@ -281,14 +75,24 @@ export const prerender = false;
           <div class="fld"><label for="last_name">Last Name <span class="req">*</span></label><input class="inp" id="last_name" name="last_name" autocomplete="family-name" placeholder="Doe" /></div>
         </div>
         <div class="row2" style="margin-top:20px;">
-          <div class="fld"><label for="email">Email Address <span class="hint">(optional)</span></label><input class="inp" id="email" name="email" type="email" autocomplete="email" placeholder="jane@example.com" /></div>
-          <div class="fld"><label for="phone">Phone Number <span class="req">*</span></label><input class="inp" id="phone" name="phone" type="tel" autocomplete="tel" placeholder="(801) 000-0000" /></div>
+          <div class="fld">
+            <label for="email">Email Address <span class="hint">(optional)</span></label>
+            <input class="inp" id="email" name="email" type="email" autocomplete="email"
+              placeholder="jane@example.com" aria-describedby="emailErr" />
+            <p class="err-note" id="emailErr" role="alert" hidden></p>
+          </div>
+          <div class="fld">
+            <label for="phone">Phone Number <span class="req">*</span></label>
+            <input class="inp" id="phone" name="phone" type="tel" autocomplete="tel"
+              inputmode="tel" maxlength="16" placeholder="(801) 000-0000" aria-describedby="phoneErr" />
+            <p class="err-note" id="phoneErr" role="alert" hidden></p>
+          </div>
         </div>
       </div>
 
       <!-- Professional Information -->
-      <div class="sec">
-        <div class="sec-h">
+      <div class="ap-grp">
+        <div class="ap-grp-h">
           <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.5 8 8 11 4.5-3 8-6 8-11V5l-8-3Z"/><polyline points="9 12 11 14 15 10"/></svg></span>
           <h2>Professional Information</h2>
         </div>
@@ -300,7 +104,6 @@ export const prerender = false;
             <label class="opt"><input type="checkbox" name="positions" value="esthetician" /><span class="mk"></span>Esthetician</label>
             <label class="opt"><input type="checkbox" name="positions" value="cosmetologist" /><span class="mk"></span>Cosmetologist</label>
             <label class="opt"><input type="checkbox" name="positions" value="lash_artist" /><span class="mk"></span>Lash Artist</label>
-            <label class="opt"><input type="checkbox" name="positions" value="open_to_multiple" /><span class="mk"></span>I'm open to multiple roles</label>
           </div>
         </div>
 
@@ -316,8 +119,51 @@ export const prerender = false;
         <div class="fld" style="margin-top:22px;max-width:calc(50% - 10px);">
           <label for="graduation_date">Expected Graduation Date <span class="hint">(if applicable)</span></label>
           <div class="date-wrap">
-            <input class="inp js-month" id="graduation_date" name="graduation_date" placeholder="Month / Year" />
-            <svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+            <input class="inp js-month" id="graduation_date" name="graduation_date"
+              type="text" placeholder="Month / Year" autocomplete="off"
+              aria-describedby="gradHelp" />
+            <button class="date-btn js-monthbtn" type="button" hidden
+              popovertarget="gradPop" aria-label="Choose month and year">
+              <svg class="cal" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+            </button>
+          </div>
+          <p class="hint-note" id="gradHelp">Type <span class="num">MM/YYYY</span>, or pick a month.</p>
+
+          <!-- ══ month picker ═══════════════════════════════════════════
+               shadcn's Popover + Calendar, at this brand's measurements —
+               the same trade the whole system makes (DESIGN-SYSTEM.md §1):
+               take the structure and the token contract, keep Cure Và's
+               shape language. Cells are pills at 999px like every other
+               control here, not shadcn's stock rounded squares.
+
+               `popover` puts it in the TOP LAYER, which is the only way out
+               of `.app-shell{overflow:hidden}` and `.sec{overflow:clip}`.
+               The top layer also paints above the custom cursor, so it
+               carries `data-nocursor` — the exact case DESIGN-SYSTEM.md §6
+               documents for <dialog>. Without it the visitor has no
+               pointer over the panel. ═══════════════════════════════════ -->
+          <div class="mpick" id="gradPop" popover data-nocursor
+            role="dialog" aria-label="Choose a graduation month">
+            <div class="mpick-head">
+              <button class="mpick-nav" type="button" data-step="-1" aria-label="Previous year">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+              </button>
+              <span class="mpick-y num js-mpick-y" aria-live="polite"></span>
+              <button class="mpick-nav" type="button" data-step="1" aria-label="Next year">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+              </button>
+            </div>
+            <div class="mpick-grid js-mpick-grid">
+              {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m, i) => (
+                <button class="mpick-m" type="button" data-m={i + 1}>{m}</button>
+              ))}
+            </div>
+            <div class="mpick-foot">
+              <button class="mpick-act" type="button" data-act="clear">Clear</button>
+              <button class="mpick-act mpick-act--go" type="button" data-act="now">This month</button>
+            </div>
           </div>
         </div>
 
@@ -334,25 +180,25 @@ export const prerender = false;
           <div class="inline-opts js-group" data-name="employment_type" style="margin-top:4px;">
             <label class="iopt"><input type="radio" name="employment_type" value="full_time" /><span class="mk"></span>Full-time</label>
             <label class="iopt"><input type="radio" name="employment_type" value="part_time" /><span class="mk"></span>Part-time</label>
-            <label class="iopt"><input type="radio" name="employment_type" value="either" /><span class="mk"></span>Either Full-time or Part-time</label>
           </div>
         </div>
       </div>
 
       <!-- Portfolio -->
-      <div class="sec">
-        <div class="sec-h">
+      <div class="ap-grp">
+        <div class="ap-grp-h">
           <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-5Z"/><path d="M12 18v-6M9.5 14.5 12 12l2.5 2.5"/></svg></span>
           <h2>Portfolio</h2>
         </div>
 
         <div class="fld">
-          <div class="drop js-drop" tabindex="0">
+          <div class="drop js-drop" tabindex="0" role="button"
+            aria-label="Upload your résumé — PDF or Word, optional">
             <div class="dz-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17 17a4 4 0 0 0 .5-8A6 6 0 0 0 6 9a4.5 4.5 0 0 0-.5 9"/><path d="M12 12v7M9 15l3-3 3 3"/></svg></div>
             <div class="dz-t">Upload your Resume <span class="hint">(optional)</span></div>
             <div class="dz-s">Drag and drop or click to browse (PDF, Word)</div>
             <div class="dz-file js-dropfile"></div>
-            <input type="file" class="js-resume" name="resume" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
+            <input type="file" class="js-resume" name="resume" aria-label="Résumé file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden />
           </div>
         </div>
 
@@ -365,8 +211,8 @@ export const prerender = false;
       </div>
 
       <!-- Short Question -->
-      <div class="sec">
-        <div class="sec-h">
+      <div class="ap-grp">
+        <div class="ap-grp-h">
           <span class="si"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a8 8 0 0 1-8 8H4l1.6-3.2A8 8 0 1 1 21 12Z"/><path d="M9.5 9.5A2.5 2.5 0 0 1 14 11c0 1.5-2 1.8-2 3"/><circle cx="12" cy="17" r=".5"/></svg></span>
           <h2>Short Question</h2>
         </div>
@@ -383,12 +229,23 @@ export const prerender = false;
         <label class="consent">
           <input type="checkbox" name="contact_consent" value="yes" />
           <span class="mk"></span>
-          <span>I agree to be contacted about future career opportunities at CURE VÀ.</span>
+          <span>I agree to be contacted about future career opportunities at CURE VÀ. <span class="hint">(optional)</span></span>
         </label>
       </div>
 
+      {turnstileSite && (
+        <div class="turnstile-row">
+          <div
+            class="cf-turnstile"
+            data-sitekey={turnstileSite}
+            data-action="turnstile-spin-v1"
+            data-appearance="interaction-only"
+          />
+        </div>
+      )}
+
       <div class="submit-row">
-        <button class="btn btn-primary btn-lg js-submit" type="submit" style="min-width:280px;">Submit Application</button>
+        <button class="btn btn--lg js-submit" type="submit" style="min-width:280px;">Submit Application</button>
         <p class="form-alert js-alert" role="status"></p>
         <div class="app-foot-note">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
@@ -397,42 +254,290 @@ export const prerender = false;
       </div>
     </form>
 
+    {turnstileSite && (
+      <script
+        is:inline
+        src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+        async
+        defer
+      />
+    )}
+
     <!-- ===== SUCCESS ===== -->
     <div class="done-card js-done">
       <div class="seal"><svg viewBox="0 0 24 24" fill="none" stroke="#5E6247" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-      <h2>Thank you, <span class="js-done-name serif-i">friend</span>.</h2>
+      <h2>Thank you, <em class="js-done-name">friend</em>.</h2>
       <p>Your application is in. We read every one ourselves and we'll be in touch within a week. In the meantime — breathe easy.</p>
       <div style="margin-top:30px;display:flex;gap:14px;justify-content:center;flex-wrap:wrap;">
-        <a class="btn btn-primary" href="/recruit">Back to careers</a>
-        <a class="btn btn-outline" href="/">Visit the lounge</a>
+        <a class="btn" href="/recruit">Back to careers</a>
+        <a class="btn btn--outline" href="/">Visit the lounge</a>
       </div>
     </div>
 
   </div>
-</div>
+  </div>
+</section>
 
-<script is:inline>
-  /* Open-roles accordion (single-open) — same behaviour as /recruit */
-  document.querySelectorAll('.js-roles').forEach(function (wrap) {
-    var roles = wrap.querySelectorAll('.role');
-    roles.forEach(function (role) {
-      var head = role.querySelector('.role-head');
-      var body = role.querySelector('.role-body');
-      head.addEventListener('click', function () {
-        var open = role.classList.contains('open');
-        roles.forEach(function (r) {
-          r.classList.remove('open');
-          var b = r.querySelector('.role-body');
-          if (b) b.style.maxHeight = null;
-        });
-        if (!open) {
-          role.classList.add('open');
-          body.style.maxHeight = body.scrollHeight + 'px';
-        }
-      });
-    });
-  });
-</script>
+<!-- ══ open roles, for quick appliers ════════════════════════════════ -->
+<section class="sec sec--tight on-light" id="roles" aria-labelledby="rolesH">
+  <div class="wrap ap-wrap">
+    <div class="head">
+      <span class="eyebrow" data-r="fade">Open roles</span>
+      <h2 class="h-lg" id="rolesH" data-r style="--d:60ms">Who we&rsquo;re hiring
+        <em>for {OPENING_SEASON}</em></h2>
+      <p class="lede" data-r="fade" style="--d:120ms">Six founding-team openings in Sugar House —
+        the same application below covers every role.</p>
+    </div>
+    <RoleAccordion applyHref="#form" />
+  </div>
+</section>
+
+</VersionH>
+
+<style is:global>
+/* ═══ the Hiring Form ═══════════════════════════════════════════════════
+   Every rule composed from tokens — no hex, no rgb(), no brand alias — so
+   the form re-themes with the rest of the site and the invariant in
+   design/version-h/DESIGN-SYSTEM.md §2.3 holds here too.
+
+   The class names are the previous page's on purpose: they are the hooks
+   the validation script and the endpoint contract are written against.
+   ═══════════════════════════════════════════════════════════════════════ */
+.ap-wrap{max-width:64rem}
+/* the form section sits directly under the roles section, and both are paper.
+   Recess this one a step so the two still read as two. */
+#form{position:relative}
+.sec.on-light:has(>.ap-wrap>#form){background:hsl(var(--muted))}
+
+/* the shell — a Card, with the elevation this usage wants */
+/* On paper `--card` is WHITE and `--muted` is paper-2 — raised and recessed
+   (DESIGN-SYSTEM.md §5). The card therefore lifts off the section instead of
+   sinking into it, and it takes the paper shadow rather than the night one:
+   --sh-d is a 50px-blurred black, which on a light ground reads as dirt. */
+.app-shell{border-radius:var(--radius-lg);background:hsl(var(--card));
+  color:hsl(var(--card-foreground));overflow:hidden;
+  box-shadow:inset 0 0 0 1px var(--border-hairline-2),var(--sh)}
+.app-head{padding:clamp(1.8rem,4vw,2.6rem) clamp(1.4rem,3.4vw,2.9rem);
+  border-bottom:1px solid var(--border-hairline)}
+.app-head .back{display:inline-flex;align-items:center;gap:.5rem;font-size:.78rem;
+  font-weight:700;letter-spacing:.02em;text-decoration:none;
+  color:hsl(var(--muted-foreground));transition:color .35s var(--ease)}
+.app-head .back:hover{color:hsl(var(--foreground))}
+.app-head h1{margin-top:1rem}
+.app-head h1 em{color:hsl(var(--accent))}
+.app-head>p{margin-top:.75rem;font-size:.95rem;color:hsl(var(--muted-foreground))}
+.app-body{padding:clamp(1.4rem,3.4vw,2.9rem)}
+
+/* a field group */
+.ap-grp+.ap-grp{margin-top:clamp(2rem,4vw,2.9rem);padding-top:clamp(2rem,4vw,2.9rem);
+  border-top:1px solid var(--border-hairline-2)}
+.ap-grp-h{display:flex;align-items:center;gap:.75rem;margin-bottom:1.4rem}
+.ap-grp-h h2{font-size:.68rem;font-weight:800;font-family:Manrope,sans-serif;
+  letter-spacing:.22em;text-transform:uppercase;color:hsl(var(--accent));line-height:1}
+.si{display:grid;place-items:center;width:30px;height:30px;flex:none;border-radius:50%;
+  box-shadow:inset 0 0 0 1px var(--border-hairline)}
+.si svg{width:15px;height:15px;stroke:hsl(var(--accent))}
+
+.fld{display:grid;gap:.5rem}
+.row2{display:grid;gap:1.25rem}
+@media (min-width:640px){.row2{grid-template-columns:1fr 1fr}}
+
+/* Label · Input — the system's field: an underline under a small
+   uppercase label. Not a bordered box. */
+.fld>label,.q-label{display:block;font-size:.66rem;font-weight:800;letter-spacing:.16em;
+  text-transform:uppercase;color:hsl(var(--muted-foreground))}
+.req{color:hsl(var(--destructive));font-weight:800}
+.hint{margin-left:.4em;font-weight:600;letter-spacing:.06em;text-transform:none;
+  color:hsl(var(--muted-foreground) / .75)}
+.inp{width:100%;font:inherit;font-size:1rem;color:hsl(var(--foreground));
+  background:transparent;border:0;border-bottom:1px solid var(--border-hairline);
+  padding:.75em 0;border-radius:0;transition:border-color .4s var(--ease)}
+.inp::placeholder{color:hsl(var(--muted-foreground) / .55)}
+.inp:focus{outline:0;border-color:hsl(var(--ring))}
+textarea.inp{resize:vertical;min-height:5.5em}
+/* the script writes .err; the system's rule is that the state also reaches
+   the control, so aria-invalid rides along on the same declaration */
+.inp.err,.inp[aria-invalid=true]{border-color:hsl(var(--destructive))}
+/* ── the graduation month ─────────────────────────────────────────────
+   The native <input type="month"> is gone. It draws its own editor AND its
+   own drop-down, and neither is stylable: `accent-color` recolours the
+   segment highlight but never reaches the panel, so the picker stayed
+   system-blue on a light-grey sheet no matter what we set. The field is a
+   plain text input now — which also means it works with JavaScript off and
+   with the keyboard alone — and the calendar is ours. */
+.date-wrap{position:relative;display:flex;align-items:center}
+.date-wrap .inp{padding-right:2.4rem}
+.date-btn{position:absolute;right:0;top:50%;translate:0 -50%;
+  display:grid;place-items:center;width:32px;height:32px;flex:none;
+  border:0;border-radius:999px;background:transparent;cursor:pointer;
+  color:hsl(var(--muted-foreground));
+  transition:color .25s var(--ease),background .25s var(--ease)}
+.date-btn:hover{color:hsl(var(--accent));background:hsl(var(--muted))}
+.date-btn .cal{width:17px;height:17px}
+.hint-note{margin-top:.45rem;font-size:.72rem;color:hsl(var(--muted-foreground))}
+/* The per-field complaint. Same size and rhythm as `.hint-note` so a field
+   that starts explaining itself does not jump — only the ink changes. */
+.err-note{margin-top:.45rem;font-size:.72rem;color:hsl(var(--destructive))}
+
+/* ── the picker itself — shadcn Popover + Calendar, Cure Và's clothes ──
+   Motion is deliberately one short opacity+scale. A panel a visitor has to
+   READ should not arrive on a spring. */
+.mpick{position:fixed;margin:0;inset:auto;padding:.8rem;border:0;
+  width:min(19rem,calc(100vw - 2rem));
+  border-radius:var(--radius-md);
+  background:hsl(var(--popover));color:hsl(var(--popover-foreground));
+  box-shadow:inset 0 0 0 1px var(--border-hairline),var(--sh-d);
+  opacity:0;scale:.98;
+  transition:opacity .16s var(--ease),scale .16s var(--ease),
+    overlay .16s allow-discrete,display .16s allow-discrete}
+.mpick:popover-open{opacity:1;scale:1}
+@starting-style{.mpick:popover-open{opacity:0;scale:.98}}
+.mpick::backdrop{background:transparent}
+.on-light .mpick{box-shadow:inset 0 0 0 1px var(--border-hairline),var(--sh)}
+@media (prefers-reduced-motion:reduce){.mpick{transition:none;scale:1}}
+
+.mpick-head{display:flex;align-items:center;justify-content:space-between;
+  gap:.5rem;margin-bottom:.7rem}
+.mpick-y{font-size:.92rem;font-weight:800;letter-spacing:.04em}
+.mpick-nav{display:grid;place-items:center;width:28px;height:28px;flex:none;
+  border:0;border-radius:999px;background:transparent;cursor:pointer;
+  color:hsl(var(--muted-foreground));
+  transition:color .25s var(--ease),background .25s var(--ease)}
+.mpick-nav:hover{color:hsl(var(--foreground));background:hsl(var(--muted))}
+.mpick-nav svg{width:15px;height:15px}
+
+.mpick-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.3rem}
+.mpick-m{padding:.68em .2em;border:0;border-radius:999px;background:transparent;
+  cursor:pointer;font:inherit;font-size:.8rem;font-weight:600;
+  color:hsl(var(--muted-foreground));
+  transition:color .2s var(--ease),background .2s var(--ease),
+    box-shadow .2s var(--ease)}
+.mpick-m:hover{background:hsl(var(--muted));color:hsl(var(--foreground))}
+/* the month we are in — a ring, not a fill, so it never competes with the
+   selection */
+.mpick-m[data-now]{box-shadow:inset 0 0 0 1px hsl(var(--accent));
+  color:hsl(var(--foreground))}
+.mpick-m[aria-pressed=true]{background:hsl(var(--primary));
+  color:hsl(var(--primary-foreground))}
+
+.mpick-foot{display:flex;align-items:center;justify-content:space-between;
+  gap:.5rem;margin-top:.8rem;padding-top:.7rem;
+  border-top:1px solid var(--border-hairline-2)}
+.mpick-act{border:0;background:transparent;cursor:pointer;font:inherit;
+  font-size:.74rem;font-weight:700;letter-spacing:.02em;padding:.4em .2em;
+  color:hsl(var(--muted-foreground));transition:color .25s var(--ease)}
+.mpick-act:hover{color:hsl(var(--foreground))}
+.mpick-act--go{color:hsl(var(--accent))}
+
+/* option pills — a checkbox or radio wearing the Badge's shape */
+.opts,.inline-opts{display:flex;flex-wrap:wrap;gap:.55rem}
+.inline-opts.stack{flex-direction:column;align-items:flex-start}
+/* THE OPTION PILLS RUN DARK on the light form. They were hairline outlines
+   with muted ink on white — correct by the tokens, but they read as
+   disabled rather than as the page's main choice. They now sit on the
+   recessed ground with full-strength ink, and a CHOSEN pill goes all the
+   way to `--primary` (night here) with cream on it, so a selection is
+   unmistakable from across the form and matches the submit button.
+   Still no colour named: every value is a token, so this inverts by
+   itself on a night section. */
+.opt,.iopt{position:relative;display:inline-flex;align-items:center;gap:.6rem;cursor:pointer;
+  padding:.62em 1.05em;border-radius:999px;font-size:.82rem;font-weight:600;
+  color:hsl(var(--foreground));background:hsl(var(--muted));
+  box-shadow:inset 0 0 0 1px var(--border-hairline);
+  transition:color .3s var(--ease),box-shadow .3s var(--ease),background .3s var(--ease)}
+.opt input,.iopt input{position:absolute;opacity:0;width:0;height:0}
+.opt .mk,.iopt .mk{width:15px;height:15px;flex:none;border-radius:50%;position:relative;
+  box-shadow:inset 0 0 0 1.4px hsl(var(--foreground) / .35);
+  transition:box-shadow .3s var(--ease)}
+.opt .mk{border-radius:5px}
+.opt .mk::after,.iopt .mk::after{content:"";position:absolute;inset:50%;border-radius:inherit;
+  background:hsl(var(--accent));transition:inset .28s var(--ease-spring)}
+.opt input:checked~.mk::after,.iopt input:checked~.mk::after{inset:3.5px}
+.opt:hover,.iopt:hover{box-shadow:inset 0 0 0 1.4px hsl(var(--foreground) / .45)}
+.opt:has(input:checked),.iopt:has(input:checked){
+  background:hsl(var(--primary));color:hsl(var(--primary-foreground));
+  box-shadow:inset 0 0 0 1.4px hsl(var(--primary))}
+.opt:has(input:checked) .mk,.iopt:has(input:checked) .mk{
+  box-shadow:inset 0 0 0 1.4px hsl(var(--primary-foreground) / .5)}
+.opt:has(input:checked) .mk::after,.iopt:has(input:checked) .mk::after{
+  background:hsl(var(--primary-foreground))}
+.opt:focus-within,.iopt:focus-within{outline:2px solid hsl(var(--ring));outline-offset:3px}
+.js-group.err .opt,.js-group.err .iopt{box-shadow:inset 0 0 0 1.4px hsl(var(--destructive))}
+/* A position ruled out by "open to multiple roles". Not hidden — the
+   visitor needs to see WHY it stopped being available, and that it comes
+   back the moment they change their mind. */
+.opt:has(input:disabled){opacity:.4;cursor:not-allowed;
+  background:transparent;box-shadow:inset 0 0 0 1px var(--border-hairline)}
+.opt:has(input:disabled) .mk{box-shadow:inset 0 0 0 1.4px hsl(var(--foreground) / .25)}
+
+/* résumé dropzone */
+.drop{display:grid;justify-items:center;gap:.4rem;text-align:center;cursor:pointer;
+  padding:clamp(1.6rem,3.4vw,2.4rem);border-radius:var(--radius-md);
+  background:hsl(var(--muted));box-shadow:inset 0 0 0 1px var(--border-hairline);
+  transition:box-shadow .35s var(--ease)}
+.drop:hover,.drop:focus-visible,.drop.drag{box-shadow:inset 0 0 0 1.6px hsl(var(--accent))}
+.drop.err{box-shadow:inset 0 0 0 1.6px hsl(var(--destructive))}
+.dz-ico svg{width:26px;height:26px;color:hsl(var(--accent))}
+.dz-t{font-size:.92rem;font-weight:700;color:hsl(var(--foreground))}
+.dz-s{font-size:.8rem;color:hsl(var(--muted-foreground))}
+.dz-file{font-size:.8rem;font-weight:700;color:hsl(var(--accent))}
+.drop.filled .dz-s{display:none}
+.or-row{display:flex;align-items:center;gap:1rem;margin:1.4rem 0;
+  font-size:.66rem;font-weight:800;letter-spacing:.22em;
+  color:hsl(var(--muted-foreground))}
+.or-row::before,.or-row::after{content:"";flex:1;height:1px;background:var(--border-hairline)}
+
+.app-divider{border:0;height:1px;background:var(--border-hairline);
+  margin:clamp(2rem,4vw,2.9rem) 0 0}
+.consent{position:relative;display:flex;gap:.7rem;align-items:flex-start;cursor:pointer;
+  font-size:.86rem;color:hsl(var(--muted-foreground))}
+.consent input{position:absolute;opacity:0;width:0;height:0}
+.consent .mk{width:16px;height:16px;flex:none;margin-top:.15em;border-radius:5px;
+  position:relative;box-shadow:inset 0 0 0 1.4px var(--border-hairline)}
+.consent .mk::after{content:"";position:absolute;inset:50%;border-radius:3px;
+  background:hsl(var(--accent));transition:inset .28s var(--ease-spring)}
+.consent input:checked~.mk::after{inset:3.5px}
+.consent:focus-within .mk{box-shadow:inset 0 0 0 1.6px hsl(var(--ring))}
+
+/* The widget only takes space when it actually has something to show —
+   `interaction-only` keeps it invisible for the overwhelming majority who
+   are never challenged, so the form does not grow a blank grey box. */
+.turnstile-row{margin-top:20px}
+.turnstile-row:empty{display:none}
+.submit-row{display:grid;gap:1rem;justify-items:start;margin-top:clamp(1.8rem,3.4vw,2.4rem)}
+.form-alert{font-size:.82rem;color:hsl(var(--foreground));min-height:1em}
+.form-alert.bad{color:hsl(var(--destructive))}
+.app-foot-note{display:flex;align-items:center;gap:.55rem;font-size:.76rem;
+  color:hsl(var(--muted-foreground))}
+.app-foot-note svg{width:15px;height:15px;flex:none}
+
+/* the success state — the script swaps to this and focuses it */
+.done-card{display:none;padding:clamp(2.4rem,6vw,4rem) clamp(1.4rem,3.4vw,2.9rem);
+  text-align:center}
+.done-card.show{display:block}
+.done-card .seal{display:grid;place-items:center;width:56px;height:56px;margin:0 auto 1.4rem;
+  border-radius:50%;box-shadow:inset 0 0 0 1.6px hsl(var(--accent))}
+.done-card .seal svg{width:24px;height:24px;stroke:hsl(var(--accent))}
+.done-card h2{font-size:clamp(1.6rem,3.4vw,2.4rem)}
+.done-card h2 em{color:hsl(var(--accent))}
+.done-card>p{margin-top:.9rem;font-size:.95rem;color:hsl(var(--muted-foreground));
+  max-width:46ch;margin-inline:auto}
+
+/* ── small screens ────────────────────────────────────────────────────
+   LAST IN THE BLOCK ON PURPOSE. A media query adds no specificity, so
+   these lost to the base rules further down the file when they sat next
+   to the ones they override. 10.5px of letter-spaced uppercase is under
+   the size where a field label reads comfortably on a phone; the desktop
+   scale is the system's and is left alone. */
+@media (max-width:640px){
+  .fld>label,.q-label{font-size:.74rem;letter-spacing:.12em}
+  .ap-grp-h h2{font-size:.74rem}
+  .or-row{font-size:.72rem}
+  /* the option pills are this form's main control — give them a thumb */
+  .opt,.iopt{padding:.78em 1.1em}
+}
+</style>
+
 
 <script is:inline>
   (function () {
@@ -446,19 +551,169 @@ export const prerender = false;
     var resume = document.querySelector('.js-resume');
     var dropFile = document.querySelector('.js-dropfile');
 
-    /* ---- graduation field: text → month on focus so the placeholder shows.
-       Browsers without <input type="month"> keep the text input; the endpoint
-       also accepts an "MM/YYYY" string. ---- */
-    document.querySelectorAll('.js-month').forEach(function (inp) {
-      inp.addEventListener('focus', function () {
-        var probe = document.createElement('input');
-        probe.setAttribute('type', 'month');
-        if (probe.type !== 'month') return; // unsupported → stay a text field
-        inp.type = 'month';
-        if (inp.showPicker) { try { inp.showPicker(); } catch (e) {} }
+    /* ---- radios deselect ---------------------------------------------
+       A native radio cannot be unset once set: the only way out of a group
+       is to pick a different answer. Every one of these questions is
+       genuinely optional to change your mind about, and a visitor who
+       clicked "Full-time" by accident had no way back.
+
+       Clicking the SAME answer again clears it. The previous state has to
+       be read on pointerdown, before the browser has done its own
+       toggling — and it is read from the LABEL, because that is what the
+       visitor actually clicks (the input is 0x0 and transparent). Space
+       and Enter are covered too, so the keyboard behaves the same way. */
+    form.querySelectorAll('.js-group').forEach(function (group) {
+      /* Arm on the way down, from the LABEL — that is what the visitor
+         actually hits, because the input itself is 0x0 and transparent. */
+      function arm(e) {
+        var lbl = e.target.closest('.iopt');
+        if (lbl) lbl._was = !!lbl.querySelector('input').checked;
+      }
+      group.addEventListener('pointerdown', arm, true);
+      group.addEventListener('keydown', function (e) {
+        if (e.key === ' ' || e.key === 'Enter') arm(e);
+      }, true);
+
+      /* ...and act on the INPUT's own click, never the label's.
+         Clicking a label fires TWO clicks: the label's, which bubbles
+         first, and then the one the label forwards to the control. A radio
+         is checked in the control's pre-click activation steps — so on the
+         label's click it has not happened yet, and anything we clear there
+         is put straight back by the forwarded click a moment later. On the
+         input's click the toggle is already done and clearing it sticks. */
+      group.querySelectorAll('.iopt input').forEach(function (input) {
+        var lbl = input.closest('.iopt');
+        input.addEventListener('click', function () {
+          if (lbl._was && input.checked) {
+            input.checked = false;
+            input.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+          lbl._was = false;
+        });
       });
-      inp.addEventListener('blur', function () { if (!inp.value) inp.type = 'text'; });
     });
+
+
+    /* ---- the month picker -------------------------------------------
+       The field itself is a plain text input and stays authoritative: it
+       holds the value, it is what the endpoint reads, and typing MM/YYYY
+       into it is a complete way to fill this form. The panel only ever
+       WRITES to it, then fires input+change so the form's own
+       error-clearing listeners run exactly as they do for typing.
+
+       PROGRESSIVE: the trigger ships `hidden` and is only revealed when the
+       browser has the Popover API. No JavaScript, or an older browser, and
+       the visitor gets the text field — which still works. ---------- */
+    (function () {
+      var input = document.getElementById('graduation_date');
+      var pop = document.getElementById('gradPop');
+      var btn = document.querySelector('.js-monthbtn');
+      if (!input || !pop || !btn) return;
+      if (!('popover' in HTMLElement.prototype)) return;   // stays a text field
+      btn.hidden = false;
+
+      var grid = pop.querySelector('.js-mpick-grid');
+      var yEl = pop.querySelector('.js-mpick-y');
+      var cells = Array.prototype.slice.call(pop.querySelectorAll('.mpick-m'));
+      var today = new Date();
+      var year = today.getFullYear();
+
+      /* Read whichever of the two accepted shapes is in the field. */
+      function parse() {
+        var v = (input.value || '').trim();
+        var m = v.match(/^(\d{4})-(\d{2})$/);
+        if (m) return { y: +m[1], m: +m[2] };
+        m = v.match(/^(\d{1,2})\s*\/\s*(\d{4})$/);
+        if (m) return { y: +m[2], m: +m[1] };
+        return null;
+      }
+
+      /* MM/YYYY — the shape the field shows a human. The endpoint
+         normalises it to YYYY-MM, and accepts either. */
+      function write(y, m) {
+        input.value = (m < 10 ? '0' + m : '' + m) + '/' + y;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+
+      function render() {
+        var sel = parse();
+        yEl.textContent = year;
+        cells.forEach(function (c) {
+          var m = +c.getAttribute('data-m');
+          c.setAttribute('aria-pressed', sel && sel.y === year && sel.m === m ? 'true' : 'false');
+          if (year === today.getFullYear() && m === today.getMonth() + 1) c.setAttribute('data-now', '');
+          else c.removeAttribute('data-now');
+        });
+      }
+
+      /* Anchored to the trigger, measured ONCE per open — never per frame.
+         Clamped so it cannot leave the viewport on a small screen. */
+      function place() {
+        var r = btn.getBoundingClientRect();
+        var w = pop.offsetWidth, h = pop.offsetHeight;
+        /* A popover that has not painted yet measures 0. Try again next
+           frame rather than pinning it to the top-left corner. */
+        if (!w || !h) { requestAnimationFrame(place); return; }
+        var left = Math.min(Math.max(8, r.right - w), innerWidth - w - 8);
+        var top = r.bottom + 8;
+        if (top + h > innerHeight - 8) top = Math.max(8, r.top - h - 8);
+        pop.style.left = left + 'px';
+        pop.style.top = top + 'px';
+      }
+
+      pop.addEventListener('beforetoggle', function (e) {
+        if (e.newState !== 'open') return;
+        var sel = parse();
+        year = sel ? sel.y : today.getFullYear();
+        render();
+        /* width is needed to place it, so make it measurable first */
+        requestAnimationFrame(place);
+      });
+      pop.addEventListener('toggle', function (e) {
+        if (e.newState !== 'open') return;
+        place();                       /* it has painted by now — place it again */
+        var on = pop.querySelector('[aria-pressed=true]') || pop.querySelector('[data-now]') || cells[0];
+        if (on) on.focus();
+      });
+
+      pop.addEventListener('click', function (e) {
+        var nav = e.target.closest('.mpick-nav');
+        if (nav) { year += +nav.getAttribute('data-step'); render(); return; }
+
+        var cell = e.target.closest('.mpick-m');
+        if (cell) { write(year, +cell.getAttribute('data-m')); pop.hidePopover(); btn.focus(); return; }
+
+        var act = e.target.closest('.mpick-act');
+        if (!act) return;
+        if (act.getAttribute('data-act') === 'clear') {
+          input.value = '';
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          input.dispatchEvent(new Event('change', { bubbles: true }));
+        } else {
+          write(today.getFullYear(), today.getMonth() + 1);
+        }
+        pop.hidePopover();
+        btn.focus();
+      });
+
+      /* A grid is one tab stop; the arrows move inside it. */
+      pop.addEventListener('keydown', function (e) {
+        var i = cells.indexOf(document.activeElement);
+        if (i < 0) return;
+        var step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 3, ArrowUp: -3 }[e.key];
+        if (step) {
+          var n = i + step;
+          if (n < 0) { year--; render(); n += 12; }
+          else if (n > 11) { year++; render(); n -= 12; }
+          e.preventDefault();
+          cells[n].focus();
+        } else if (e.key === 'Home') { e.preventDefault(); cells[0].focus(); }
+        else if (e.key === 'End') { e.preventDefault(); cells[11].focus(); }
+      });
+
+      addEventListener('resize', function () { if (pop.matches(':popover-open')) place(); });
+    })();
 
     /* ---- resume dropzone (optional) ---- */
     function showResume(file) {
@@ -487,8 +742,9 @@ export const prerender = false;
 
     /* ---- clear error styling as the user fixes things ---- */
     form.querySelectorAll('.inp').forEach(function (i) {
-      i.addEventListener('input', function () { i.classList.remove('err'); });
-      i.addEventListener('change', function () { i.classList.remove('err'); });
+      var clear = function () { markField(i, ''); };
+      i.addEventListener('input', clear);
+      i.addEventListener('change', clear);
     });
     form.querySelectorAll('.js-group').forEach(function (g) {
       g.addEventListener('change', function () { g.classList.remove('err'); });
@@ -505,13 +761,58 @@ export const prerender = false;
     var monthTextRe = /^(0?[1-9]|1[0-2])\s*\/\s*\d{4}$/;
     var letters = function (v) { return (v.match(/\p{L}/gu) || []).length; };
 
+    /* ---- phone: one canonical shape ---------------------------------
+       The salon hires in Utah, so the field speaks US: ten national
+       digits, worn as (801) 555-0123. A leading country 1 is accepted
+       and dropped rather than rejected — people paste it constantly —
+       and everything past ten digits is simply not taken, which is why
+       the screenshot's 34123123123123 can no longer happen. The same
+       rule runs again on the server; this is the courtesy, not the
+       gate. -------------------------------------------------------- */
+    function phoneDigits(v) {
+      var d = String(v || '').replace(/\D/g, '');
+      if (d.length > 10 && d.charAt(0) === '1') d = d.slice(1);
+      return d.slice(0, 10);
+    }
+    function phoneFormat(d) {
+      if (!d) return '';
+      if (d.length <= 3) return '(' + d;
+      if (d.length <= 6) return '(' + d.slice(0, 3) + ') ' + d.slice(3);
+      return '(' + d.slice(0, 3) + ') ' + d.slice(3, 6) + '-' + d.slice(6);
+    }
+
     var rules = {
-      first_name: function (v) { return !v ? 1 : /\d/.test(v) ? 1 : letters(v) < 1 ? 1 : 0; },
-      last_name: function (v) { return !v ? 1 : /\d/.test(v) ? 1 : letters(v) < 1 ? 1 : 0; },
-      email: function (v) { return v && !emailRe.test(v) ? 1 : 0; }, // optional
-      phone: function (v) { return !v ? 1 : /[A-Za-z]/.test(v) ? 1 : v.replace(/\D/g, '').length < 10 ? 1 : 0; },
-      graduation_date: function (v) { return v && !monthRe.test(v) && !monthTextRe.test(v) ? 1 : 0; } // optional
+      first_name: function (v) { return !v ? 'First name is required.' : /\d/.test(v) || letters(v) < 1 ? 'Enter your first name — letters only.' : ''; },
+      last_name: function (v) { return !v ? 'Last name is required.' : /\d/.test(v) || letters(v) < 1 ? 'Enter your last name — letters only.' : ''; },
+      // optional — but the moment there IS something in it, it must be an address
+      email: function (v) { return v && !emailRe.test(v) ? 'Enter a valid email address, e.g. jane@example.com.' : ''; },
+      phone: function (v) {
+        if (!v) return 'Phone number is required.';
+        if (/[A-Za-z]/.test(v)) return "Phone number can't contain letters.";
+        return phoneDigits(v).length === 10 ? '' : 'Enter a 10-digit US phone number.';
+      },
+      graduation_date: function (v) { return v && !monthRe.test(v) && !monthTextRe.test(v) ? 'Use the Month / Year format, e.g. 05/2027.' : ''; } // optional
     };
+
+    /* Field-level notes. `validate()` and the live blur checks below both
+       come through here, so a message reads the same whichever raised it. */
+    function noteFor(el) {
+      var id = el.getAttribute('aria-describedby');
+      var n = id ? form.querySelector('#' + id) : null;
+      return n && n.classList.contains('err-note') ? n : null;
+    }
+    function markField(el, msg) {
+      var note = noteFor(el);
+      if (msg) {
+        el.classList.add('err');
+        el.setAttribute('aria-invalid', 'true');
+        if (note) { note.textContent = msg; note.hidden = false; }
+      } else {
+        el.classList.remove('err');
+        el.removeAttribute('aria-invalid');
+        if (note) { note.hidden = true; note.textContent = ''; }
+      }
+    }
 
     function validate() {
       var firstBad = null;
@@ -520,11 +821,9 @@ export const prerender = false;
       Object.keys(rules).forEach(function (name) {
         var el = form.querySelector('[name="' + name + '"]');
         if (!el) return;
-        if (rules[name]((el.value || '').trim())) {
-          el.classList.add('err'); problems++; if (!firstBad) firstBad = el;
-        } else {
-          el.classList.remove('err');
-        }
+        var msg = rules[name]((el.value || '').trim());
+        markField(el, msg);
+        if (msg) { problems++; if (!firstBad) firstBad = el; }
       });
 
       ['positions', 'current_status', 'background', 'employment_type'].forEach(function (name) {
@@ -533,6 +832,19 @@ export const prerender = false;
           g.classList.add('err'); problems++; if (!firstBad) firstBad = g;
         }
       });
+
+      /* The human check, when there is one. Turnstile writes its answer into a
+         hidden input inside this form; an empty one means the visitor was
+         challenged and has not finished. The endpoint checks this again — this
+         is the message, not the enforcement. */
+      var needsHuman = false;
+      var tsWidget = form.querySelector('.cf-turnstile');
+      if (tsWidget) {
+        var tsInput = form.querySelector('[name="cf-turnstile-response"]');
+        if (!tsInput || !tsInput.value) {
+          needsHuman = true; problems++; if (!firstBad) firstBad = tsWidget;
+        }
+      }
 
       // Resume is optional — only flag a file that's the wrong type or too big.
       var resumeRe = /\.(pdf|docx?)$/i;
@@ -544,14 +856,68 @@ export const prerender = false;
         }
       }
 
-      return { problems: problems, firstBad: firstBad };
+      return { problems: problems, firstBad: firstBad, needsHuman: needsHuman };
+    }
+
+    /* ---- live checks -------------------------------------------------
+       Errors arrive on BLUR, never mid-keystroke: telling someone their
+       address is wrong while they are still on the `j` of `jane@` is
+       nagging, not helping. Leaving the field is the moment they have
+       said "done", so that is the moment we answer. Typing again clears
+       it (the .inp listeners above), so the note never argues with a
+       correction in progress. ------------------------------------- */
+    ['first_name', 'last_name', 'email', 'phone', 'graduation_date'].forEach(function (name) {
+      var el = form.querySelector('[name="' + name + '"]');
+      if (!el) return;
+      el.addEventListener('blur', function () {
+        var v = (el.value || '').trim();
+        // An untouched optional field has nothing to complain about, and a
+        // required one is the submit's business, not the cursor's.
+        if (!v) { markField(el, ''); return; }
+        markField(el, rules[name](v));
+      });
+    });
+
+    /* The phone field re-draws itself as it is typed. The caret is kept on
+       the same DIGIT it was on, not the same index, or inserting into
+       "(801) 555" would fling it across the punctuation. A deletion that
+       the reformat would silently undo — backspacing the ")" out of
+       "(801)" — takes a digit with it instead, so the key always moves. */
+    var phoneEl = form.querySelector('[name="phone"]');
+    if (phoneEl) {
+      var draw = function (d, digitsBeforeCaret) {
+        var f = phoneFormat(d);
+        if (f === phoneEl.value) { phoneEl._last = f; return; }
+        phoneEl.value = f;
+        phoneEl._last = f;
+        if (digitsBeforeCaret == null) return;
+        var seen = 0, pos = f.length;
+        if (digitsBeforeCaret <= 0) { pos = 0; }
+        else for (var i = 0; i < f.length; i++) {
+          if (/\d/.test(f.charAt(i))) { seen++; if (seen === digitsBeforeCaret) { pos = i + 1; break; } }
+        }
+        try { phoneEl.setSelectionRange(pos, pos); } catch (err) {}
+      };
+      phoneEl.addEventListener('input', function (e) {
+        var caret = phoneEl.selectionStart;
+        var before = phoneEl.value.slice(0, caret == null ? phoneEl.value.length : caret).replace(/\D/g, '').length;
+        var d = phoneDigits(phoneEl.value);
+        var deleting = e.inputType && e.inputType.indexOf('delete') === 0;
+        if (deleting && d.length && phoneFormat(d) === phoneEl._last) { d = d.slice(0, -1); before = Math.max(0, before - 1); }
+        draw(d, before);
+      });
+      // Paste and autofill land as one lump; tidy on the way out too.
+      phoneEl.addEventListener('blur', function () { draw(phoneDigits(phoneEl.value), null); });
+      phoneEl._last = phoneEl.value;
     }
 
     form.addEventListener('submit', async function (e) {
       e.preventDefault();
       var res = validate();
       if (res.problems) {
-        alertEl.textContent = 'Please complete the highlighted fields (' + res.problems + ' remaining).';
+        alertEl.textContent = res.needsHuman && res.problems === 1
+          ? 'Please complete the human check above.'
+          : 'Please complete the highlighted fields (' + res.problems + ' remaining).';
         alertEl.className = 'form-alert js-alert bad';
         if (res.firstBad && res.firstBad.getBoundingClientRect) {
           window.scrollTo({ top: window.pageYOffset + res.firstBad.getBoundingClientRect().top - 140, behavior: 'smooth' });
@@ -561,6 +927,15 @@ export const prerender = false;
 
       alertEl.textContent = '';
       alertEl.className = 'form-alert js-alert';
+      /* A Turnstile token is single-use: once this submit fails for ANY reason
+         the token is spent, and retrying with it would be rejected as a replay.
+         Every failure path below funnels through here first. */
+      var resetHuman = function () {
+        try {
+          var w = form.querySelector('.cf-turnstile');
+          if (w && window.turnstile) window.turnstile.reset(w);
+        } catch (err) {}
+      };
       submitBtn.disabled = true;
       submitBtn.textContent = 'Submitting…';
 
@@ -589,7 +964,7 @@ export const prerender = false;
             var field = form.querySelector('[name="' + key + '"]');
             var g = groupEl(key);
             if (g) g.classList.add('err');
-            else if (field && field.type !== 'file') field.classList.add('err');
+            else if (field && field.type !== 'file') markField(field, data.errors[key]);
             else if (key === 'resume') drop.classList.add('err');
           });
         }
@@ -599,11 +974,30 @@ export const prerender = false;
         alertEl.textContent = 'Network error. Please check your connection and try again.';
         alertEl.className = 'form-alert js-alert bad';
       } finally {
+        // Spent either way — a fresh challenge for any retry.
+        resetHuman();
         submitBtn.disabled = false;
         submitBtn.textContent = 'Submit Application';
       }
     });
   })();
 </script>
-</body>
-</html>
+
+<style is:global>
+/* ── the submit button, calmed down ───────────────────────────────────
+   `.btn` carries four things at once: a fill that rises from the bottom
+   edge, a 2px lift, a magnetic pull toward the pointer (`data-mag`) and a
+   sliding arrow. That is right for a marketing call to action and wrong
+   for the button that submits a two-minute form — at this size the rising
+   fill reads as a loading bar.
+
+   The magnet is gone from the markup; the rest is neutralised here. What
+   is left is one colour change. Scoped to this button only, so no other
+   `.btn` on the site is affected. */
+.js-submit::before{content:none}
+.js-submit{transition:background .25s var(--ease),color .25s var(--ease)}
+.js-submit:hover{transform:none;background:hsl(var(--accent));
+  color:hsl(var(--accent-foreground))}
+.js-submit:active{transform:none}
+.js-submit:disabled{opacity:.55}
+</style>

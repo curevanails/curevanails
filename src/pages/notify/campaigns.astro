@@ -1,0 +1,132 @@
+---
+/**
+ * Campaigns — every scheduled / sent campaign (`/mail/campaigns`).
+ *
+ * Rows come from `email_campaigns`; the cron on the admin Worker picks up the
+ * `scheduled` ones. Cancelling one is the only action here — composing a new
+ * campaign happens on the Compose page.
+ */
+import {
+	loadCampaigns,
+	loadMailData,
+	loadTemplates,
+	mailDb,
+	templateNamer,
+	type CampaignRow,
+	type TemplateRow,
+} from "../../utils/email-data";
+import { PILL, audienceLabel, campaignClass, fmtSchedule } from "../../utils/email-format";
+import { emailNav } from "../../utils/email-nav";
+import MailLayout from "../../layouts/MailLayout.astro";
+import EmptyState from "../../components/mail/EmptyState.astro";
+
+// Server-rendered, never cached. Gated by the admin auth in src/middleware.ts.
+export const prerender = false;
+
+const nav = emailNav();
+
+const { data, error: loadError } = await loadMailData(mailDb(), async (db) => ({
+	campaigns: await loadCampaigns(db),
+	templates: await loadTemplates(db),
+}));
+
+const campaigns: CampaignRow[] = data?.campaigns ?? [];
+const templates: TemplateRow[] = data?.templates ?? [];
+const templateName = templateNamer(templates);
+---
+
+<MailLayout
+	title="Campaigns"
+	description="Campaigns waiting to go out, and the ones already sent."
+	active="mail-campaigns"
+	loadError={loadError}
+>
+	<a
+		slot="actions"
+		href={nav.home}
+		class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition"
+	>
+		<span class="material-symbols-outlined text-base">send</span><span class="hidden sm:inline">New campaign</span>
+	</a>
+
+	{!loadError && campaigns.length === 0 && (
+		<EmptyState
+			icon="schedule"
+			title="No campaigns yet."
+			hint="Schedule one from Compose and it will show up here."
+		/>
+	)}
+
+	{!loadError && campaigns.length > 0 && (
+		<section class="bg-white rounded-2xl border border-gray-200 shadow-theme-xs dark:bg-white/[0.03] dark:border-gray-800">
+			<header class="px-5 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+				<div class="flex items-center gap-2.5">
+					<span class="grid h-9 w-9 place-items-center rounded-lg bg-blue-light-50 text-blue-light-700 dark:bg-blue-light-500/15 dark:text-blue-light-400">
+						<span class="material-symbols-outlined">schedule</span>
+					</span>
+					<h2 class="font-semibold text-gray-800 dark:text-white/90">Scheduled campaigns
+						<span class="ml-1 text-xs font-medium text-gray-400 dark:text-gray-500">({campaigns.length})</span>
+					</h2>
+				</div>
+				<span class="text-xs text-gray-400 dark:text-gray-500">times in Mountain Time (Utah)</span>
+			</header>
+			<div class="overflow-x-auto nice-scroll">
+				<table class="w-full text-sm">
+					<thead class="text-xs font-semibold uppercase text-gray-500 bg-gray-50 border-b border-gray-200 dark:bg-white/[0.02] dark:border-gray-800 dark:text-gray-400">
+						<tr>
+							<th class="px-5 py-3 text-left whitespace-nowrap">Template</th>
+							<th class="px-5 py-3 text-left whitespace-nowrap">Audience</th>
+							<th class="px-5 py-3 text-left whitespace-nowrap">When (MT)</th>
+							<th class="px-5 py-3 text-left whitespace-nowrap">Status</th>
+							<th class="px-5 py-3 text-right whitespace-nowrap">Actions</th>
+						</tr>
+					</thead>
+					<tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+						{campaigns.map((c) => (
+							<tr class="hover:bg-gray-50/70 dark:hover:bg-white/[0.02] transition">
+								<td class="px-5 py-3.5 font-medium text-gray-800 dark:text-white/90">{templateName(c.template_id)}</td>
+								<td class="px-5 py-3.5 text-gray-500 dark:text-gray-400">{audienceLabel(c.audience)}</td>
+								<td class="px-5 py-3.5 text-gray-500 dark:text-gray-400 whitespace-nowrap">{fmtSchedule(c.scheduled_at)}</td>
+								<td class="px-5 py-3.5">
+									<span class={`${PILL} ${campaignClass(c.status)}`}>{c.status}</span>
+									{c.status === "sent" && c.total != null && (
+										<span class="ml-1.5 text-xs text-gray-400">{c.sent}/{c.total}{c.failed ? ` · ${c.failed} failed` : ""}</span>
+									)}
+									{c.status === "failed" && c.error_message && (
+										<span class="ml-1.5 text-xs text-error-500" title={c.error_message}>· error</span>
+									)}
+								</td>
+								<td class="px-5 py-3.5 text-right">
+									{c.status === "scheduled" && (
+										<button type="button" onclick={`cancelCampaign(${JSON.stringify(c.id)})`}
+											class="inline-flex items-center gap-1 rounded-lg border border-gray-200 px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:border-error-300 hover:text-error-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-error-500/50 dark:hover:text-error-400 transition">
+											<span class="material-symbols-outlined text-sm">close</span>Cancel
+										</button>
+									)}
+								</td>
+							</tr>
+						))}
+					</tbody>
+				</table>
+			</div>
+		</section>
+	)}
+
+	<script slot="scripts" is:inline>
+		async function cancelCampaign(id) {
+			if (!confirm("Cancel this scheduled campaign?")) return;
+			try {
+				const res = await fetch("/api/email/schedule", {
+					method: "POST", headers: { "content-type": "application/json" },
+					body: JSON.stringify({ action: "cancel", id }),
+				});
+				const data = await res.json();
+				if (res.ok && data.ok) { location.reload(); return; }
+				alert(data.error || "Could not cancel.");
+			} catch (e) {
+				alert("Network error. Please try again.");
+			}
+		}
+		window.cancelCampaign = cancelCampaign;
+	</script>
+</MailLayout>

@@ -1,45 +1,28 @@
 ---
 /**
  * Shared admin console sidebar — one consistent navigation across the whole
- * admin surface (Recruit, Waitlist, and the Email dashboard). Email is an
- * expandable group whose sub-items live "under" it, so there is no separate
- * email sidebar.
+ * admin surface (Dashboard, Recruit, Waitlist, and the Email dashboard). Email
+ * is an expandable group whose sub-items live "under" it, so there is no
+ * separate email sidebar.
  *
  * Links are base-aware: on the standalone `admin` Worker the console is at clean
- * roots (`/`, `/waitlist`, `/mail`); on the main Worker it is under `/admin/*`.
- * See src/middleware.ts + src/utils/email-nav.ts.
+ * roots (`/`, `/recruit`, `/waitlist`, `/mail`); on the main Worker it is under
+ * `/admin/*`. See src/utils/admin-nav.ts + src/middleware.ts.
  *
- * `active` highlights the current item and auto-opens the Email group. The email
- * dashboard's in-page sections (compose/campaigns/…) are anchor links; their
- * active state is handled by the dashboard's own scroll-spy on `.nav-link`.
+ * `active` highlights the current item and auto-opens the Email group. Every
+ * email item is a real page (`/mail`, `/mail/campaigns`, …) — see
+ * src/pages/notify/* and the rewrites in src/middleware.ts.
  */
-import { env } from "cloudflare:workers";
-
-type Active =
-	| "recruit"
-	| "waitlist"
-	| "mail"
-	| "mail-recruit-alerts"
-	| "mail-settings";
+import { adminNav, type AdminActive } from "../utils/admin-nav";
 
 interface Props {
-	active: Active;
+	active: AdminActive;
 }
 const { active } = Astro.props;
 
-function workerVar(name: string): string | undefined {
-	try {
-		return (env as unknown as Record<string, string | undefined>)[name];
-	} catch {
-		return undefined;
-	}
-}
-// Admin base: "" on the standalone admin Worker (clean URLs), "/admin" elsewhere.
-const B = workerVar("ADMIN_STANDALONE") === "true" ? "" : "/admin";
-const recruitHref = B || "/";
-const waitlistHref = `${B}/waitlist`;
-const mailBase = `${B}/mail`;
-const logoutHref = `${B}/logout`;
+// Base-aware links: "/…" on the standalone admin Worker, "/admin/…" elsewhere.
+const nav = adminNav();
+const mailBase = nav.mail;
 
 const emailOpen = active.startsWith("mail");
 
@@ -49,18 +32,18 @@ const linkInactive =
 	"text-gray-600 hover:bg-gray-50 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white";
 const linkActive = "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400";
 const subBase =
-	"nav-link flex items-center gap-3 rounded-lg py-2 pl-9 pr-3 text-[13px] font-medium transition";
+	"flex items-center gap-3 rounded-lg py-2 pl-9 pr-3 text-[13px] font-medium transition";
 const subInactive =
 	"text-gray-500 hover:bg-gray-50 hover:text-brand-600 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-white";
 const subActive = "bg-brand-50 text-brand-600 dark:bg-brand-500/10 dark:text-brand-400";
 
 const emailItems = [
-	{ label: "Compose", icon: "send", href: `${mailBase}#compose` },
-	{ label: "Campaigns", icon: "schedule", href: `${mailBase}#campaigns` },
-	{ label: "Templates", icon: "description", href: `${mailBase}#templates` },
-	{ label: "Analytics", icon: "monitoring", href: `${mailBase}#analytics` },
-	{ label: "Activity", icon: "history", href: `${mailBase}#activity` },
-	{ label: "Suppressed", icon: "block", href: `${mailBase}#suppressed` },
+	{ label: "Compose", icon: "send", href: mailBase, key: "mail" },
+	{ label: "Campaigns", icon: "schedule", href: `${mailBase}/campaigns`, key: "mail-campaigns" },
+	{ label: "Templates", icon: "description", href: `${mailBase}/templates`, key: "mail-templates" },
+	{ label: "Analytics", icon: "monitoring", href: `${mailBase}/analytics`, key: "mail-analytics" },
+	{ label: "Activity", icon: "history", href: `${mailBase}/activity`, key: "mail-activity" },
+	{ label: "Suppressed", icon: "block", href: `${mailBase}/suppressed`, key: "mail-suppressed" },
 	{ label: "Recruit alerts", icon: "badge", href: `${mailBase}/recruit-alerts`, key: "mail-recruit-alerts" },
 	{ label: "Settings", icon: "settings", href: `${mailBase}/settings`, key: "mail-settings" },
 ];
@@ -84,10 +67,13 @@ const emailItems = [
 
 	<p class="mb-2 px-6 text-[11px] font-semibold uppercase tracking-wider text-gray-400">Menu</p>
 	<nav class="flex-1 space-y-1 overflow-y-auto px-4">
-		<a href={recruitHref} class={`${linkBase} ${active === "recruit" ? linkActive : linkInactive}`} aria-current={active === "recruit" ? "page" : undefined}>
+		<a href={nav.home} class={`${linkBase} ${active === "dashboard" ? linkActive : linkInactive}`} aria-current={active === "dashboard" ? "page" : undefined}>
+			<span class="material-symbols-outlined text-xl">grid_view</span>Dashboard
+		</a>
+		<a href={nav.recruit} class={`${linkBase} ${active === "recruit" ? linkActive : linkInactive}`} aria-current={active === "recruit" ? "page" : undefined}>
 			<span class="material-symbols-outlined text-xl">badge</span>Recruit
 		</a>
-		<a href={waitlistHref} class={`${linkBase} ${active === "waitlist" ? linkActive : linkInactive}`} aria-current={active === "waitlist" ? "page" : undefined}>
+		<a href={nav.waitlist} class={`${linkBase} ${active === "waitlist" ? linkActive : linkInactive}`} aria-current={active === "waitlist" ? "page" : undefined}>
 			<span class="material-symbols-outlined text-xl">group</span>Waitlist
 		</a>
 
@@ -100,7 +86,7 @@ const emailItems = [
 			</summary>
 			<div class="mt-1 space-y-0.5">
 				{emailItems.map((item) => (
-					<a href={item.href} class={`${subBase} ${item.key && active === item.key ? subActive : subInactive}`}>
+					<a href={item.href} class={`${subBase} ${active === item.key ? subActive : subInactive}`} aria-current={active === item.key ? "page" : undefined}>
 						<span class="material-symbols-outlined text-lg">{item.icon}</span>{item.label}
 					</a>
 				))}
@@ -109,7 +95,7 @@ const emailItems = [
 	</nav>
 
 	<div class="border-t border-gray-200 px-4 py-4 dark:border-gray-800">
-		<a href={logoutHref} class={`${linkBase} ${linkInactive}`}>
+		<a href={nav.logout} class={`${linkBase} ${linkInactive}`}>
 			<span class="material-symbols-outlined text-xl">logout</span>Sign out
 		</a>
 	</div>
