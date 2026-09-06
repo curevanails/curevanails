@@ -60,11 +60,21 @@ jobs:
       # nothing encrypted is ever decrypted with the EmDash key. ADMIN_PASSWORD
       # enables the /admin area so admin.spec.ts actually runs instead of
       # skipping — it is a disposable CI value, NOT the production secret.
+      #
+      # The Turnstile pair is Cloudflare's PUBLISHED always-passes test pair,
+      # not this site's. Overriding the real site key from wrangler.jsonc is
+      # the point: a real widget would sit there unsolved in front of a
+      # headless browser, the submit gate would never open, and every
+      # submission spec would time out against a form the visitor can
+      # actually use. The test pair keeps the whole path — widget renders,
+      # token issued, endpoint verifies — instead of switching it off.
       - name: Provide local secrets for the preview Worker
         run: |
           {
             echo "EMDASH_ENCRYPTION_KEY=$(openssl rand -hex 32)"
             echo "ADMIN_PASSWORD=ci-test-password"
+            echo "TURNSTILE_SITE_KEY=1x00000000000000000000AA"
+            echo "TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA"
           } > .dev.vars
 
       # Chromium AND WebKit. e2e/design.spec.ts runs in both: most of this
