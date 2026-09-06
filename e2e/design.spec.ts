@@ -955,27 +955,39 @@ test.describe("SEO", () => {
 		}
 	});
 
-	test("/preview-index serves the homepage itself, out of the index", async ({ page }) => {
-		// The root still 302s to /coming-soon, so this is the homepage's only
-		// address. It renders /early-access — the editorial homepage layout —
-		// without redirecting, and must not be indexable while the site is
-		// pre-launch. Booking is closed, so no CTA may reach a booking page.
-		await page.goto("/preview-index", { waitUntil: "load" });
-		expect(new URL(page.url()).pathname, "the preview redirected instead of rendering").toBe(
+	test("/preview-index serves the version-H homepage, out of the index", async ({ page }) => {
+		// The root still 302s to /coming-soon, so this is the homepage design's
+		// only address. It answers on the URL people are handed — no redirect to
+		// a trailing slash — carries its own noindex while the site is
+		// pre-launch, and its photography resolves from this site's /img.
+		const res = await page.goto("/preview-index", { waitUntil: "load" });
+		expect(res?.status()).toBe(200);
+		await settle(page);
+		expect(new URL(page.url()).pathname, "the preview redirected instead of answering").toBe(
 			"/preview-index",
 		);
 		const state = await page.evaluate(() => ({
 			robots: document.querySelector('meta[name="robots"]')?.getAttribute("content") ?? "",
-			hero: document.querySelector("#hero") !== null,
-			sections: [...document.querySelectorAll("main section")].map((el) => el.id),
-			booking: [...document.querySelectorAll("a[href]")]
-				.map((a) => a.getAttribute("href")!)
-				.filter((h) => /booking|mangomint/i.test(h)),
+			sections: [...document.querySelectorAll("section[id]")].map((el) => el.id),
+			images: [...new Set([...document.querySelectorAll("img[src]")].map((i) => i.getAttribute("src")!))],
 		}));
 		expect(state.robots, "the homepage preview is indexable").toContain("noindex");
-		expect(state.hero, "this is not the editorial homepage").toBe(true);
-		expect(state.sections).toContain("services");
-		expect(state.booking, "a live booking link is reachable while booking is closed").toEqual([]);
+		expect(state.sections, "this is not the version-H homepage").toEqual(
+			expect.arrayContaining(["manifesto", "menu", "waitlist", "careers"]),
+		);
+
+		// The design build referenced ../img/*.webp, relative to /version-h/ on
+		// the preview Worker. Every one has to resolve from this site instead —
+		// fetched rather than read off the DOM, because 34 of them are
+		// loading="lazy" and a browser is free to leave those alone.
+		expect(state.images.length).toBeGreaterThan(20);
+		expect(
+			state.images.filter((src) => !src.startsWith("/img/")),
+			"an image still points outside this site",
+		).toEqual([]);
+		for (const src of state.images) {
+			expect((await page.request.get(src)).status(), `${src} is missing`).toBe(200);
+		}
 	});
 
 	test("/early-access is kept out of the index", async ({ page }) => {
