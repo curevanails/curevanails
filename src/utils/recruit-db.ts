@@ -180,6 +180,53 @@ export async function markAckEmailSent(
 	}
 }
 
+/** A saved application that supplied an address but was never thanked. */
+export interface UnthankedApplication {
+	id: string;
+	first_name: string;
+	last_name: string;
+	email: string;
+	phone: string;
+	positions: string | null;
+	current_status: string;
+	graduation_date: string | null;
+	background: string;
+	employment_type: string | null;
+	portfolio_link: string | null;
+	why_cureva: string | null;
+}
+
+/**
+ * Applications still owed a thank-you: they gave an address, and
+ * `ack_email_sent_at` was never stamped.
+ *
+ * This exists because the send is best-effort and its most likely failure is
+ * not transient. In the SES sandbox EVERY candidate address is unverified, so
+ * the acknowledgement cannot succeed for anyone — and without a way to find
+ * these afterwards, the people who applied during that window stay unthanked
+ * forever, with nothing on the page to say so. Oldest first: they have been
+ * waiting longest.
+ */
+export async function listUnthankedApplications(
+	db: D1Database,
+	limit = 100,
+): Promise<UnthankedApplication[]> {
+	await ensureApplicationsSchema(db);
+	const res = await db
+		.prepare(
+			`SELECT id, first_name, last_name, email, phone, positions, current_status,
+			        graduation_date, background, employment_type, portfolio_link, why_cureva
+			   FROM job_applications
+			  WHERE ack_email_sent_at IS NULL
+			    AND email IS NOT NULL AND TRIM(email) <> ''
+			  ORDER BY created_at ASC
+			  LIMIT ?`,
+		)
+		.bind(limit)
+		.all<UnthankedApplication>();
+	return res.results ?? [];
+}
+
 export function isApplicationStatus(v: unknown): v is ApplicationStatus {
 	return (
 		typeof v === "string" &&

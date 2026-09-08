@@ -134,6 +134,26 @@ test.describe("recruit alerts list", () => {
 		expect(hasTable + hasEmpty).toBeGreaterThan(0);
 	});
 
+	test("offers to send the thank-yous that never went out", async ({ page }) => {
+		await page.goto("/mail/recruit-alerts");
+
+		const offer = page.getByRole("button", { name: /Send their thank-you/i });
+		const pending = await offer.count();
+		if (pending === 0) {
+			// Nothing is owed — then nothing should be offered. That is the whole
+			// assertion: the prompt must not appear when there is no one to thank.
+			await expect(page.getByText(/never thanked/i)).toHaveCount(0);
+			return;
+		}
+
+		await expect(page.getByText(/never thanked/i)).toBeVisible();
+		await offer.click();
+
+		// CI provides no AWS credentials, so the catch-up cannot send and must
+		// say so plainly rather than silently reporting success.
+		await expect(page.getByText(/Could not send:|thank-you email/i)).toBeVisible();
+	});
+
 	test("reflects the configured recipient banner", async ({ page }) => {
 		// Set a recipient, then the alerts page should name it.
 		await page.goto("/mail/settings");
