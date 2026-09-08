@@ -956,6 +956,14 @@ test.describe("SEO", () => {
 	});
 
 	test("/preview-index serves the version-H homepage, out of the index", async ({ page }) => {
+		// The heaviest page in the suite: a full homepage, `settle()` walking
+		// every reveal on it, and 42 images to account for. That fits the
+		// default 30s in Chromium with little to spare and did not fit it in
+		// WebKit, which is the engine most of this site's visitors are on — so
+		// the test failed on the browser that matters most while passing on the
+		// one it was written against.
+		test.slow();
+
 		// The root still 302s to /coming-soon, so this is the homepage design's
 		// only address. It answers on the URL people are handed — no redirect to
 		// a trailing slash — carries its own noindex while the site is
@@ -985,9 +993,19 @@ test.describe("SEO", () => {
 			state.images.filter((src) => !src.startsWith("/img/")),
 			"an image still points outside this site",
 		).toEqual([]);
-		for (const src of state.images) {
-			expect((await page.request.get(src)).status(), `${src} is missing`).toBe(200);
-		}
+		// In parallel, not one after another: 42 sequential round-trips were the
+		// bulk of this test's runtime for no added coverage. Collecting the
+		// misses also beats dying on the first one — a broken asset path
+		// usually breaks a whole directory, and the full list says so at once.
+		const missing = (
+			await Promise.all(
+				state.images.map(async (src) => ({
+					src,
+					status: (await page.request.get(src)).status(),
+				})),
+			)
+		).filter((r) => r.status !== 200);
+		expect(missing, "an image the page asks for is not being served").toEqual([]);
 	});
 
 	test("/early-access is kept out of the index", async ({ page }) => {
