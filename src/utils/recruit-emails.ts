@@ -15,7 +15,11 @@
  */
 
 import { ensureEmailSchema } from "./email-db";
-import { markAckEmailSent } from "./recruit-db";
+import {
+	listUnthankedApplications,
+	markAckEmailSent,
+	type UnthankedApplication,
+} from "./recruit-db";
 import { createSesClient, sesCredentialsFromEnv } from "./email/ses-client";
 import {
 	logSendSkipped,
@@ -56,6 +60,129 @@ async function loadTemplate(db: D1Database, id: string): Promise<CampaignTemplat
 		.first<CampaignTemplate>();
 }
 
+/** The Handlebars bag both recruit templates render against. */
+function templateVars(app: ApplicationSummary): Record<string, unknown> {
+	return {
+		candidate_name: `${app.firstName} ${app.lastName}`.trim() || "New applicant",
+		first_name: app.firstName || "there",
+		positions: app.positions.map(humanize).join(", "),
+		phone: app.phone,
+		email: app.email ?? "",
+		current_status: humanize(app.currentStatus),
+		background: humanize(app.background),
+		employment_type: app.employmentType.map(humanize).join(", "),
+		graduation_date: app.graduationDate ?? "",
+		portfolio_link: app.portfolioLink ?? "",
+		why_cureva: app.whyCureva ?? "",
+		dashboard_url: ADMIN_DASHBOARD_URL,
+	};
+}
+
+/**
+ * Send the candidate their thank-you and stamp it. Shared by the send-on-submit
+ * path and the catch-up below, so a candidate thanked late gets exactly the
+ * email they would have got at the time. The stamp lands only once SES has
+ * accepted the message, so the flag means "we really did thank them".
+ */
+async function sendAck(
+	client: ReturnType<typeof createSesClient>,
+	db: D1Database,
+	template: CampaignTemplate,
+	app: ApplicationSummary,
+): Promise<void> {
+	const recipient: Recipient = {
+		id: app.id,
+		email: app.email as string,
+		name: app.firstName || null,
+		unsubscribe_token: "",
+	};
+	await sendOne(client, db, {
+		template,
+		recipient,
+		baseUrl: PUBLIC_SITE_URL,
+		extraVars: templateVars(app),
+	});
+	await markAckEmailSent(db, app.id);
+}
+
+/** `positions` / `employment_type` are stored as JSON arrays; older rows hold a bare value. */
+function parseStoredList(raw: string | null): string[] {
+	if (!raw) return [];
+	try {
+		const arr = JSON.parse(raw);
+		return Array.isArray(arr) ? arr.map(String) : [];
+	} catch {
+		return [raw];
+	}
+}
+
+function toSummary(row: UnthankedApplication): ApplicationSummary {
+	return {
+		id: row.id,
+		firstName: row.first_name,
+		lastName: row.last_name,
+		email: row.email,
+		phone: row.phone,
+		positions: parseStoredList(row.positions),
+		currentStatus: row.current_status,
+		graduationDate: row.graduation_date,
+		background: row.background,
+		employmentType: parseStoredList(row.employment_type),
+		portfolioLink: row.portfolio_link,
+		whyCureva: row.why_cureva,
+	};
+}
+
+export interface AckCatchUpResult {
+	sent: number;
+	failed: number;
+	/** Set when nothing could be attempted at all. */
+	blocked?: string;
+}
+
+/**
+ * Send the thank-you to everyone still owed one.
+ *
+ * The send-on-submit path is best-effort by design, and its likeliest failure —
+ * an SES account still in the sandbox, where every candidate address is
+ * unverified — fails for EVERY candidate rather than the occasional one. This
+ * is how those applicants are reached once that is fixed, instead of being
+ * quietly written off. Safe to run repeatedly: the stamp is what makes a row
+ * stop appearing, so a success is never sent twice.
+ */
+export async function sendPendingAcks(
+	db: D1Database,
+	env: Record<string, unknown>,
+	limit = 50,
+): Promise<AckCatchUpResult> {
+	await ensureEmailSchema(db);
+
+	let client: ReturnType<typeof createSesClient>;
+	try {
+		client = createSesClient(sesCredentialsFromEnv(env));
+	} catch (err) {
+		return { sent: 0, failed: 0, blocked: err instanceof Error ? err.message : "SES not configured" };
+	}
+
+	const template = await loadTemplate(db, "tpl-recruit-ack");
+	if (!template) return { sent: 0, failed: 0, blocked: "The tpl-recruit-ack template is missing." };
+
+	let sent = 0;
+	let failed = 0;
+	for (const row of await listUnthankedApplications(db, limit)) {
+		try {
+			await sendAck(client, db, template, toSummary(row));
+			sent++;
+		} catch (err) {
+			// Logged to email_logs by sendOne; the row keeps its NULL stamp and
+			// will be picked up again next time.
+			console.error("recruit ack catch-up failed", row.id, err);
+			failed++;
+		}
+	}
+	return { sent, failed };
+}
+
 /**
  * Render + send the recruit emails. Never throws — the caller (/api/recruit) has
  * already persisted the application, so email is strictly a side effect.
@@ -89,21 +216,7 @@ export async function sendRecruitEmails(
 		return;
 	}
 
-	const candidateName = `${app.firstName} ${app.lastName}`.trim() || "New applicant";
-	const vars: Record<string, unknown> = {
-		candidate_name: candidateName,
-		first_name: app.firstName || "there",
-		positions: app.positions.map(humanize).join(", "),
-		phone: app.phone,
-		email: app.email ?? "",
-		current_status: humanize(app.currentStatus),
-		background: humanize(app.background),
-		employment_type: app.employmentType.map(humanize).join(", "),
-		graduation_date: app.graduationDate ?? "",
-		portfolio_link: app.portfolioLink ?? "",
-		why_cureva: app.whyCureva ?? "",
-		dashboard_url: ADMIN_DASHBOARD_URL,
-	};
+	const vars = templateVars(app);
 
 	// 1) Recruiter alert(s).
 	const alertTpl = await loadTemplate(db, "tpl-recruit-alert");
@@ -127,23 +240,11 @@ export async function sendRecruitEmails(
 	if (app.email) {
 		const ackTpl = await loadTemplate(db, "tpl-recruit-ack");
 		if (ackTpl) {
-			const recipient: Recipient = {
-				id: app.id,
-				email: app.email,
-				name: app.firstName || null,
-				unsubscribe_token: "",
-			};
 			try {
-				await sendOne(client, db, {
-					template: ackTpl,
-					recipient,
-					baseUrl: PUBLIC_SITE_URL,
-					extraVars: vars,
-				});
-				// Only stamped once SES accepted the message, so the dashboard flag
-				// means "we really did thank them", not "we tried".
-				await markAckEmailSent(db, app.id);
+				await sendAck(client, db, ackTpl, app);
 			} catch (err) {
+				// The row keeps its NULL stamp, so the catch-up above can reach
+				// this candidate later — a failure here is a delay, not a loss.
 				console.error("recruit ack send failed", err);
 			}
 		}

@@ -5,6 +5,8 @@
  */
 import { env } from "cloudflare:workers";
 import { listRecruitEmails, recruitKind } from "../../utils/recruit-notifications";
+import { listUnthankedApplications } from "../../utils/recruit-db";
+import { sendPendingAcks } from "../../utils/recruit-emails";
 import { RECRUIT_NOTIFY_TO, getSetting, parseRecipients } from "../../utils/app-settings";
 import { PILL, fmtTs } from "../../utils/email-format";
 import { emailNav } from "../../utils/email-nav";
@@ -17,8 +19,31 @@ export const prerender = false;
 const nav = emailNav();
 
 const db = env.DB as D1Database;
+
+/* Catching up on thank-yous. A plain form POST to this page, like Settings —
+   it works without JavaScript and needs no endpoint of its own. */
+let catchUp: { sent: number; failed: number; blocked?: string } | null = null;
+if (Astro.request.method === "POST") {
+	catchUp = await sendPendingAcks(db, env as unknown as Record<string, unknown>);
+}
+
 const rows = await listRecruitEmails(db, 200);
 const recipients = parseRecipients(await getSetting(db, RECRUIT_NOTIFY_TO));
+// Read AFTER the catch-up, so the count reflects what just happened.
+const unthanked = await listUnthankedApplications(db, 100);
+
+/* SES rejects an unverified recipient with a message that reads like a bug in
+   this app. It is not: it is the account still being in the SES sandbox, where
+   only verified addresses can be written to. Candidates are strangers and can
+   never be verified in advance, so in the sandbox the thank-you fails for
+   EVERYONE. Say that plainly rather than leaving the raw AWS string to be
+   misread as something the code did wrong. */
+const SANDBOX_HINT =
+	"AWS SES is in sandbox mode, where only verified addresses can receive mail. " +
+	"Candidates can never be verified in advance, so this fails for every applicant " +
+	"until production access is granted in the SES console.";
+const isSandbox = (msg: string | null) => !!msg && /not verified|identities failed the check/i.test(msg);
+const sandboxSeen = rows.some((r) => isSandbox(r.error_message));
 
 const badge: Record<string, string> = {
 	sent: "bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500",
@@ -40,6 +65,45 @@ const badge: Record<string, string> = {
 	>
 		<span class="material-symbols-outlined text-base">settings</span><span class="hidden sm:inline">Recipients</span>
 	</a>
+
+	{catchUp && (
+		<div class={`mb-4 rounded-lg border px-4 py-3 text-sm ${
+			catchUp.blocked || catchUp.failed
+				? "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400"
+				: "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-500"
+		}`}>
+			{catchUp.blocked
+				? `Could not send: ${catchUp.blocked}`
+				: `${catchUp.sent} thank-you ${catchUp.sent === 1 ? "email" : "emails"} sent.` +
+					(catchUp.failed ? ` ${catchUp.failed} still failing — see the table below.` : "")}
+		</div>
+	)}
+
+	{sandboxSeen && (
+		<div class="mb-4 rounded-2xl border border-warning-200 bg-warning-50 px-5 py-4 text-sm text-warning-700 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-orange-400">
+			<strong class="font-semibold">Candidate emails are being rejected by AWS.</strong>
+			<p class="mt-1">{SANDBOX_HINT}</p>
+			<p class="mt-1">
+				The recruiter alert still works, because those addresses are verified — it is the
+				candidates who get nothing.
+			</p>
+		</div>
+	)}
+
+	{unthanked.length > 0 && (
+		<form method="POST" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+			<span class="text-gray-600 dark:text-gray-300">
+				<strong class="text-gray-800 dark:text-white/90">{unthanked.length}</strong>
+				{unthanked.length === 1 ? " applicant gave an address but was never thanked" : " applicants gave an address but were never thanked"}.
+			</span>
+			<button
+				type="submit"
+				class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition"
+			>
+				<span class="material-symbols-outlined text-base">outgoing_mail</span>Send their thank-you
+			</button>
+		</form>
+	)}
 
 	<div class="rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm text-gray-600 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300">
 		{recipients.length === 0 ? (
@@ -85,7 +149,7 @@ const badge: Record<string, string> = {
 								<td class="px-5 py-3.5">
 									<span class={`${PILL} ${badge[r.status] ?? "bg-gray-100 text-gray-600 dark:bg-white/[0.03] dark:text-gray-400"}`}>{r.status}</span>
 									{r.error_message && (
-										<span class="mt-1 block max-w-xs truncate text-xs text-gray-400" title={r.error_message}>{r.error_message}</span>
+										<span class="mt-1 block max-w-xs truncate text-xs text-gray-400" title={isSandbox(r.error_message) ? `${r.error_message}\n\n${SANDBOX_HINT}` : r.error_message}>{isSandbox(r.error_message) ? "Recipient not verified — SES is in sandbox mode" : r.error_message}</span>
 									)}
 								</td>
 							</tr>
