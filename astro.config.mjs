@@ -45,6 +45,23 @@ export default defineConfig({
 			database: d1({ binding: "DB", session: "auto" }),
 			storage: r2({ binding: "MEDIA" }),
 			plugins: [formsPlugin()],
+			// EmDash otherwise injects a `fonts:` block of its own — Noto Sans,
+			// variable 100-900, roman AND italic, across eight subsets including
+			// devanagari and cyrillic. That is sixteen files fetched from
+			// fonts.gstatic.com on EVERY build, and a build that cannot reach
+			// Google is a build that fails: it took CI down with
+			// `[CannotFetchFontFile] ... fetch failed`, in the step that starts
+			// the preview server for the E2E suite.
+			//
+			// Nothing renders with it. The variable it defines, `--font-emdash`,
+			// appears nowhere in src/ or design/, and nowhere in EmDash's own
+			// bundle beyond the definition itself. The site's two real families,
+			// Fraunces and Manrope, come from the single Google Fonts <link> the
+			// layouts carry and are untouched by this.
+			//
+			// So this removes a hard network dependency from every build and
+			// costs nothing on the page.
+			fonts: false,
 		}),
 	],
 	// AWS SNS posts to /api/webhooks/ses with `Content-Type: text/plain` and no
