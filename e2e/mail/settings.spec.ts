@@ -137,7 +137,7 @@ test.describe("recruit alerts list", () => {
 	test("offers to send the thank-yous that never went out", async ({ page }) => {
 		await page.goto("/mail/recruit-alerts");
 
-		const offer = page.getByRole("button", { name: /Send their thank-you/i });
+		const offer = page.getByRole("button", { name: /Send now/i });
 		const pending = await offer.count();
 		if (pending === 0) {
 			// Nothing is owed — then nothing should be offered. That is the whole

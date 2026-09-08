@@ -95,12 +95,15 @@ const badge: Record<string, string> = {
 			<span class="text-gray-600 dark:text-gray-300">
 				<strong class="text-gray-800 dark:text-white/90">{unthanked.length}</strong>
 				{unthanked.length === 1 ? " applicant gave an address but was never thanked" : " applicants gave an address but were never thanked"}.
+				<span class="block text-xs text-gray-400 dark:text-gray-500">
+					Retried automatically every few hours — this only skips the wait.
+				</span>
 			</span>
 			<button
 				type="submit"
 				class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition"
 			>
-				<span class="material-symbols-outlined text-base">outgoing_mail</span>Send their thank-you
+				<span class="material-symbols-outlined text-base">outgoing_mail</span>Send now
 			</button>
 		</form>
 	)}
