@@ -41,6 +41,10 @@ async function seedApplication(
 	const phone = "8015550100";
 	const res = await request.post("/api/recruit", {
 		multipart: {
+			// Not a browser, so no real Turnstile token is ever earned. CI runs
+			// Cloudflare's always-passes test pair, where any non-empty token
+			// verifies — this seeds a row instead of bouncing off the bot gate.
+			"cf-turnstile-response": "e2e-placeholder",
 			first_name: firstName,
 			last_name: E2E_SURNAME,
 			email: e2eEmail(),

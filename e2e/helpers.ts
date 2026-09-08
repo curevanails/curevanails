@@ -114,7 +114,32 @@ export async function fillApplication(
 	if (want("contact_consent")) await page.click("label.consent");
 }
 
+/**
+ * Click Submit — but never before Turnstile has answered.
+ *
+ * When a site key is configured the widget writes its token into a hidden
+ * input in the form, and the submit gate refuses until that input has a
+ * value. Cloudflare's test key answers almost at once, and "almost" is
+ * exactly what makes a suite flake: a spec that clicks first gets the gate,
+ * not the endpoint, and fails somewhere far from the cause. Waiting here
+ * means every caller inherits the fix.
+ *
+ * No widget (site key unset) means nothing to wait for, and the endpoint
+ * skips verification to match, so this is a no-op then.
+ */
 export async function submitApplication(page: Page): Promise<void> {
+	if ((await page.locator(".cf-turnstile").count()) > 0) {
+		await page.waitForFunction(
+			() => {
+				const el = document.querySelector<HTMLInputElement>(
+					'[name="cf-turnstile-response"]',
+				);
+				return !!el && el.value.length > 0;
+			},
+			null,
+			{ timeout: 15_000 },
+		);
+	}
 	await page.locator(SELECTORS.submit).click();
 }
 

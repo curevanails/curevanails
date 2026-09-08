@@ -4,6 +4,7 @@ import {
 	E2E_SURNAME,
 	RESUME_FILE,
 	SELECTORS,
+	devVar,
 	e2eEmail,
 	fillApplication,
 	futureMonth,
@@ -362,11 +363,21 @@ test.describe("resilience — backend & network failures", () => {
  * convenience, not the security boundary.
  */
 test.describe("API validation (server-side)", () => {
+	/**
+	 * These requests are not browsers, so they never earn a real Turnstile
+	 * token. CI configures Cloudflare's always-passes test pair, where any
+	 * non-empty token verifies — so a placeholder carries them past the bot
+	 * gate and back to the FIELD rules they exist to prove. Without it every
+	 * one of them would fail identically at the gate and stop testing anything.
+	 */
+	const HUMAN = { "cf-turnstile-response": "e2e-placeholder" };
+
 	function validMultipart(): Record<
 		string,
 		string | { name: string; mimeType: string; buffer: Buffer }
 	> {
 		return {
+			...HUMAN,
 			first_name: "Api",
 			last_name: E2E_SURNAME,
 			email: e2eEmail(),
@@ -395,7 +406,7 @@ test.describe("API validation (server-side)", () => {
 	});
 
 	test("rejects an empty submission with every required field flagged", async ({ request }) => {
-		const res = await request.post("/api/recruit", { multipart: {} });
+		const res = await request.post("/api/recruit", { multipart: { ...HUMAN } });
 		expect(res.status()).toBe(400);
 		const body = await res.json();
 		expect(body.ok).toBe(false);
@@ -472,6 +483,22 @@ test.describe("API validation (server-side)", () => {
 		});
 		expect(res.status()).toBe(400);
 		expect((await res.json()).errors).toHaveProperty("resume");
+	});
+
+	// The one spec that does NOT carry a token: the gate every other request
+	// here deliberately steps around. A bot posting straight at the endpoint,
+	// never touching the form, is the whole reason the check lives server-side.
+	test("rejects an otherwise-valid submission carrying no Turnstile token", async ({
+		request,
+	}) => {
+		test.skip(
+			!devVar("TURNSTILE_SECRET_KEY") || !devVar("TURNSTILE_SITE_KEY"),
+			"Turnstile is not configured here, so the endpoint correctly skips the check",
+		);
+		const { "cf-turnstile-response": _token, ...noToken } = validMultipart();
+		const res = await request.post("/api/recruit", { multipart: noToken });
+		expect(res.status()).toBe(400);
+		expect((await res.json()).error).toContain("human check");
 	});
 
 	test("normalises the MM/YYYY graduation fallback to YYYY-MM", async ({ request }) => {
