@@ -14,9 +14,11 @@
  * unconfigured email must never affect the applicant's submission.
  */
 
+import { env as workerEnv } from "cloudflare:workers";
 import { ensureEmailSchema } from "./email-db";
 import {
 	listUnthankedApplications,
+	markAckAttempt,
 	markAckEmailSent,
 	type UnthankedApplication,
 } from "./recruit-db";
@@ -96,6 +98,9 @@ async function sendAck(
 		name: app.firstName || null,
 		unsubscribe_token: "",
 	};
+	// Stamped BEFORE the send, so a failure still counts as an attempt and the
+	// scheduled catch-up backs off instead of hammering the same address.
+	await markAckAttempt(db, app.id);
 	await sendOne(client, db, {
 		template,
 		recipient,
@@ -150,10 +155,23 @@ export interface AckCatchUpResult {
  * quietly written off. Safe to run repeatedly: the stamp is what makes a row
  * stop appearing, so a success is never sent twice.
  */
+export interface AckCatchUpOptions {
+	limit?: number;
+	/**
+	 * Skip candidates attempted within this many ms. The button passes 0 (send
+	 * everyone now); the cron passes hours, so a failing address is tried a few
+	 * times a day rather than every five minutes.
+	 */
+	retryAfterMs?: number;
+}
+
+/** The scheduled run's spacing between attempts at the same candidate. */
+export const ACK_RETRY_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
 export async function sendPendingAcks(
 	db: D1Database,
 	env: Record<string, unknown>,
-	limit = 50,
+	{ limit = 50, retryAfterMs = 0 }: AckCatchUpOptions = {},
 ): Promise<AckCatchUpResult> {
 	await ensureEmailSchema(db);
 
@@ -169,7 +187,8 @@ export async function sendPendingAcks(
 
 	let sent = 0;
 	let failed = 0;
-	for (const row of await listUnthankedApplications(db, limit)) {
+	const cutoff = retryAfterMs > 0 ? new Date(Date.now() - retryAfterMs).toISOString() : undefined;
+	for (const row of await listUnthankedApplications(db, limit, cutoff)) {
 		try {
 			await sendAck(client, db, template, toSummary(row));
 			sent++;
@@ -181,6 +200,30 @@ export async function sendPendingAcks(
 		}
 	}
 	return { sent, failed };
+}
+
+/**
+ * Cron entry for the catch-up (src/worker.ts `scheduled`, admin Worker, every
+ * five minutes). Reads its own bindings like runDueCampaigns does, and never
+ * throws — a bad tick must not take the campaign runner down with it.
+ *
+ * The interval is what makes this cheap to run that often: it only ever
+ * reaches for candidates nobody has tried in the last six hours, so while the
+ * account is still in the SES sandbox each of them costs one failed log row
+ * per six hours, not one per tick. The moment AWS grants production access,
+ * the next tick after each candidate's window sends their email — no button,
+ * no one remembering to press it.
+ */
+export async function retryPendingAcks(): Promise<void> {
+	try {
+		const db = workerEnv.DB as D1Database;
+		const result = await sendPendingAcks(db, workerEnv as unknown as Record<string, unknown>, {
+			retryAfterMs: ACK_RETRY_INTERVAL_MS,
+		});
+		if (result.sent || result.failed) console.log("recruit ack catch-up", result);
+	} catch (err) {
+		console.error("recruit ack catch-up crashed", err);
+	}
 }
 
 /**

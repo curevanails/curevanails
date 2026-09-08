@@ -158,6 +158,11 @@ export async function ensureApplicationsSchema(db: D1Database): Promise<void> {
 			.prepare("ALTER TABLE job_applications ADD COLUMN ack_email_sent_at TEXT")
 			.run();
 	}
+	if (!columns.has("ack_last_attempt_at")) {
+		await db
+			.prepare("ALTER TABLE job_applications ADD COLUMN ack_last_attempt_at TEXT")
+			.run();
+	}
 }
 
 /**
@@ -166,6 +171,24 @@ export async function ensureApplicationsSchema(db: D1Database): Promise<void> {
  * failed (the failure itself is in `email_logs`). Best-effort: a failed stamp
  * must never break the send path, so this swallows its own errors.
  */
+/**
+ * Record that a thank-you was attempted, whatever came of it. This is what
+ * lets the scheduled catch-up back off: a candidate whose send just failed is
+ * not retried again five minutes later, and again five minutes after that,
+ * writing a failed row into email_logs every time while the account is
+ * still in the SES sandbox.
+ */
+export async function markAckAttempt(db: D1Database, id: string): Promise<void> {
+	try {
+		await db
+			.prepare("UPDATE job_applications SET ack_last_attempt_at = ? WHERE id = ?")
+			.bind(new Date().toISOString(), id)
+			.run();
+	} catch (err) {
+		console.error("recruit: failed to stamp ack_last_attempt_at", err);
+	}
+}
+
 export async function markAckEmailSent(
 	db: D1Database,
 	id: string,
@@ -210,6 +233,12 @@ export interface UnthankedApplication {
 export async function listUnthankedApplications(
 	db: D1Database,
 	limit = 100,
+	/**
+	 * Only rows not attempted since this instant (ISO). Omit to take everyone
+	 * owed a thank-you regardless — the "send now" button — or pass a cutoff
+	 * so the scheduled run leaves recent failures alone for a while.
+	 */
+	notAttemptedSince?: string,
 ): Promise<UnthankedApplication[]> {
 	await ensureApplicationsSchema(db);
 	const res = await db
@@ -219,10 +248,11 @@ export async function listUnthankedApplications(
 			   FROM job_applications
 			  WHERE ack_email_sent_at IS NULL
 			    AND email IS NOT NULL AND TRIM(email) <> ''
+			    AND (? IS NULL OR ack_last_attempt_at IS NULL OR ack_last_attempt_at < ?)
 			  ORDER BY created_at ASC
 			  LIMIT ?`,
 		)
-		.bind(limit)
+		.bind(notAttemptedSince ?? null, notAttemptedSince ?? null, limit)
 		.all<UnthankedApplication>();
 	return res.results ?? [];
 }
