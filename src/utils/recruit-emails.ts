@@ -159,14 +159,24 @@ export interface AckCatchUpOptions {
 	limit?: number;
 	/**
 	 * Skip candidates attempted within this many ms. The button passes 0 (send
-	 * everyone now); the cron passes hours, so a failing address is tried a few
-	 * times a day rather than every five minutes.
+	 * everyone now); the cron passes an hour, so a failing address is retried
+	 * hourly rather than every five minutes.
 	 */
 	retryAfterMs?: number;
 }
 
-/** The scheduled run's spacing between attempts at the same candidate. */
-export const ACK_RETRY_INTERVAL_MS = 6 * 60 * 60 * 1000;
+/**
+ * The scheduled run's spacing between attempts at the same candidate.
+ *
+ * An hour, not longer. The only people this path ever touches are ones whose
+ * email already failed once, and after the sandbox lifts every extra hour is
+ * an hour they wait for a reply that was owed days ago. The cost of an hour
+ * is bounded — while AWS is still rejecting, a candidate writes one failed
+ * log row per hour, twenty-four a day, for the handful of days a sandbox
+ * lasts — and that is a cheap price for a reply that arrives the same hour
+ * the account is approved.
+ */
+export const ACK_RETRY_INTERVAL_MS = 60 * 60 * 1000;
 
 export async function sendPendingAcks(
 	db: D1Database,
@@ -208,11 +218,11 @@ export async function sendPendingAcks(
  * throws — a bad tick must not take the campaign runner down with it.
  *
  * The interval is what makes this cheap to run that often: it only ever
- * reaches for candidates nobody has tried in the last six hours, so while the
+ * reaches for candidates nobody has tried in the last hour, so while the
  * account is still in the SES sandbox each of them costs one failed log row
- * per six hours, not one per tick. The moment AWS grants production access,
- * the next tick after each candidate's window sends their email — no button,
- * no one remembering to press it.
+ * per hour, not one per tick. The moment AWS grants production access, the
+ * next tick after each candidate's window sends their email — no button, no
+ * one remembering to press it.
  */
 export async function retryPendingAcks(): Promise<void> {
 	try {
