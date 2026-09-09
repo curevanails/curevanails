@@ -22,7 +22,7 @@ import {
 	markAckEmailSent,
 	type UnthankedApplication,
 } from "./recruit-db";
-import { createSesClient, sesCredentialsFromEnv } from "./email/ses-client";
+import { createSesClient, isProductionAccessEnabled, sesCredentialsFromEnv } from "./email/ses-client";
 import {
 	logSendSkipped,
 	sendOne,
@@ -158,15 +158,22 @@ export interface AckCatchUpResult {
 export interface AckCatchUpOptions {
 	limit?: number;
 	/**
-	 * Skip candidates attempted within this many ms. The button passes 0 (send
-	 * everyone now); the cron passes hours, so a failing address is tried a few
-	 * times a day rather than every five minutes.
+	 * Skip candidates attempted within this many ms. The cron passes a short
+	 * window so a transiently failing address is not hammered every tick.
 	 */
 	retryAfterMs?: number;
 }
 
-/** The scheduled run's spacing between attempts at the same candidate. */
-export const ACK_RETRY_INTERVAL_MS = 6 * 60 * 60 * 1000;
+/**
+ * The scheduled run's spacing between attempts at the same candidate.
+ *
+ * Short, because the sandbox is no longer what this guards against — the
+ * cron asks SES whether the account is still sandboxed and simply does not
+ * try while it is, so nothing is written to email_logs during that wait. What
+ * remains is the occasional transient SES failure after approval, and for
+ * that fifteen minutes is plenty of politeness and little enough delay.
+ */
+export const ACK_RETRY_INTERVAL_MS = 15 * 60 * 1000;
 
 export async function sendPendingAcks(
 	db: D1Database,
@@ -207,19 +214,35 @@ export async function sendPendingAcks(
  * five minutes). Reads its own bindings like runDueCampaigns does, and never
  * throws — a bad tick must not take the campaign runner down with it.
  *
- * The interval is what makes this cheap to run that often: it only ever
- * reaches for candidates nobody has tried in the last six hours, so while the
- * account is still in the SES sandbox each of them costs one failed log row
- * per six hours, not one per tick. The moment AWS grants production access,
- * the next tick after each candidate's window sends their email — no button,
- * no one remembering to press it.
+ * Cheap to run that often because it asks first: while the account is still
+ * in the SES sandbox it sends nothing and logs one line, and the moment AWS
+ * grants production access the next tick — five minutes at most — sends
+ * every candidate their email. Nobody presses anything; there is nothing to
+ * press.
  */
 export async function retryPendingAcks(): Promise<void> {
 	try {
 		const db = workerEnv.DB as D1Database;
-		const result = await sendPendingAcks(db, workerEnv as unknown as Record<string, unknown>, {
-			retryAfterMs: ACK_RETRY_INTERVAL_MS,
-		});
+		const env = workerEnv as unknown as Record<string, unknown>;
+
+		// Nothing owed, nothing to do — and no SES call either.
+		if ((await listUnthankedApplications(db, 1)).length === 0) return;
+
+		// Ask before trying. In the sandbox every candidate address is rejected,
+		// so attempting would only write a failed row per candidate per tick and
+		// tell us nothing we did not know. When SES will not answer, try anyway.
+		let client: ReturnType<typeof createSesClient>;
+		try {
+			client = createSesClient(sesCredentialsFromEnv(env));
+		} catch {
+			return; // unconfigured — the submit path already logged this
+		}
+		if ((await isProductionAccessEnabled(client)) === false) {
+			console.log("recruit ack catch-up: SES still in sandbox, candidates waiting");
+			return;
+		}
+
+		const result = await sendPendingAcks(db, env, { retryAfterMs: ACK_RETRY_INTERVAL_MS });
 		if (result.sent || result.failed) console.log("recruit ack catch-up", result);
 	} catch (err) {
 		console.error("recruit ack catch-up crashed", err);

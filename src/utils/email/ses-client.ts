@@ -1,4 +1,9 @@
-import { SESv2Client, SendEmailCommand, type MessageHeader } from "@aws-sdk/client-sesv2";
+import {
+	GetAccountCommand,
+	SESv2Client,
+	SendEmailCommand,
+	type MessageHeader,
+} from "@aws-sdk/client-sesv2";
 import { env } from "cloudflare:workers";
 import { isSuppressed } from "./suppression";
 
@@ -56,6 +61,22 @@ export function sesCredentialsFromEnv(env: Record<string, unknown>): SesCredenti
 		);
 	}
 	return { region, accessKeyId, secretAccessKey };
+}
+
+/**
+ * Whether this account may send to unverified addresses — i.e. is out of the
+ * SES sandbox. `null` when SES would not say (most likely the IAM policy lacks
+ * ses:GetAccount), so a caller can fall back to simply trying rather than
+ * treating "unknown" as "no".
+ */
+export async function isProductionAccessEnabled(client: SESv2Client): Promise<boolean | null> {
+	try {
+		const acct = await client.send(new GetAccountCommand({}));
+		return typeof acct.ProductionAccessEnabled === "boolean" ? acct.ProductionAccessEnabled : null;
+	} catch (err) {
+		console.warn("ses: GetAccount unavailable, will attempt sends blind", err);
+		return null;
+	}
 }
 
 export function createSesClient(creds: SesCredentials): SESv2Client {
