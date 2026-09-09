@@ -6,7 +6,6 @@
 import { env } from "cloudflare:workers";
 import { listRecruitEmails, recruitKind } from "../../utils/recruit-notifications";
 import { listUnthankedApplications } from "../../utils/recruit-db";
-import { sendPendingAcks } from "../../utils/recruit-emails";
 import { RECRUIT_NOTIFY_TO, getSetting, parseRecipients } from "../../utils/app-settings";
 import { PILL, fmtTs } from "../../utils/email-format";
 import { emailNav } from "../../utils/email-nav";
@@ -20,16 +19,11 @@ const nav = emailNav();
 
 const db = env.DB as D1Database;
 
-/* Catching up on thank-yous. A plain form POST to this page, like Settings —
-   it works without JavaScript and needs no endpoint of its own. */
-let catchUp: { sent: number; failed: number; blocked?: string } | null = null;
-if (Astro.request.method === "POST") {
-	catchUp = await sendPendingAcks(db, env as unknown as Record<string, unknown>);
-}
-
 const rows = await listRecruitEmails(db, 200);
 const recipients = parseRecipients(await getSetting(db, RECRUIT_NOTIFY_TO));
-// Read AFTER the catch-up, so the count reflects what just happened.
+/* Still owed a thank-you. Nothing here sends: the admin Worker's cron does
+   that on its own, every five minutes, the moment SES will accept it. This
+   is a status line, not a control — there is deliberately nothing to press. */
 const unthanked = await listUnthankedApplications(db, 100);
 
 /* SES rejects an unverified recipient with a message that reads like a bug in
@@ -66,19 +60,6 @@ const badge: Record<string, string> = {
 		<span class="material-symbols-outlined text-base">settings</span><span class="hidden sm:inline">Recipients</span>
 	</a>
 
-	{catchUp && (
-		<div class={`mb-4 rounded-lg border px-4 py-3 text-sm ${
-			catchUp.blocked || catchUp.failed
-				? "border-error-200 bg-error-50 text-error-700 dark:border-error-500/30 dark:bg-error-500/10 dark:text-error-400"
-				: "border-success-200 bg-success-50 text-success-700 dark:border-success-500/30 dark:bg-success-500/10 dark:text-success-500"
-		}`}>
-			{catchUp.blocked
-				? `Could not send: ${catchUp.blocked}`
-				: `${catchUp.sent} thank-you ${catchUp.sent === 1 ? "email" : "emails"} sent.` +
-					(catchUp.failed ? ` ${catchUp.failed} still failing — see the table below.` : "")}
-		</div>
-	)}
-
 	{sandboxSeen && (
 		<div class="mb-4 rounded-2xl border border-warning-200 bg-warning-50 px-5 py-4 text-sm text-warning-700 dark:border-warning-500/30 dark:bg-warning-500/10 dark:text-orange-400">
 			<strong class="font-semibold">Candidate emails are being rejected by AWS.</strong>
@@ -91,21 +72,16 @@ const badge: Record<string, string> = {
 	)}
 
 	{unthanked.length > 0 && (
-		<form method="POST" class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+		<div class="mb-4 flex items-start gap-3 rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03]">
+			<span class="material-symbols-outlined mt-0.5 text-base text-gray-400">schedule_send</span>
 			<span class="text-gray-600 dark:text-gray-300">
 				<strong class="text-gray-800 dark:text-white/90">{unthanked.length}</strong>
-				{unthanked.length === 1 ? " applicant gave an address but was never thanked" : " applicants gave an address but were never thanked"}.
+				{unthanked.length === 1 ? " applicant is" : " applicants are"} still waiting for their thank-you email.
 				<span class="block text-xs text-gray-400 dark:text-gray-500">
-					Retried automatically every few hours — this only skips the wait.
+					Sent automatically — within minutes once AWS accepts mail to unverified addresses. Nothing to do here.
 				</span>
 			</span>
-			<button
-				type="submit"
-				class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition"
-			>
-				<span class="material-symbols-outlined text-base">outgoing_mail</span>Send now
-			</button>
-		</form>
+		</div>
 	)}
 
 	<div class="rounded-2xl border border-gray-200 bg-white px-5 py-4 text-sm text-gray-600 shadow-theme-xs dark:border-gray-800 dark:bg-white/[0.03] dark:text-gray-300">

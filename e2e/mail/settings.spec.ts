@@ -134,24 +134,20 @@ test.describe("recruit alerts list", () => {
 		expect(hasTable + hasEmpty).toBeGreaterThan(0);
 	});
 
-	test("offers to send the thank-yous that never went out", async ({ page }) => {
+	test("shows who is still owed a thank-you, and that nobody has to press anything", async ({ page }) => {
 		await page.goto("/mail/recruit-alerts");
 
-		const offer = page.getByRole("button", { name: /Send now/i });
-		const pending = await offer.count();
-		if (pending === 0) {
-			// Nothing is owed — then nothing should be offered. That is the whole
-			// assertion: the prompt must not appear when there is no one to thank.
-			await expect(page.getByText(/never thanked/i)).toHaveCount(0);
+		// Whatever the backlog, there is no button: the cron sends on its own.
+		await expect(page.getByRole("button", { name: /send/i })).toHaveCount(0);
+
+		const waiting = page.getByText(/still waiting for their thank-you/i);
+		if ((await waiting.count()) === 0) {
+			// Nothing owed, nothing shown — a status line for zero people is noise.
+			await expect(page.getByText(/Sent automatically/i)).toHaveCount(0);
 			return;
 		}
-
-		await expect(page.getByText(/never thanked/i)).toBeVisible();
-		await offer.click();
-
-		// CI provides no AWS credentials, so the catch-up cannot send and must
-		// say so plainly rather than silently reporting success.
-		await expect(page.getByText(/Could not send:|thank-you email/i)).toBeVisible();
+		await expect(waiting).toBeVisible();
+		await expect(page.getByText(/Sent automatically/i)).toBeVisible();
 	});
 
 	test("reflects the configured recipient banner", async ({ page }) => {
