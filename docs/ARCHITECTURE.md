@@ -7,8 +7,10 @@ humans and AI agents. Read this first; the deep-dive docs are linked at the end.
 > share **one D1 database, one R2 bucket, and one KV namespace**. A public
 > marketing/careers site, a waitlist landing page, a recruiter admin dashboard,
 > and a standalone email service are all the *same code* wearing different hats,
-> selected by an environment flag. Email goes out through **AWS SES**; delivery
-> events come back through **AWS SNS**.
+> selected by an environment flag. Email goes out through **Cloudflare Email
+> Service** (the `EMAIL` binding on every Worker); **AWS SES** remains only as
+> the fallback for a Worker without that binding, with delivery events coming
+> back through **AWS SNS** in that case.
 
 ---
 
@@ -34,9 +36,10 @@ flowchart TB
         d1[("D1 · curevanails<br/>applications, waitlist,<br/>email tables, settings")]
         r2[("R2 · curevanails-media<br/>résumés")]
         kv[("KV · SESSION<br/>rate-limit + sessions")]
+        email["Email Service<br/>EMAIL binding · send email"]
     end
 
-    subgraph aws["AWS"]
+    subgraph aws["AWS (fallback only)"]
         ses["SES<br/>send email"]
         sns["SNS<br/>delivery events"]
     end
@@ -77,9 +80,9 @@ cooperate without any cross-service API calls.
 
 | Worker | Repo · config | Root `/` serves | `*_STANDALONE` | Extra binding |
 | --- | --- | --- | --- | --- |
-| **curevanails** | this repo · `wrangler.jsonc` | marketing landing + blog | — | KV `SESSION` |
-| **getready** | this repo · `wrangler.getready.jsonc` | `/getready` waitlist landing | `GETREADY_STANDALONE` | — |
-| **admin** | this repo · `wrangler.admin.jsonc` | rewrites `/` → `/admin` | `ADMIN_STANDALONE` | — |
+| **curevanails** | this repo · `wrangler.jsonc` | marketing landing + blog | — | KV `SESSION`, `EMAIL` |
+| **getready** | this repo · `wrangler.getready.jsonc` | `/getready` waitlist landing | `GETREADY_STANDALONE` | `EMAIL` |
+| **admin** | this repo · `wrangler.admin.jsonc` | rewrites `/` → `/admin` | `ADMIN_STANDALONE` | `EMAIL`, Cron `*/5` |
 | **notify** | `notifications-service` · `wrangler.jsonc` | email dashboard | — | KV `SESSION`, Cron `*/5` |
 
 All four share **D1 `curevanails`** (`fcc8f06b-…`) and **R2 `curevanails-media`**.
@@ -170,7 +173,7 @@ sequenceDiagram
     participant R2 as R2 MEDIA
     participant D1 as D1 job_applications
     participant EM as recruit-emails.ts
-    participant SES as AWS SES
+    participant SES as mailer (Email Service, SES fallback)
 
     C->>F: fill + submit (multipart)
     F->>API: fetch POST (JS, no navigation)
@@ -211,7 +214,7 @@ notify dashboard — no separate mailer.
 ```mermaid
 flowchart LR
     submit["Application saved"] --> ensure["ensureEmailSchema<br/>(system templates exist)"]
-    ensure --> ses{"SES configured?"}
+    ensure --> ses{"transport configured?<br/>(EMAIL binding, else AWS_* secrets)"}
     ses -->|no| skip["skip quietly<br/>(app already saved)"]
     ses -->|yes| who
 
@@ -241,8 +244,10 @@ flowchart LR
   on the notify dashboard (**notify → Settings**). The main site *reads* it.
 - **System templates** are ensured by id (`INSERT OR IGNORE`) on every schema
   check, so they always exist to render, yet operator edits are preserved.
-- ⚠️ **SES sandbox** only delivers to *verified* addresses. Candidate acks to
-  arbitrary applicants require SES **production access**.
+- ⚠️ Only the **SES fallback** has a sandbox (verified addresses only until
+  production access). On Cloudflare Email Service every candidate is reachable
+  as soon as `curevanails.com` is onboarded — which is why it is the live
+  transport.
 
 ---
 
@@ -380,7 +385,9 @@ src/
 │  ├─ recruit-emails.ts        recruiter alert + candidate ack (system templates)
 │  ├─ app-settings.ts          shared key/value store (recruit_notify_to)
 │  ├─ email-db.ts              email tables + default/system template seeding
-│  ├─ email/ses-client.ts      SES send + suppression precheck
+│  ├─ email/mailer.ts          picks the transport (EMAIL binding, else SES) + suppression precheck
+│  ├─ email/sender.ts          From identity + per-message contract
+│  ├─ email/ses-client.ts      the SES fallback transport
 │  ├─ email/send-service.ts    sendOne (render + log + send)
 │  └─ admin-auth.ts            signed-cookie session helpers
 └─ e2e/                        Playwright suites (recruit-apply, admin)
@@ -394,7 +401,7 @@ src/
 | --- | --- |
 | [`RECRUIT.md`](RECRUIT.md) | Hiring-Form field contract, validation, D1 columns, R2 layout |
 | [`ADMIN.md`](ADMIN.md) | Recruit admin dashboard, auth, `/admin/file`, `/admin/update` |
-| [`EMAIL.md`](EMAIL.md) | SES email infra, templates, SNS webhook, suppression |
+| [`mail/EMAIL.md`](mail/EMAIL.md) | Email infra: Cloudflare Email Service transport, SES fallback, templates, SNS webhook, suppression |
 | [`TESTING.md`](TESTING.md) | Playwright E2E suite + the deploy pipeline |
 | [`DESIGN.md`](DESIGN.md) | getready waitlist landing design |
 | notify repo `docs/ARCHITECTURE.md` | The email service in depth (campaigns, SNS, unsubscribe) |

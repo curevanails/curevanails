@@ -1,13 +1,12 @@
-import type { SESv2Client } from "@aws-sdk/client-sesv2";
 import { newId } from "./ids";
-import { sendEmail } from "./ses-client";
+import type { Mailer } from "./mailer";
 import { renderTemplate, buildUnsubscribeUrl } from "./template-render";
 
 /**
  * Campaign send loop. Renders + sends one email per recipient, logging each to
- * `email_logs`, with a small spacing between sends to stay under the SES rate
- * limit (14/sec). A failed/suppressed recipient is logged and the loop
- * continues.
+ * `email_logs`, with a small spacing between sends to stay under the
+ * transport's rate limit (SES allows 14/sec; Cloudflare throttles per account).
+ * A failed/suppressed recipient is logged and the loop continues.
  *
  * NOTE: this sends inline within the request, which is fine for the Phase 1
  * pre-launch list. Moving the loop behind a Cloudflare Queue consumer (for
@@ -15,7 +14,7 @@ import { renderTemplate, buildUnsubscribeUrl } from "./template-render";
  * so a queue consumer can call it per-message unchanged.
  */
 
-const SEND_SPACING_MS = 80; // ≈12/sec, comfortably under the 14/sec SES cap.
+const SEND_SPACING_MS = 80; // ≈12/sec, comfortably under either transport's cap.
 
 export interface Recipient {
 	id: string;
@@ -44,7 +43,7 @@ function sleep(ms: number): Promise<void> {
 }
 
 /**
- * Record a send that never reached SES — missing credentials, a missing
+ * Record a send that never reached the transport — nothing configured, a missing
  * template, a schema failure. `sendOne` logs its own attempts, but these abort
  * *before* it runs, which previously left no trace anywhere: no log row, no
  * stamp, nothing in the dashboard. An automatic email that silently does
@@ -83,7 +82,7 @@ export async function logSendSkipped(
 
 /** Render, log, and send a single email. Throws on send failure (the caller logs). */
 export async function sendOne(
-	client: SESv2Client,
+	mailer: Mailer,
 	db: D1Database,
 	opts: {
 		template: CampaignTemplate;
@@ -117,7 +116,7 @@ export async function sendOne(
 	const rendered = renderTemplate(template, variables);
 
 	try {
-		const messageId = await sendEmail(client, db, {
+		const messageId = await mailer.send(db, {
 			to: recipient.email,
 			subject: rendered.subject,
 			html: rendered.html,
@@ -142,7 +141,7 @@ export async function sendOne(
 }
 
 export async function sendCampaign(
-	client: SESv2Client,
+	mailer: Mailer,
 	db: D1Database,
 	opts: {
 		template: CampaignTemplate;
@@ -157,7 +156,7 @@ export async function sendCampaign(
 	for (let i = 0; i < opts.recipients.length; i++) {
 		const recipient = opts.recipients[i];
 		try {
-			await sendOne(client, db, {
+			await sendOne(mailer, db, {
 				template: opts.template,
 				recipient,
 				baseUrl: opts.baseUrl,
@@ -183,7 +182,7 @@ export type Audience = "all" | "waiting" | "invited" | "redeemed";
  * or a human-readable error (template missing / no recipients).
  */
 export async function sendCampaignByAudience(
-	client: SESv2Client,
+	mailer: Mailer,
 	db: D1Database,
 	opts: {
 		templateId: string;
@@ -217,7 +216,7 @@ export async function sendCampaignByAudience(
 	const recipients = res.results ?? [];
 	if (recipients.length === 0) return { error: "No active recipients matched." };
 
-	const summary = await sendCampaign(client, db, {
+	const summary = await sendCampaign(mailer, db, {
 		template,
 		recipients,
 		baseUrl: opts.baseUrl,

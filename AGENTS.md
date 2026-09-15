@@ -10,6 +10,7 @@ This is the **CureVà Beauty Lounge** website -- an EmDash site (a CMS built on 
 | Database | Cloudflare D1 (binding `DB`, database `curevanails`) |
 | Media | Cloudflare R2 (binding `MEDIA`, bucket `curevanails-media`) |
 | Sessions | Cloudflare KV (binding `SESSION`) |
+| Email | Cloudflare Email Service (`send_email` binding `EMAIL`, from `hello@curevanails.com`); AWS SES only as a fallback when the binding is absent |
 | UI islands | React 19 (`@astrojs/react`) |
 | Plugins | `@emdash-cms/plugin-forms`, `@emdash-cms/plugin-webhook-notifier` |
 | Booking | Mangomint (Company ID `463532`) — **not wired up while booking is closed**; the studio opens Spring 2027 and every CTA leads to the waitlist |
@@ -82,7 +83,7 @@ Project docs in `docs/` (index: [`docs/README.md`](docs/README.md)):
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — **start here.** The whole platform in Mermaid diagrams: the three Workers, shared D1/R2/KV, auth, the recruit application + email flows, CI/CD, and the D1 data model.
 - [`docs/RECRUIT.md`](docs/RECRUIT.md) — the `/recruit/apply` Hiring Form field contract (fields, validation, D1 columns, R2 layout, the multi-Worker topology). Update it whenever the form changes.
-- [`docs/mail/`](docs/mail/README.md) — the email system (dashboard at `/mail`, SES send, scheduled campaigns, SNS webhook, unsubscribe). Now hosted on the `admin` Worker; formerly the standalone `notifications-service` repo / `notify` Worker.
+- [`docs/mail/`](docs/mail/README.md) — the email system (dashboard at `/mail`, sending through Cloudflare Email Service with an SES fallback, scheduled campaigns, SNS webhook, unsubscribe). Now hosted on the `admin` Worker; formerly the standalone `notifications-service` repo / `notify` Worker.
 - [`docs/ADMIN.md`](docs/ADMIN.md) — the recruit admin dashboard, auth, and endpoints.
 - [`docs/TESTING.md`](docs/TESTING.md) — the Playwright E2E suite (`e2e/`): how to run it, structure, and conventions.
 - [`docs/DESIGN.md`](docs/DESIGN.md), [`docs/EMAIL.md`](docs/EMAIL.md) — the getready landing design and email sending.
@@ -155,9 +156,18 @@ password-protected dashboard reviews them. **Guides: the form field contract is
   `/notify/*` access is blocked; reachable only via the `/mail` rewrite), and
   base-aware links come from `src/utils/email-nav.ts`. The `admin` Worker also
   carries the **Cron Trigger** (`*/5 * * * *`, `wrangler.admin.jsonc`) that fires
-  `runDueCampaigns()` via the `scheduled` handler in `src/worker.ts`. AWS SNS must
-  post SES events to `https://admin.curevanails.com/api/webhooks/ses`. See
-  [`docs/mail/`](docs/mail/README.md).
+  `runDueCampaigns()` and the recruit thank-you catch-up via the `scheduled`
+  handler in `src/worker.ts`. See [`docs/mail/`](docs/mail/README.md).
+- **Every email leaves through `src/utils/email/mailer.ts`.** All three Workers
+  carry a `send_email` binding named `EMAIL` (Cloudflare Email Service) and send
+  with it — no credentials, no sandbox, from `hello@curevanails.com`
+  (`src/utils/email/sender.ts`; the domain must be onboarded with
+  `wrangler email sending enable curevanails.com`). A Worker deployed without
+  that binding falls back to AWS SES via the `AWS_*` secrets; only then do the
+  SES sandbox rule and the `/api/webhooks/ses` SNS receiver
+  (`https://admin.curevanails.com/api/webhooks/ses`) matter. Nothing above the
+  mailer — templates, `sendOne`, `email_logs`, the dashboard, the crons — knows
+  which transport is in use.
 - **Auth is form-based with a signed cookie**, not HTTP Basic Auth.
   `src/utils/admin-auth.ts` mints an HMAC-SHA256 token (keyed by
   `ADMIN_PASSWORD`, 12 h TTL); `src/middleware.ts` verifies it on every

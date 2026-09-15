@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { z } from "zod";
 import { ensureEmailSchema } from "../../../utils/email-db";
-import { createSesClient, sesCredentialsFromEnv } from "../../../utils/email/ses-client";
+import { createMailer, type Mailer } from "../../../utils/email/mailer";
 import { sendOne, type CampaignTemplate } from "../../../utils/email/send-service";
 
 // Server-rendered, never prerendered. Behind the auth gate in middleware.ts
@@ -44,13 +44,13 @@ export const POST: APIRoute = async ({ request }) => {
 
 	const envRecord = env as unknown as Record<string, unknown>;
 
-	// SES credentials — 500 with a clear message if the secrets aren't set.
-	let client: ReturnType<typeof createSesClient>;
+	// Transport — 500 with a clear message if neither is set up.
+	let mailer: Mailer;
 	try {
-		client = createSesClient(sesCredentialsFromEnv(envRecord));
+		mailer = createMailer(envRecord);
 	} catch (err) {
 		return json(
-			{ ok: false, error: err instanceof Error ? err.message : "SES not configured." },
+			{ ok: false, error: err instanceof Error ? err.message : "Email sending not configured." },
 			500,
 		);
 	}
@@ -68,7 +68,7 @@ export const POST: APIRoute = async ({ request }) => {
 
 	try {
 		// A synthetic recipient with sample values, mirroring the live preview.
-		await sendOne(client, db, {
+		await sendOne(mailer, db, {
 			template,
 			recipient: {
 				id: "test-send",

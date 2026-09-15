@@ -1,18 +1,22 @@
-# Email infrastructure (AWS SES)
+# Email infrastructure
+
+> **Superseded by [`mail/EMAIL.md`](mail/EMAIL.md)**, which describes the
+> current system (the `/mail` dashboard on the `admin` Worker, Cloudflare Email
+> Service as the transport, SES as the fallback). This page is the original
+> design note and keeps the older `/admin/email` paths.
 
 Lets the owner send templated emails (welcome, opening announcement, discount
 codes) to the **waitlist** and tracks delivery / bounces / complaints. Built
 into the existing CureVà admin — no separate app.
 
 ```
- Owner                         Cloudflare (this codebase)                    AWS
- ─────                         ──────────────────────────                    ───
+ Owner                         Cloudflare (this codebase)
+ ─────                         ──────────────────────────
  /admin/email ──POST──▶ /admin/email/send ──┬─▶ render (Handlebars)
  (compose UI)                               ├─▶ suppression precheck (D1)
-                                            └─▶ SES SendEmail ──────────────▶ SES (cureva-main)
-                                                  writes email_logs                  │
-                                                                                     ▼ events
- D1 email_logs / suppression_list  ◀──── /api/webhooks/ses ◀──── SNS ◀───── Delivery/Bounce/Complaint/Open/Click
+                                            └─▶ mailer.send() ──▶ Cloudflare Email Service (EMAIL binding)
+                                                  writes email_logs      └─ fallback: AWS SES ──▶ SNS ──▶ /api/webhooks/ses
+                                                                                                     (delivery/bounce/complaint → D1)
 ```
 
 ## Key idea: the subscriber list **is** the `waitlist` table
@@ -45,27 +49,31 @@ A new **Email** tab beside Recruit / Waitlist:
 - **Recent sends** — last 50 `email_logs` with status.
 - **Suppressed addresses** — the suppression list.
 
-Sending is disabled with a banner until the SES secrets are set (below).
+Sending is disabled with a banner until a transport is configured (below).
 
-## Secrets (production)
+## Transport
 
-Set on the **admin** Worker (where sending happens). They are **secrets**, not
-vars — never commit them:
+Every Worker carries a `send_email` binding named `EMAIL` (Cloudflare Email
+Service) and `src/utils/email/mailer.ts` sends through it. No secrets are
+needed; the From domain `curevanails.com` (`src/utils/email/sender.ts`) must
+be onboarded once with `wrangler email sending enable curevanails.com`.
+
+A Worker deployed **without** that binding falls back to AWS SES, which reads
+these **secrets** (never commit them):
 
 ```bash
 wrangler secret put AWS_REGION            --config wrangler.admin.jsonc
 wrangler secret put AWS_ACCESS_KEY_ID     --config wrangler.admin.jsonc
 wrangler secret put AWS_SECRET_ACCESS_KEY --config wrangler.admin.jsonc
-# Optional: public origin used to build unsubscribe links in emails
-wrangler secret put PUBLIC_SITE_URL       --config wrangler.admin.jsonc   # e.g. https://curevanails-tech.workers.dev
+# Optional on either transport: public origin used to build unsubscribe links
+wrangler secret put PUBLIC_SITE_URL       --config wrangler.admin.jsonc   # e.g. https://admin.curevanails.com
 ```
 
-Local dev: uncomment the `AWS_*` lines in `.dev.vars` (gitignored).
+Fixed in code (not secrets): From address `CureVà <hello@curevanails.com>` in
+`src/utils/email/sender.ts`; the SES Configuration Set comes from the
+`SES_CONFIGURATION_SET` var.
 
-Fixed in code (not secrets): From address `CureVà <hello@cureva.vn>`,
-Configuration Set `cureva-main` — see `src/utils/email/ses-client.ts`.
-
-## SNS webhook
+## SNS webhook (SES fallback only)
 
 Point the SES Configuration Set's SNS subscription at:
 
@@ -100,7 +108,9 @@ The public `POST /api/waitlist` is rate-limited to **5 signups / 10 min / IP**
 | --- | --- |
 | `src/utils/email-db.ts` | email tables + default-template seeding |
 | `src/utils/waitlist-db.ts` | subscriber schema (`unsubscribe_token`, `email_status`) |
-| `src/utils/email/ses-client.ts` | SES send + suppression precheck |
+| `src/utils/email/mailer.ts` | picks the transport (Cloudflare `EMAIL` binding, else SES) + suppression precheck |
+| `src/utils/email/sender.ts` | From identity + the per-message contract |
+| `src/utils/email/ses-client.ts` | the SES fallback transport |
 | `src/utils/email/template-render.ts` | Handlebars render + unsubscribe URL |
 | `src/utils/email/suppression.ts` | suppression check / add |
 | `src/utils/email/sns-verify.ts` | SNS signature verification |

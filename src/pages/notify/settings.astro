@@ -14,6 +14,7 @@ import {
 	setSetting,
 } from "../../utils/app-settings";
 import { emailNav } from "../../utils/email-nav";
+import { detectMailProvider } from "../../utils/email/mailer";
 import MailLayout from "../../layouts/MailLayout.astro";
 
 // Server-rendered, auth-gated by src/middleware.ts (path listed as protected).
@@ -21,6 +22,13 @@ export const prerender = false;
 
 const nav = emailNav();
 const db = env.DB as D1Database;
+
+/* Only the SES fallback has a sandbox; on Cloudflare Email Service any
+   address can receive the alert, so the caveat would just be noise. */
+const verifyHint =
+	detectMailProvider(env as unknown as Record<string, unknown>) === "ses"
+		? " In the SES sandbox, each address must be verified in AWS."
+		: "";
 
 let saved = false;
 let error: string | null = null;
@@ -92,11 +100,11 @@ const count = parseRecipients(value).length;
 					value={value}
 					placeholder="you@example.com, partner@example.com"
 					autocomplete="off"
+					data-verify-hint={verifyHint}
 					class="js-chip-source form-input w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 shadow-theme-xs focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30"
 				/>
 				<p class="js-chip-fallback-hint mt-2 text-xs text-gray-400 dark:text-gray-500">
-					Separate multiple addresses with commas. Leave blank to turn alerts off. In the SES
-					sandbox, each address must be verified in AWS.
+					Separate multiple addresses with commas. Leave blank to turn alerts off.{verifyHint}
 				</p>
 				<div class="mt-4 flex items-center gap-3">
 					<button
@@ -183,7 +191,8 @@ const count = parseRecipients(value).length;
 					? "No recipients — alerts are OFF. "
 					: `${items.length} recipient${items.length === 1 ? "" : "s"}. `) +
 				(bad ? `${bad} ${bad === 1 ? "address is" : "addresses are"} not valid. ` : "") +
-				"Press Enter or comma to add. In the SES sandbox, each address must be verified in AWS.";
+				"Press Enter or comma to add." +
+				(source.dataset.verifyHint ?? "");
 			help.className = `mt-2 text-xs ${
 				bad ? "text-error-600 dark:text-error-400" : "text-gray-400 dark:text-gray-500"
 			}`;

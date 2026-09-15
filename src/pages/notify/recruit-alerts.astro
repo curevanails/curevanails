@@ -9,6 +9,7 @@ import { listUnthankedApplications } from "../../utils/recruit-db";
 import { RECRUIT_NOTIFY_TO, getSetting, parseRecipients } from "../../utils/app-settings";
 import { PILL, fmtTs } from "../../utils/email-format";
 import { emailNav } from "../../utils/email-nav";
+import { detectMailProvider } from "../../utils/email/mailer";
 import MailLayout from "../../layouts/MailLayout.astro";
 import EmptyState from "../../components/mail/EmptyState.astro";
 
@@ -22,8 +23,10 @@ const db = env.DB as D1Database;
 const rows = await listRecruitEmails(db, 200);
 const recipients = parseRecipients(await getSetting(db, RECRUIT_NOTIFY_TO));
 /* Still owed a thank-you. Nothing here sends: the admin Worker's cron does
-   that on its own, every five minutes, the moment SES will accept it. This
-   is a status line, not a control — there is deliberately nothing to press. */
+   that on its own, every five minutes, the moment the transport will accept
+   it (at once on Cloudflare Email Service; after production access on the SES
+   fallback). This is a status line, not a control — there is deliberately
+   nothing to press. */
 const unthanked = await listUnthankedApplications(db, 100);
 
 /* SES rejects an unverified recipient with a message that reads like a bug in
@@ -31,13 +34,18 @@ const unthanked = await listUnthankedApplications(db, 100);
    only verified addresses can be written to. Candidates are strangers and can
    never be verified in advance, so in the sandbox the thank-you fails for
    EVERYONE. Say that plainly rather than leaving the raw AWS string to be
-   misread as something the code did wrong. */
+   misread as something the code did wrong. Only while SES is the transport
+   in use, though — the old failed rows stay in the log after the switch to
+   Cloudflare Email Service, and a warning about a transport we no longer
+   send through would only mislead. */
 const SANDBOX_HINT =
 	"AWS SES is in sandbox mode, where only verified addresses can receive mail. " +
 	"Candidates can never be verified in advance, so this fails for every applicant " +
 	"until production access is granted in the SES console.";
 const isSandbox = (msg: string | null) => !!msg && /not verified|identities failed the check/i.test(msg);
-const sandboxSeen = rows.some((r) => isSandbox(r.error_message));
+const sandboxSeen =
+	detectMailProvider(env as unknown as Record<string, unknown>) === "ses" &&
+	rows.some((r) => isSandbox(r.error_message));
 
 const badge: Record<string, string> = {
 	sent: "bg-success-50 text-success-700 dark:bg-success-500/15 dark:text-success-500",

@@ -7,6 +7,13 @@
 	"main": "./src/worker.ts",
 	"compatibility_date": "2026-02-24",
 	"compatibility_flags": ["nodejs_compat"],
+	// Cloudflare Email Service. `env.EMAIL.send()` is how every email leaves
+	// this Worker (src/utils/email/mailer.ts) — no credentials, no sandbox. The
+	// From domain (curevanails.com, src/utils/email/sender.ts) must be onboarded
+	// for Email Sending on this account: `wrangler email sending enable
+	// curevanails.com`. Remove the binding and the Worker falls back to AWS SES
+	// via the AWS_* secrets.
+	"send_email": [{ "name": "EMAIL" }],
 	// GETREADY_STANDALONE makes the app serve the /getready page at the root
 	// (`/`) of this Worker. See src/middleware.ts.
 	"vars": {
