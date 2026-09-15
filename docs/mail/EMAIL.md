@@ -39,10 +39,15 @@ the domain is onboarded. Everything above the mailer — templates, `sendOne`,
   on the SES fallback (they come from SNS); on Cloudflare a row stops at `sent`,
   and per-message delivery detail lives in the Cloudflare dashboard.
 - **Fallback.** A Worker deployed without the `EMAIL` binding uses AWS SES via
-  the `AWS_*` secrets. Only then do the SES sandbox rule, the Configuration Set
-  and the `/api/webhooks/ses` receiver matter. The recruit catch-up cron asks
-  the transport whether it can reach unverified addresses before trying — always
-  yes on Cloudflare, `GetAccount` on SES.
+  the `AWS_*` secrets. So does a Worker whose Cloudflare send is refused with
+  `E_SENDER_NOT_VERIFIED` / `E_SENDER_DOMAIN_NOT_AVAILABLE` (domain not
+  onboarded yet): it routes through SES for ten minutes, then tries Cloudflare
+  again, so the binding can ship before the onboarding without a single email
+  regressing, and switches over by itself once the domain is live. Only on SES
+  do the sandbox rule, the Configuration Set and the `/api/webhooks/ses`
+  receiver matter. The recruit catch-up cron asks the transport whether it can
+  reach unverified addresses before trying — always yes on Cloudflare,
+  `GetAccount` on SES (also while falling back).
 - **Local dev / E2E.** `wrangler dev` (and `astro preview`) simulate the binding:
   a send is logged and written to a local file, never delivered. Add
   `"remote": true` to the binding only when you deliberately want real sends

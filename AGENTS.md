@@ -163,8 +163,9 @@ password-protected dashboard reviews them. **Guides: the form field contract is
   with it — no credentials, no sandbox, from `hello@curevanails.com`
   (`src/utils/email/sender.ts`; the domain must be onboarded with
   `wrangler email sending enable curevanails.com`). A Worker deployed without
-  that binding falls back to AWS SES via the `AWS_*` secrets; only then do the
-  SES sandbox rule and the `/api/webhooks/ses` SNS receiver
+  that binding — or one whose send Cloudflare refuses because the domain is
+  not onboarded yet — falls back to AWS SES via the `AWS_*` secrets; only then
+  do the SES sandbox rule and the `/api/webhooks/ses` SNS receiver
   (`https://admin.curevanails.com/api/webhooks/ses`) matter. Nothing above the
   mailer — templates, `sendOne`, `email_logs`, the dashboard, the crons — knows
   which transport is in use.

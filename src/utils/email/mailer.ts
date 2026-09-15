@@ -18,12 +18,14 @@ import { FROM_EMAIL, FROM_NAME, unsubscribeHeaders, type SendParams } from "./se
  *     moment the domain is onboarded. Hard bounces and spam complaints are
  *     suppressed by Cloudflare itself and surface here as
  *     `E_RECIPIENT_SUPPRESSED`, which we mirror into our own suppression list.
- *   - **AWS SES** — the fallback, used only when a Worker has no `EMAIL`
- *     binding but does have the AWS secrets. Kept so the SNS webhook and the
- *     historical `email_logs` rows still make sense, and so removing the
- *     binding never leaves a Worker unable to send. While the AWS account is
- *     in its sandbox it can only reach verified addresses — which is why the
- *     Cloudflare transport exists.
+ *   - **AWS SES** — the fallback, used when a Worker has no `EMAIL` binding
+ *     but does have the AWS secrets, and — transitionally — when Cloudflare
+ *     refuses the sender because the domain is not onboarded yet. Kept so the
+ *     SNS webhook and the historical `email_logs` rows still make sense, and
+ *     so neither removing the binding nor deploying it a day before the
+ *     domain is onboarded leaves a Worker unable to send. While the AWS
+ *     account is in its sandbox it can only reach verified addresses — which
+ *     is why the Cloudflare transport exists.
  *
  * Everything above this module — templates, the send loop, `email_logs`, the
  * dashboard, the crons — talks to a `Mailer` and never learns which one it is.
@@ -76,11 +78,17 @@ export function detectMailProvider(env: Record<string, unknown>): MailProvider |
  */
 export function createMailer(env: Record<string, unknown>): Mailer {
 	const binding = sendEmailBinding(env);
-	if (binding) return cloudflareMailer(binding);
+	const ses = sesMailerFromEnv(env);
+	if (binding) return cloudflareMailer(binding, ses);
+	if (ses) return ses;
+	throw new Error(NOT_CONFIGURED_MESSAGE);
+}
+
+function sesMailerFromEnv(env: Record<string, unknown>): Mailer | null {
 	try {
 		return sesMailer(createSesClient(sesCredentialsFromEnv(env)));
 	} catch {
-		throw new Error(NOT_CONFIGURED_MESSAGE);
+		return null;
 	}
 }
 
@@ -95,10 +103,33 @@ function cloudflareErrorCode(err: unknown): string | undefined {
 		: undefined;
 }
 
-function cloudflareMailer(binding: SendEmail): Mailer {
+/**
+ * The codes that mean "Cloudflare will not send from this domain (yet)" — it
+ * is not onboarded for Email Sending. Every other code is about one message
+ * and must surface as that message's failure.
+ */
+const SENDER_REFUSED = new Set(["E_SENDER_NOT_VERIFIED", "E_SENDER_DOMAIN_NOT_AVAILABLE"]);
+
+/**
+ * Remembered per isolate: once Cloudflare has refused the sender, go straight
+ * to the fallback for a while rather than failing every message twice and
+ * filling email_logs with the same refusal. It expires on its own, so the
+ * moment the domain is onboarded the Worker switches back — no redeploy, no
+ * flag to flip.
+ */
+let senderRefusedUntil = 0;
+const SENDER_REFUSED_TTL_MS = 10 * 60 * 1000;
+
+function cloudflareMailer(binding: SendEmail, fallback: Mailer | null): Mailer {
+	const fallingBack = (): Mailer | null =>
+		fallback && Date.now() < senderRefusedUntil ? fallback : null;
+
 	return {
 		provider: "cloudflare",
 		async send(db, params) {
+			const viaFallback = fallingBack();
+			if (viaFallback) return viaFallback.send(db, params);
+
 			await refuseSuppressed(db, params.to);
 			const headers = unsubscribeHeaders(params.unsubscribeUrl);
 			try {
@@ -112,15 +143,26 @@ function cloudflareMailer(binding: SendEmail): Mailer {
 				});
 				return result.messageId;
 			} catch (err) {
+				const code = cloudflareErrorCode(err);
 				// Cloudflare already refuses the address on its side; mirror that
 				// into our list so the dashboard shows it and we stop trying.
-				if (cloudflareErrorCode(err) === "E_RECIPIENT_SUPPRESSED") {
-					await suppressQuietly(db, params.to);
+				if (code === "E_RECIPIENT_SUPPRESSED") await suppressQuietly(db, params.to);
+				// Domain not onboarded: not this message's fault. Use SES while it
+				// is configured, so a deploy that lands before the onboarding does
+				// not stop a single email that used to go out.
+				if (code && SENDER_REFUSED.has(code) && fallback) {
+					console.warn(
+						`cloudflare email: sender refused (${code}); using the SES fallback for ${SENDER_REFUSED_TTL_MS / 60000} min`,
+					);
+					senderRefusedUntil = Date.now() + SENDER_REFUSED_TTL_MS;
+					return fallback.send(db, params);
 				}
 				throw err;
 			}
 		},
-		canReachAnyone: async () => true,
+		// No sandbox on Cloudflare — unless we are currently routing through
+		// SES, in which case its answer is the honest one.
+		canReachAnyone: async () => fallingBack()?.canReachAnyone() ?? true,
 	};
 }
 
