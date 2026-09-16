@@ -97,6 +97,20 @@ function emailTarget(sub: string): string | null {
 }
 
 export const onRequest = defineMiddleware(async (context, next) => {
+	// `www` is an alias, not a second site. Both hostnames are custom domains on
+	// the same Worker (wrangler.jsonc `routes`), so without this every page would
+	// exist at two URLs — two sets of cookies, and a canonical no search engine
+	// can pick between. Redirect before anything else looks at the request, so
+	// the admin gate and the standalone rewrites only ever see the real host.
+	// 308 rather than 302: the method must survive, or a form POST to www would
+	// silently become a GET.
+	const host = context.url.hostname;
+	if (host.startsWith("www.")) {
+		const canonical = new URL(context.url);
+		canonical.hostname = host.slice(4);
+		return context.redirect(canonical.toString(), 308);
+	}
+
 	// Normalize a trailing slash so it can't flip a route between the admin gate
 	// and a public exemption (Astro's default `trailingSlash: "ignore"` serves
 	// both `/admin/login` and `/admin/login/`).
