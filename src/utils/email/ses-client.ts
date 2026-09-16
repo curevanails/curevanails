@@ -93,6 +93,7 @@ export async function sendViaSes(
 		new SendEmailCommand({
 			FromEmailAddress: FROM_ADDRESS,
 			Destination: { ToAddresses: [params.to] },
+			...(params.replyTo ? { ReplyToAddresses: [params.replyTo] } : {}),
 			Content: {
 				Simple: {
 					Subject: { Data: params.subject },

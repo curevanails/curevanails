@@ -31,6 +31,12 @@ export interface SendParams {
 	/** email_logs.id — SES surfaces it to its events as the `log_id` tag. */
 	logId: string;
 	/**
+	 * Where a reply should go, when that is not us. The recruiter alert sets it
+	 * to the candidate, because its footer tells staff to reply to reach them —
+	 * and without this, Reply goes to the From address, which has no mailbox.
+	 */
+	replyTo?: string;
+	/**
 	 * Per-recipient opt-out URL. When set (and absolute), it becomes the
 	 * `List-Unsubscribe` header plus `List-Unsubscribe-Post: List-Unsubscribe=One-Click`,
 	 * giving the recipient the native one-click Unsubscribe button in Gmail /

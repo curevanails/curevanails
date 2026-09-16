@@ -264,6 +264,9 @@ export const POST: APIRoute = async ({ request }) => {
 	const storedPhone = formatPhone(phoneNational as string);
 
 	// --- Persist to D1 ---
+	// Stamped once and reused: the row's `created_at` and the "Applied" line in
+	// the recruiter's alert must name the same instant.
+	const createdAt = new Date().toISOString();
 	try {
 		await ensureApplicationsSchema(db);
 		await db
@@ -276,7 +279,7 @@ export const POST: APIRoute = async ({ request }) => {
 			)
 			.bind(
 				id,
-				new Date().toISOString(),
+				createdAt,
 				firstName,
 				lastName,
 				email || null,
@@ -315,6 +318,7 @@ export const POST: APIRoute = async ({ request }) => {
 			employmentType,
 			portfolioLink: portfolioLink || null,
 			whyCureva: whyCureva || null,
+			appliedAt: createdAt,
 		});
 	} catch (err) {
 		console.error("recruit emails failed", err);

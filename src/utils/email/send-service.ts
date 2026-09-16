@@ -90,9 +90,11 @@ export async function sendOne(
 		recipient: Recipient;
 		baseUrl: string;
 		extraVars: Record<string, unknown>;
+		/** Passed through to the transport — see `SendParams.replyTo`. */
+		replyTo?: string;
 	},
 ): Promise<void> {
-	const { template, recipient, baseUrl, extraVars } = opts;
+	const { template, recipient, baseUrl, extraVars, replyTo } = opts;
 	const logId = newId();
 	const now = Date.now();
 
@@ -104,12 +106,19 @@ export async function sendOne(
 		.bind(logId, recipient.id, template.id, recipient.email)
 		.run();
 
-	const unsubscribeUrl = buildUnsubscribeUrl(baseUrl, recipient.unsubscribe_token);
+	// A recruit email has no subscription to leave, so its recipient carries no
+	// token — and `/unsubscribe/` without one is a 404. Building the URL anyway
+	// put a `List-Unsubscribe` header on those emails pointing at that 404, which
+	// is how Gmail was showing candidates an Unsubscribe button that went nowhere.
+	// No token, no link, no header.
+	const unsubscribeUrl = recipient.unsubscribe_token
+		? buildUnsubscribeUrl(baseUrl, recipient.unsubscribe_token)
+		: undefined;
 
 	const variables: Record<string, unknown> = {
 		name: recipient.name ?? "there",
 		email: recipient.email,
-		unsubscribe_url: unsubscribeUrl,
+		unsubscribe_url: unsubscribeUrl ?? "",
 		...(recipient.discount_code ? { discount_code: recipient.discount_code } : {}),
 		...extraVars,
 	};
@@ -129,6 +138,7 @@ export async function sendOne(
 			html: rendered.html,
 			text,
 			logId,
+			...(replyTo ? { replyTo } : {}),
 			unsubscribeUrl,
 		});
 		await db

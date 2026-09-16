@@ -185,6 +185,7 @@ function cloudflareMailer(binding: SendEmail, fallback: Mailer | null): Mailer {
 					to: params.to,
 					subject: params.subject,
 					html: params.html,
+					...(params.replyTo ? { replyTo: params.replyTo } : {}),
 					...(params.text ? { text: params.text } : {}),
 					...(Object.keys(headers).length ? { headers } : {}),
 				});

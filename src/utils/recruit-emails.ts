@@ -31,6 +31,7 @@ import {
 	type Recipient,
 } from "./email/send-service";
 import { RECRUIT_NOTIFY_TO, getSetting, parseRecipients } from "./app-settings";
+import { fmtSchedule } from "./email-format";
 
 /** Canonical admin dashboard (the standalone `admin` Worker serves it at root). */
 const ADMIN_DASHBOARD_URL = "https://admin.curevanails.com";
@@ -50,6 +51,15 @@ export interface ApplicationSummary {
 	employmentType: string[];
 	portfolioLink: string | null;
 	whyCureva: string | null;
+	/** ISO instant the application was saved. Shown to the recruiter, not the candidate. */
+	appliedAt?: string | null;
+}
+
+/** Mountain Time, matching every other timestamp an operator reads. */
+function appliedAtLabel(iso: string | null | undefined): string {
+	if (!iso) return "";
+	const ms = Date.parse(iso);
+	return Number.isFinite(ms) ? fmtSchedule(ms) : "";
 }
 
 function humanize(v: string): string {
@@ -77,6 +87,11 @@ function templateVars(app: ApplicationSummary): Record<string, unknown> {
 		graduation_date: app.graduationDate ?? "",
 		portfolio_link: app.portfolioLink ?? "",
 		why_cureva: app.whyCureva ?? "",
+		// The alert template has an "Applied" row behind `{{#if applied_at}}`.
+		// Nothing ever supplied it, so the row silently never rendered and the
+		// recruiter could not see when an application arrived — which matters
+		// most for the ones the catch-up thanks weeks later.
+		applied_at: appliedAtLabel(app.appliedAt),
 		dashboard_url: ADMIN_DASHBOARD_URL,
 	};
 }
@@ -136,6 +151,7 @@ function toSummary(row: UnthankedApplication): ApplicationSummary {
 		employmentType: parseStoredList(row.employment_type),
 		portfolioLink: row.portfolio_link,
 		whyCureva: row.why_cureva,
+		appliedAt: row.created_at,
 	};
 }
 
@@ -300,6 +316,10 @@ export async function sendRecruitEmails(
 					recipient,
 					baseUrl: ADMIN_DASHBOARD_URL,
 					extraVars: vars,
+					// The template's footer says "reply to reach the candidate", so
+					// make that true. Without it Reply goes to the From address,
+					// which is a send-only mailbox.
+					...(app.email ? { replyTo: app.email } : {}),
 				});
 			} catch (err) {
 				console.error("recruit alert send failed", err);
