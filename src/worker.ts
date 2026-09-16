@@ -1,14 +1,16 @@
 import handler from "@astrojs/cloudflare/entrypoints/server";
 import { runDueCampaigns } from "./utils/email/campaigns";
 import { retryPendingAcks } from "./utils/recruit-emails";
+import { retryPendingWelcomes } from "./utils/waitlist-emails";
 
 export { PluginBridge } from "@emdash-cms/cloudflare/sandbox";
 
 // The Astro Cloudflare adapter provides the `fetch` handler. We extend it with a
 // `scheduled` handler so the admin Worker's Cron Trigger (wrangler.admin.jsonc,
 // `*/5 * * * *`) can fire due scheduled email campaigns, and re-send the
-// candidate thank-yous that failed at submit time — most often because the SES
-// account was still in its sandbox; see retryPendingAcks for the back-off.
+// candidate thank-yous and waitlist welcomes that failed at submit time — most
+// often because the SES account was still in its sandbox; see retryPendingAcks
+// and retryPendingWelcomes for the back-off.
 // `ctx.waitUntil` keeps the Worker alive until sending finishes. Workers
 // without a cron trigger (the main site, getready) never invoke `scheduled`,
 // so this is inert there.
@@ -19,5 +21,6 @@ export default {
 	scheduled(_controller, _env, ctx) {
 		ctx.waitUntil(runDueCampaigns());
 		ctx.waitUntil(retryPendingAcks());
+		ctx.waitUntil(retryPendingWelcomes());
 	},
 } satisfies ExportedHandler;

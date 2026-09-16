@@ -43,7 +43,8 @@ CREATE TABLE IF NOT EXISTS waitlist (
   notes         TEXT,
   unsubscribe_token TEXT,
   email_status  TEXT NOT NULL DEFAULT 'active',
-  ack_email_sent_at TEXT
+  ack_email_sent_at TEXT,
+  ack_last_attempt_at TEXT
 )`;
 
 const CREATE_EMAIL_INDEX = `
@@ -86,6 +87,9 @@ export async function ensureWaitlistSchema(db: D1Database): Promise<void> {
 	if (!columns.has("ack_email_sent_at")) {
 		await db.prepare("ALTER TABLE waitlist ADD COLUMN ack_email_sent_at TEXT").run();
 	}
+	if (!columns.has("ack_last_attempt_at")) {
+		await db.prepare("ALTER TABLE waitlist ADD COLUMN ack_last_attempt_at TEXT").run();
+	}
 
 	await db.prepare(CREATE_EMAIL_INDEX).run();
 
@@ -99,6 +103,72 @@ export async function ensureWaitlistSchema(db: D1Database): Promise<void> {
 			.bind(newUnsubscribeToken(), row.id)
 			.run();
 	}
+}
+
+/**
+ * Record that a welcome was attempted, whatever came of it. This is what lets
+ * the scheduled catch-up back off: a subscriber whose send just failed is not
+ * retried five minutes later, and again five minutes after that, writing a
+ * failed row into `email_logs` every time. Mirrors `markAckAttempt` in
+ * `recruit-db.ts`.
+ */
+export async function markWelcomeAttempt(db: D1Database, id: string): Promise<void> {
+	try {
+		await db
+			.prepare("UPDATE waitlist SET ack_last_attempt_at = ? WHERE id = ?")
+			.bind(new Date().toISOString(), id)
+			.run();
+	} catch (err) {
+		console.error("waitlist: failed to stamp ack_last_attempt_at", err);
+	}
+}
+
+/** A subscriber who joined but was never welcomed. */
+export interface UnwelcomedSubscriber {
+	id: string;
+	created_at: string;
+	email: string;
+	unsubscribe_token: string | null;
+}
+
+/**
+ * Subscribers still owed a welcome: `ack_email_sent_at` was never stamped.
+ *
+ * The send at signup is best-effort and its most likely failure was not
+ * transient — in the SES sandbox every subscriber address is unverified, so the
+ * welcome could not succeed for anyone. Without a way to find them afterwards
+ * the people who joined during that window stay unwelcomed forever. Oldest
+ * first: they have been waiting longest.
+ *
+ * `email_status = 'active'` is the difference from the recruit query: the
+ * waitlist carries unsubscribes, bounces and complaints, and a catch-up that
+ * ignored them would mail people who already asked us to stop.
+ */
+export async function listUnwelcomedSubscribers(
+	db: D1Database,
+	limit = 100,
+	/**
+	 * Only rows not attempted since this instant (ISO). Omit to take everyone
+	 * owed a welcome regardless; pass a cutoff so the scheduled run leaves
+	 * recent failures alone for a while.
+	 */
+	notAttemptedSince?: string,
+): Promise<UnwelcomedSubscriber[]> {
+	await ensureWaitlistSchema(db);
+	const res = await db
+		.prepare(
+			`SELECT id, created_at, email, unsubscribe_token
+			   FROM waitlist
+			  WHERE ack_email_sent_at IS NULL
+			    AND email IS NOT NULL AND TRIM(email) <> ''
+			    AND email_status = 'active'
+			    AND (? IS NULL OR ack_last_attempt_at IS NULL OR ack_last_attempt_at < ?)
+			  ORDER BY created_at ASC
+			  LIMIT ?`,
+		)
+		.bind(notAttemptedSince ?? null, notAttemptedSince ?? null, limit)
+		.all<UnwelcomedSubscriber>();
+	return res.results ?? [];
 }
 
 /**
