@@ -26,10 +26,14 @@ the domain is onboarded. Everything above the mailer — templates, `sendOne`,
 - **From** is `CureVà <hello@curevanails.com>` (`src/utils/email/sender.ts`).
   The domain must be onboarded for Email Sending on the Cloudflare account:
   `npx wrangler email sending enable curevanails.com`, then
-  `npx wrangler email sending dns get curevanails.com` to confirm the SPF/DKIM
-  records landed (DNS is on Cloudflare, so they are added for you). Keep a
-  **single** SPF record: merge the Cloudflare include into the existing one
-  rather than adding a second `v=spf1` TXT.
+  `npx wrangler email sending dns get curevanails.com` to confirm the records
+  landed (DNS is on Cloudflare, so they are added for you). They all live on
+  the `cf-bounce.curevanails.com` subdomain — its MX (bounces), its SPF
+  (`v=spf1 include:_spf.mx.cloudflare.net ~all`) and the DKIM key at
+  `cf-bounce._domainkey` — so the apex SPF that authorises SES is left alone
+  and the two transports never fight over one record. DMARC on `_dmarc` is
+  ours (`p=quarantine`, relaxed alignment), which the `cf-bounce` subdomain
+  satisfies.
 - **Suppression** is two-layered: our `suppression_list` is checked before
   every send, and Cloudflare keeps its own list of hard bounces and spam
   complaints. A send refused with `E_RECIPIENT_SUPPRESSED` is mirrored into
