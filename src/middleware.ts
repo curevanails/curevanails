@@ -98,12 +98,18 @@ function emailTarget(sub: string): string | null {
 
 export const onRequest = defineMiddleware(async (context, next) => {
 	// `www` is an alias, not a second site. Both hostnames are custom domains on
-	// the same Worker (wrangler.jsonc `routes`), so without this every page would
-	// exist at two URLs — two sets of cookies, and a canonical no search engine
-	// can pick between. Redirect before anything else looks at the request, so
-	// the admin gate and the standalone rewrites only ever see the real host.
-	// 308 rather than 302: the method must survive, or a form POST to www would
-	// silently become a GET.
+	// the same Worker (wrangler.jsonc `routes`), so without a redirect every page
+	// would exist at two URLs — two sets of cookies, and a canonical no search
+	// engine can pick between.
+	//
+	// In production this branch does NOT run: the zone already carries an edge
+	// Redirect Rule for `www`, and Cloudflare evaluates those before it reaches a
+	// Worker, so a request to www.curevanails.com comes back as a 301 from the
+	// edge and never gets here. (That rule was always there — it simply had
+	// nothing to fire on, because the zone had no `www` DNS record until the
+	// custom domain above created one.) This stays as the fallback for the day
+	// that rule is edited or removed, and it is deliberately a 308, not the
+	// edge's 301, so the method survives a form POST.
 	const host = context.url.hostname;
 	if (host.startsWith("www.")) {
 		const canonical = new URL(context.url);
