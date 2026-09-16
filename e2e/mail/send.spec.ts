@@ -5,15 +5,18 @@ import { ADMIN_PASSWORD, login } from "./helpers";
  * Safety coverage for the endpoints that CAN dispatch mail — `/api/email/send`,
  * `/api/email/test`, `/api/email/schedule`.
  *
- * ⚠️  No test here may cause a real AWS SES send. That invariant is upheld two
- * ways, both grounded in the endpoints' control flow (see the source):
+ * ⚠️  No test here may cause a real send. That invariant is upheld three ways,
+ * all grounded in the endpoints' control flow (see the source):
  *   1. Malformed bodies fail Zod validation (422) and the audience/ids guard
- *      (422) BEFORE any SES client is built.
+ *      (422) BEFORE any mailer is built.
  *   2. A well-formed body that names a NON-EXISTENT template can never reach
- *      the send call: the endpoint either 500s at the SES-credential check
- *      (creds absent, as in this test env) or 404s at the template lookup
- *      (creds present) — in both branches `sendOne`/`sendCampaign` is never
- *      invoked. So this file is safe whether or not SES secrets are configured.
+ *      the send call: the endpoint either 500s when no transport can carry it
+ *      or 404s at the template lookup — in both branches `sendOne` /
+ *      `sendCampaign` is never invoked. So this file is safe whichever
+ *      transport the Worker happens to have.
+ *   3. Under Miniflare the `EMAIL` binding is simulated: a send is written to a
+ *      local file, never delivered. Real delivery would need AWS secrets, which
+ *      this test env does not set.
  *
  * The real happy-path send is intentionally NOT exercised end-to-end; doing so
  * would email real waitlist subscribers.
@@ -110,10 +113,12 @@ test.describe("POST /api/email/schedule", () => {
 });
 
 test.describe("compose page", () => {
-	test("the send button is disabled when SES is not configured", async ({ page }) => {
-		// The test env has no AWS secrets, so `sesConfigured` is false and Compose
-		// renders the campaign button disabled — a real send is impossible from
-		// the UI here.
+	test("the send button is disabled when campaigns have no transport", async ({ page }) => {
+		// A campaign is marketing, so it needs SES (Cloudflare Email Service is
+		// transactional-only). The test env has no AWS secrets, so
+		// `canSendCampaign` is false and Compose renders the button disabled — a
+		// real campaign send is impossible from the UI here, even though the
+		// simulated EMAIL binding could carry a transactional one.
 		await expect(page.locator("#send-btn")).toBeDisabled();
 	});
 });

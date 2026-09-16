@@ -14,6 +14,26 @@ into the existing CureVà admin — no separate app.
                                                                                                      (delivery/bounce/complaint → D1)
 ```
 
+## Which transport carries which email
+
+`createMailer(env, kind)` takes the kind of email as an argument, because the
+transports are not interchangeable:
+
+| Kind | What it is | Transport |
+| --- | --- | --- |
+| `transactional` (default) | A message one person's own action earned them: the recruit thank-you and recruiter alert, the waitlist welcome, an operator's test send | Cloudflare `EMAIL` binding, else SES |
+| `marketing` | One message to an audience because we decided to send it: the opening announcement, a discount — `/api/email/send` and the scheduled-campaign runner | **SES only** |
+
+Cloudflare Email Service does not permit bulk or marketing sending. Pushing
+campaigns through it anyway would put the transport that every transactional
+email now depends on at risk, so `createMailer(env, "marketing")` refuses the
+binding outright and throws `MARKETING_NEEDS_SES_MESSAGE` when SES is absent.
+That is why Compose can show "Campaigns need AWS SES" on a Worker whose
+thank-you emails are going out perfectly well; the dashboard asks
+`canSendCampaign()` / `canSendTransactional()` (`email-data.ts`), both of which
+build the very mailer a send would build, so a greyed-out button can never
+disagree with what pressing it would do.
+
 ## Transport: Cloudflare Email Service, SES as fallback
 
 `src/utils/email/mailer.ts` is the one place that decides how an email leaves.
@@ -52,6 +72,12 @@ the domain is onboarded. Everything above the mailer — templates, `sendOne`,
   receiver matter. The recruit catch-up cron asks the transport whether it can
   reach unverified addresses before trying — always yes on Cloudflare,
   `GetAccount` on SES (also while falling back).
+- **Plain text is generated, never authored.** Templates are HTML-only — nobody
+  editing one in a browser will maintain a second copy by hand, and asking them
+  to only produces two that drift. `sendOne` derives the text part from the
+  rendered HTML at send time (`html-to-text.ts`), so every email carries both
+  and the two cannot disagree. A template that *does* have a `text` body keeps
+  it.
 - **Local dev / E2E.** `wrangler dev` (and `astro preview`) simulate the binding:
   a send is logged and written to a local file, never delivered. Add
   `"remote": true` to the binding only when you deliberately want real sends

@@ -44,10 +44,12 @@ export const POST: APIRoute = async ({ request }) => {
 
 	const envRecord = env as unknown as Record<string, unknown>;
 
-	// Transport — 500 with a clear message if neither is set up.
+	// Transport — 500 with a clear message if neither is set up. A test send is
+	// one message an operator addresses to themselves, so it is transactional
+	// whichever template it renders, and either transport may carry it.
 	let mailer: Mailer;
 	try {
-		mailer = createMailer(envRecord);
+		mailer = createMailer(envRecord, "transactional");
 	} catch (err) {
 		return json(
 			{ ok: false, error: err instanceof Error ? err.message : "Email sending not configured." },

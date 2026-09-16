@@ -48,7 +48,8 @@ export async function runDueCampaigns(): Promise<void> {
 	const envRecord = env as unknown as Record<string, unknown>;
 	let mailer: Mailer;
 	try {
-		mailer = createMailer(envRecord);
+		// A campaign is marketing, so this is SES or nothing — see mailer.ts.
+		mailer = createMailer(envRecord, "marketing");
 	} catch (err) {
 		// No transport — mark the due campaigns failed so they don't spin.
 		const message = err instanceof Error ? err.message : "Email sending not configured.";

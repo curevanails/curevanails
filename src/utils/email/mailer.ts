@@ -29,9 +29,30 @@ import { FROM_EMAIL, FROM_NAME, unsubscribeHeaders, type SendParams } from "./se
  *
  * Everything above this module — templates, the send loop, `email_logs`, the
  * dashboard, the crons — talks to a `Mailer` and never learns which one it is.
+ *
+ * What a caller DOES declare is the kind of email it is sending, because the
+ * two transports are not interchangeable for every kind: Cloudflare Email
+ * Service is for transactional mail only, by policy, so a campaign to the
+ * waiting list must go through SES even on a Worker that has the binding.
  */
 
 export type MailProvider = "cloudflare" | "ses";
+
+/**
+ * What kind of email a caller is sending. This is a policy question, not a
+ * preference — it decides which transports are even allowed.
+ *
+ *   - `transactional` — a message one person's own action just earned them:
+ *     the thank-you for an application, the recruiter's alert about it, the
+ *     welcome for joining the list, a test send an operator addresses to
+ *     themselves. Either transport may carry these.
+ *   - `marketing` — one message sent to an audience because we decided to send
+ *     it: the opening announcement, a discount. **SES only.** Cloudflare Email
+ *     Service does not permit bulk or marketing sending, and quietly pushing
+ *     campaigns through it would risk the transport every transactional email
+ *     now depends on.
+ */
+export type MailKind = "transactional" | "marketing";
 
 export interface Mailer {
 	readonly provider: MailProvider;
@@ -53,6 +74,10 @@ export const NOT_CONFIGURED_MESSAGE =
 	"Email sending not configured: give the Worker the `EMAIL` send_email binding " +
 	"(Cloudflare Email Service) or set AWS_REGION, AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY (SES).";
 
+export const MARKETING_NEEDS_SES_MESSAGE =
+	"Campaign sending needs AWS SES: Cloudflare Email Service is for transactional " +
+	"email only. Set AWS_REGION, AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY on this Worker.";
+
 /** Duck-type the binding — wrangler injects an object whose `send` is a function. */
 function sendEmailBinding(env: Record<string, unknown>): SendEmail | null {
 	const b = env.EMAIL;
@@ -73,15 +98,37 @@ export function detectMailProvider(env: Record<string, unknown>): MailProvider |
 }
 
 /**
- * Build the mailer for this Worker. Throws with `NOT_CONFIGURED_MESSAGE` when
- * neither transport is available, so every caller can log one honest reason.
+ * Build the mailer for this Worker and this kind of email. Throws a message the
+ * caller can log or show verbatim when nothing may carry it — one honest reason
+ * rather than a silent no-op.
  */
-export function createMailer(env: Record<string, unknown>): Mailer {
-	const binding = sendEmailBinding(env);
+export function createMailer(
+	env: Record<string, unknown>,
+	kind: MailKind = "transactional",
+): Mailer {
 	const ses = sesMailerFromEnv(env);
+	if (kind === "marketing") {
+		if (ses) return ses;
+		throw new Error(MARKETING_NEEDS_SES_MESSAGE);
+	}
+	const binding = sendEmailBinding(env);
 	if (binding) return cloudflareMailer(binding, ses);
 	if (ses) return ses;
 	throw new Error(NOT_CONFIGURED_MESSAGE);
+}
+
+/**
+ * Whether a send of this kind could go out at all. Asks by building the mailer
+ * the send path would build, so a dashboard that greys out a button can never
+ * disagree with what pressing it would do.
+ */
+export function canSend(env: Record<string, unknown>, kind: MailKind): boolean {
+	try {
+		createMailer(env, kind);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 function sesMailerFromEnv(env: Record<string, unknown>): Mailer | null {

@@ -52,10 +52,12 @@ export const POST: APIRoute = async ({ request }) => {
 
 	const envRecord = env as unknown as Record<string, unknown>;
 
-	// Transport — 500 with a clear message if neither is set up.
+	// Transport — 500 with a clear message if nothing may carry this. A send to
+	// an audience is marketing, which Cloudflare Email Service does not permit,
+	// so this one needs SES specifically (see mailer.ts).
 	let mailer: Mailer;
 	try {
-		mailer = createMailer(envRecord);
+		mailer = createMailer(envRecord, "marketing");
 	} catch (err) {
 		return json(
 			{ ok: false, error: err instanceof Error ? err.message : "Email sending not configured." },

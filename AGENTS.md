@@ -168,7 +168,12 @@ password-protected dashboard reviews them. **Guides: the form field contract is
   do the SES sandbox rule and the `/api/webhooks/ses` SNS receiver
   (`https://admin.curevanails.com/api/webhooks/ses`) matter. Nothing above the
   mailer — templates, `sendOne`, `email_logs`, the dashboard, the crons — knows
-  which transport is in use.
+  which transport is in use. What a caller *does* declare is the **kind**:
+  `createMailer(env, "marketing")` (campaigns — `/api/email/send`, the campaign
+  cron) is **SES only**, because Cloudflare Email Service carries transactional
+  mail only; everything else defaults to `transactional` and may use either.
+  Every send also carries a generated plain-text part (`html-to-text.ts`) —
+  templates are HTML-only and a text copy maintained by hand would drift.
 - **Auth is form-based with a signed cookie**, not HTTP Basic Auth.
   `src/utils/admin-auth.ts` mints an HMAC-SHA256 token (keyed by
   `ADMIN_PASSWORD`, 12 h TTL); `src/middleware.ts` verifies it on every

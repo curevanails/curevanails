@@ -6,14 +6,14 @@
  * The list is rendered server-side and rebuilt client-side after a save/delete
  * (the API returns the full list back), so the page never needs a reload.
  */
-import { loadMailData, loadTemplates, mailDb, sesConfigured, type TemplateRow } from "../../utils/email-data";
+import { loadMailData, loadTemplates, mailDb, canSendTransactional, type TemplateRow } from "../../utils/email-data";
 import MailLayout from "../../layouts/MailLayout.astro";
-import SesNotice from "../../components/mail/SesNotice.astro";
+import SendNotice from "../../components/mail/SendNotice.astro";
 
 // Server-rendered, never cached. Gated by the admin auth in src/middleware.ts.
 export const prerender = false;
 
-const ses = sesConfigured();
+const canTest = canSendTransactional();
 
 const { data, error: loadError } = await loadMailData(mailDb(), (db) => loadTemplates(db));
 const templates: TemplateRow[] = data ?? [];
@@ -41,7 +41,7 @@ const templatesForClient = templates.map((t) => ({
 		<span class="material-symbols-outlined text-base">add</span><span class="hidden sm:inline">New template</span>
 	</button>
 
-	{!ses && <SesNotice />}
+	{!canTest && <SendNotice kind="transactional" />}
 
 	{!loadError && (
 		<section class="bg-white rounded-2xl border border-gray-200 shadow-theme-xs dark:bg-white/[0.03] dark:border-gray-800">
@@ -166,17 +166,17 @@ const templatesForClient = templates.map((t) => ({
 						<input id="test-discount" type="text" placeholder="CUREVA15"
 							class="form-input w-full rounded-lg border border-gray-300 bg-transparent px-4 py-2.5 text-sm text-gray-800 placeholder:text-gray-400 shadow-theme-xs focus:border-brand-300 focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:placeholder:text-white/30" />
 					</div>
-					{!ses && (
+					{!canTest && (
 						<div class="rounded-lg bg-warning-50 border border-warning-200 px-3.5 py-3 text-xs text-warning-800 flex items-start gap-2 dark:bg-warning-500/10 dark:border-warning-500/30 dark:text-warning-400">
 							<span class="material-symbols-outlined text-sm mt-0.5 text-warning-500">warning</span>
-							<span>SES isn't configured, so this Worker can't send yet. Set the <code class="px-1 rounded bg-warning-100 dark:bg-white/[0.06]">AWS_*</code> secrets first.</span>
+							<span>This Worker has no way to send yet — it needs the <code class="px-1 rounded bg-warning-100 dark:bg-white/[0.06]">EMAIL</code> binding or the <code class="px-1 rounded bg-warning-100 dark:bg-white/[0.06]">AWS_*</code> secrets.</span>
 						</div>
 					)}
 					<div id="test-result" class="hidden rounded-lg px-4 py-3 text-sm"></div>
 				</div>
 				<div class="px-5 py-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-end gap-2">
 					<button type="button" onclick="closeTestModal()" class="inline-flex items-center rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-white/[0.03] transition">Cancel</button>
-					<button type="button" id="test-send-btn" onclick="sendTest()" disabled={!ses}
+					<button type="button" id="test-send-btn" onclick="sendTest()" disabled={!canTest}
 						class="inline-flex items-center gap-1.5 rounded-lg bg-brand-500 px-4 py-2.5 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition disabled:opacity-40 disabled:cursor-not-allowed">
 						<span class="material-symbols-outlined text-base">send</span>Send test email
 					</button>
@@ -184,7 +184,7 @@ const templatesForClient = templates.map((t) => ({
 			</div>
 		</div>
 
-		<script is:inline define:vars={{ templatesForClient, ses }}>
+		<script is:inline define:vars={{ templatesForClient, canTest }}>
 			let TEMPLATES = templatesForClient;
 
 			function fillSample(str, discount) {
@@ -363,7 +363,7 @@ const templatesForClient = templates.map((t) => ({
 			}
 
 			async function sendTest() {
-				if (!ses) return;
+				if (!canTest) return;
 				const id = document.getElementById("test-tpl-id").value;
 				const to = document.getElementById("test-to").value.trim();
 				const discount = (document.getElementById("test-discount") || {}).value || "";

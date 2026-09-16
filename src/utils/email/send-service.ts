@@ -1,3 +1,4 @@
+import { htmlToText } from "./html-to-text";
 import { newId } from "./ids";
 import type { Mailer } from "./mailer";
 import { renderTemplate, buildUnsubscribeUrl } from "./template-render";
@@ -114,13 +115,19 @@ export async function sendOne(
 	};
 
 	const rendered = renderTemplate(template, variables);
+	// Every email carries a text part. Templates are authored as HTML in the
+	// dashboard and none of them has a hand-written text body, so it is derived
+	// from the HTML we are about to send — which also means it cannot drift from
+	// it. HTML-only mail scores worse with spam filters and reads as nothing at
+	// all in a text-mode client.
+	const text = rendered.text || htmlToText(rendered.html);
 
 	try {
 		const messageId = await mailer.send(db, {
 			to: recipient.email,
 			subject: rendered.subject,
 			html: rendered.html,
-			text: rendered.text,
+			text,
 			logId,
 			unsubscribeUrl,
 		});
