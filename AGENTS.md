@@ -156,8 +156,8 @@ password-protected dashboard reviews them. **Guides: the form field contract is
   `/notify/*` access is blocked; reachable only via the `/mail` rewrite), and
   base-aware links come from `src/utils/email-nav.ts`. The `admin` Worker also
   carries the **Cron Trigger** (`*/5 * * * *`, `wrangler.admin.jsonc`) that fires
-  `runDueCampaigns()` and the recruit thank-you catch-up via the `scheduled`
-  handler in `src/worker.ts`. See [`docs/mail/`](docs/mail/README.md).
+  `runDueCampaigns()`, the recruit thank-you catch-up and the waitlist welcome
+  catch-up via the `scheduled` handler in `src/worker.ts`. See [`docs/mail/`](docs/mail/README.md).
 - **Every email leaves through `src/utils/email/mailer.ts`.** All three Workers
   carry a `send_email` binding named `EMAIL` (Cloudflare Email Service) and send
   with it — no credentials, no sandbox, from `hello@curevanails.com`
