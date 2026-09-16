@@ -16,8 +16,9 @@
 	// at all, so the address most people type by habit simply did not resolve.
 	// The apex is listed alongside it deliberately: it was attached from the
 	// dashboard, and naming only `www` here would leave the config describing
-	// half the truth. `src/middleware.ts` 308s `www` to the apex, so this adds a
-	// working address, not a second site.
+	// half the truth. An edge Redirect Rule on the zone 301s `www` to the apex
+	// before a request ever reaches the Worker, so this adds a working address,
+	// not a second site; `src/middleware.ts` keeps a 308 as the fallback.
 	"routes": [
 		{ "pattern": "curevanails.com", "custom_domain": true },
 		{ "pattern": "www.curevanails.com", "custom_domain": true },
