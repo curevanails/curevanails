@@ -1,19 +1,87 @@
-# Email infrastructure (AWS SES)
+# Email infrastructure
 
 Lets the owner send templated emails (welcome, opening announcement, discount
 codes) to the **waitlist** and tracks delivery / bounces / complaints. Built
 into the existing CureVà admin — no separate app.
 
 ```
- Owner                         Cloudflare (this codebase)                    AWS
- ─────                         ──────────────────────────                    ───
+ Owner                         Cloudflare (this codebase)
+ ─────                         ──────────────────────────
  / (dashboard) ─POST─▶ /api/email/send ─────┬─▶ render (Handlebars)
  (compose UI)                               ├─▶ suppression precheck (D1)
-                                            └─▶ SES SendEmail ──────────────▶ SES (cureva-main)
-                                                  writes email_logs                  │
-                                                                                     ▼ events
- D1 email_logs / suppression_list  ◀──── /api/webhooks/ses ◀──── SNS ◀───── Delivery/Bounce/Complaint/Open/Click
+                                            └─▶ mailer.send() ──▶ Cloudflare Email Service (EMAIL binding)
+                                                  writes email_logs      └─ fallback: AWS SES ──▶ SNS ──▶ /api/webhooks/ses
+                                                                                                     (delivery/bounce/complaint → D1)
 ```
+
+## Which transport carries which email
+
+`createMailer(env, kind)` takes the kind of email as an argument, because the
+transports are not interchangeable:
+
+| Kind | What it is | Transport |
+| --- | --- | --- |
+| `transactional` (default) | A message one person's own action earned them: the recruit thank-you and recruiter alert, the waitlist welcome, an operator's test send | Cloudflare `EMAIL` binding, else SES |
+| `marketing` | One message to an audience because we decided to send it: the opening announcement, a discount — `/api/email/send` and the scheduled-campaign runner | **SES only** |
+
+Cloudflare Email Service does not permit bulk or marketing sending. Pushing
+campaigns through it anyway would put the transport that every transactional
+email now depends on at risk, so `createMailer(env, "marketing")` refuses the
+binding outright and throws `MARKETING_NEEDS_SES_MESSAGE` when SES is absent.
+That is why Compose can show "Campaigns need AWS SES" on a Worker whose
+thank-you emails are going out perfectly well; the dashboard asks
+`canSendCampaign()` / `canSendTransactional()` (`email-data.ts`), both of which
+build the very mailer a send would build, so a greyed-out button can never
+disagree with what pressing it would do.
+
+## Transport: Cloudflare Email Service, SES as fallback
+
+`src/utils/email/mailer.ts` is the one place that decides how an email leaves.
+Every Worker (`wrangler.jsonc`, `wrangler.getready.jsonc`, `wrangler.admin.jsonc`)
+carries a `send_email` binding named `EMAIL`, and the mailer sends with
+`env.EMAIL.send()`: no credentials, no sandbox, any recipient from the moment
+the domain is onboarded. Everything above the mailer — templates, `sendOne`,
+`email_logs`, the dashboard, the crons — never learns which transport is in use.
+
+- **From** is `CureVà <hello@curevanails.com>` (`src/utils/email/sender.ts`).
+  The domain must be onboarded for Email Sending on the Cloudflare account:
+  `npx wrangler email sending enable curevanails.com`, then
+  `npx wrangler email sending dns get curevanails.com` to confirm the records
+  landed (DNS is on Cloudflare, so they are added for you). They all live on
+  the `cf-bounce.curevanails.com` subdomain — its MX (bounces), its SPF
+  (`v=spf1 include:_spf.mx.cloudflare.net ~all`) and the DKIM key at
+  `cf-bounce._domainkey` — so the apex SPF that authorises SES is left alone
+  and the two transports never fight over one record. DMARC on `_dmarc` is
+  ours (`p=quarantine`, relaxed alignment), which the `cf-bounce` subdomain
+  satisfies.
+- **Suppression** is two-layered: our `suppression_list` is checked before
+  every send, and Cloudflare keeps its own list of hard bounces and spam
+  complaints. A send refused with `E_RECIPIENT_SUPPRESSED` is mirrored into
+  ours, so the dashboard's Suppressed page stays truthful without a webhook.
+- **`email_logs.ses_message_id`** keeps its name and now holds whichever
+  transport's message id was minted. Delivery/open/click columns only fill in
+  on the SES fallback (they come from SNS); on Cloudflare a row stops at `sent`,
+  and per-message delivery detail lives in the Cloudflare dashboard.
+- **Fallback.** A Worker deployed without the `EMAIL` binding uses AWS SES via
+  the `AWS_*` secrets. So does a Worker whose Cloudflare send is refused with
+  `E_SENDER_NOT_VERIFIED` / `E_SENDER_DOMAIN_NOT_AVAILABLE` (domain not
+  onboarded yet): it routes through SES for ten minutes, then tries Cloudflare
+  again, so the binding can ship before the onboarding without a single email
+  regressing, and switches over by itself once the domain is live. Only on SES
+  do the sandbox rule, the Configuration Set and the `/api/webhooks/ses`
+  receiver matter. The recruit catch-up cron asks the transport whether it can
+  reach unverified addresses before trying — always yes on Cloudflare,
+  `GetAccount` on SES (also while falling back).
+- **Plain text is generated, never authored.** Templates are HTML-only — nobody
+  editing one in a browser will maintain a second copy by hand, and asking them
+  to only produces two that drift. `sendOne` derives the text part from the
+  rendered HTML at send time (`html-to-text.ts`), so every email carries both
+  and the two cannot disagree. A template that *does* have a `text` body keeps
+  it.
+- **Local dev / E2E.** `wrangler dev` (and `astro preview`) simulate the binding:
+  a send is logged and written to a local file, never delivered. Add
+  `"remote": true` to the binding only when you deliberately want real sends
+  from a dev session.
 
 ## Key idea: the subscriber list **is** the `waitlist` table
 
@@ -51,9 +119,9 @@ applicant.
 
 Both paths go through the shared `sendOne()`, so every attempt appears in
 `email_logs` with its `status` and `error_message`. When `ack_email_sent_at` is
-NULL, `email_logs` says why: no row at all means SES isn't configured (missing
-`AWS_REGION` / `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`), a `failed` row
-carries the reason (commonly a suppression-list hit).
+NULL, `email_logs` says why: a `failed` row carries the reason — no transport
+configured (no `EMAIL` binding and no `AWS_*` secrets), a suppression-list hit,
+or the transport's own error message.
 
 ## Template syntax
 
@@ -79,17 +147,25 @@ Handlebars. The subject and plain-text body render unescaped; HTML escapes. Any
 **other** block helper throws, so a dashboard typo becomes a recorded send
 failure instead of a silently mangled email.
 
-## SES configuration
+## Transport configuration
 
 | Setting | Where | Notes |
 | --- | --- | --- |
-| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Worker **secrets** | Required. Must be set on **every** Worker that serves a public form, not just `admin` — `/api/recruit` and `/api/waitlist` run on `curevanails` and `getready` too. |
+| `EMAIL` | `send_email` binding in **every** `wrangler*.jsonc` | The Cloudflare Email Service transport. Must be on every Worker that serves a public form, not just `admin` — `/api/recruit` and `/api/waitlist` run on `curevanails` and `getready` too. Needs the From domain onboarded (see above). |
+| From address | `FROM_EMAIL` / `FROM_NAME` in `sender.ts` | `hello@curevanails.com`. The domain must be onboarded on Cloudflare (and verified in SES for the fallback). |
+| `PUBLIC_SITE_URL` | Worker **secret** (optional) | Public origin for unsubscribe links when there is no request (cron). |
+
+The SES fallback, used only by a Worker with no `EMAIL` binding:
+
+| Setting | Where | Notes |
+| --- | --- | --- |
+| `AWS_REGION`, `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` | Worker **secrets** | All three, or the fallback is not configured. |
 | `SES_CONFIGURATION_SET` | Worker **var** | Optional, empty by default. SES rejects the entire send when the named set doesn't exist, so don't set it until the set exists in AWS. Setting it is what makes SES publish delivery/bounce/complaint events to SNS — `/api/webhooks/ses` and automatic bounce suppression only work while it is configured. |
 | `SES_TOPIC_ARN` | Worker **var** | The SNS topic the configuration set publishes to. The webhook fails closed without it. |
-| From address | `FROM_ADDRESS` in `ses-client.ts` | Its domain must be a verified SES identity. |
 
 While the AWS account is in the SES **sandbox**, recipients must also be
-verified identities and sending is capped (200/day, 1/sec).
+verified identities and sending is capped (200/day, 1/sec) — the reason the
+Cloudflare transport is the live one.
 
 ## Tables (D1, lazy-created — no migration step)
 
@@ -124,28 +200,32 @@ Sending is disabled with a banner until the SES secrets are set (below).
 
 ## Secrets (production)
 
-Set on the **admin** Worker (where sending happens). They are **secrets**, not
-vars — never commit them:
+The Cloudflare transport needs none. Optional on either transport, and the SES
+fallback's credentials, are **secrets**, not vars — never commit them:
 
 ```bash
+# Optional: public origin used to build unsubscribe links in emails
+wrangler secret put PUBLIC_SITE_URL       --config wrangler.admin.jsonc   # https://admin.curevanails.com
+# SES fallback only
 wrangler secret put AWS_REGION            --config wrangler.admin.jsonc
 wrangler secret put AWS_ACCESS_KEY_ID     --config wrangler.admin.jsonc
 wrangler secret put AWS_SECRET_ACCESS_KEY --config wrangler.admin.jsonc
-# Optional: public origin used to build unsubscribe links in emails
-wrangler secret put PUBLIC_SITE_URL       --config wrangler.admin.jsonc   # e.g. https://curevanails-tech.workers.dev
 ```
 
-Local dev: uncomment the `AWS_*` lines in `.dev.vars` (gitignored).
+Local dev: the `EMAIL` binding is simulated (nothing is delivered); to exercise
+the SES fallback instead, remove the binding and uncomment the `AWS_*` lines in
+`.dev.vars` (gitignored).
 
-Fixed in code (not secrets): From address `CureVà <hello@cureva.vn>`,
-Configuration Set `cureva-main` — see `src/utils/email/ses-client.ts`.
+Fixed in code (not secrets): From address `CureVà <hello@curevanails.com>` in
+`src/utils/email/sender.ts`; the SES Configuration Set comes from the
+`SES_CONFIGURATION_SET` var.
 
-## SNS webhook
+## SNS webhook (SES fallback only)
 
 Point the SES Configuration Set's SNS subscription at:
 
 ```
-https://notify.curevanails-tech.workers.dev/api/webhooks/ses
+https://admin.curevanails.com/api/webhooks/ses
 ```
 
 (The handler is public and only needs the shared D1 — no AWS secrets. It runs
@@ -167,7 +247,7 @@ send time.
 **One-click unsubscribe (RFC 8058).** Every send also carries the headers
 `List-Unsubscribe: <https://…/unsubscribe/<token>>` and
 `List-Unsubscribe-Post: List-Unsubscribe=One-Click` (built in
-`src/utils/email/ses-client.ts`). This renders the native **Unsubscribe** button
+`src/utils/email/sender.ts`, sent by either transport). This renders the native **Unsubscribe** button
 in Gmail / Apple Mail and is **required by Gmail & Yahoo for bulk senders** —
 without it, campaigns risk the spam folder. The mail provider sends a cookieless
 `POST` (body `List-Unsubscribe=One-Click`) to the same `/unsubscribe/<token>`

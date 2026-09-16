@@ -1,0 +1,40 @@
+---
+/**
+ * Warning banner for the pages that can dispatch mail, shown only when the
+ * Worker could not actually send what that page sends — in which case its send
+ * button is disabled server-side too (see `canSendTransactional` /
+ * `canSendCampaign` in `email-data.ts`).
+ *
+ * The two cases are genuinely different, which is why this takes a `kind`:
+ * a campaign needs AWS SES because Cloudflare Email Service is for
+ * transactional email only, so Compose can be blocked on a Worker where the
+ * thank-you emails are going out perfectly well.
+ */
+interface Props {
+	kind: "transactional" | "campaign";
+}
+const { kind } = Astro.props;
+---
+<div class="rounded-2xl bg-warning-50 border border-warning-200 px-5 py-4 text-sm text-warning-700 flex items-start gap-3 dark:bg-warning-500/10 dark:border-warning-500/20 dark:text-warning-400">
+	<span class="material-symbols-outlined text-xl mt-0.5">warning</span>
+	{kind === "campaign" ? (
+		<div>
+			<strong class="font-semibold">Campaigns need AWS SES.</strong> Cloudflare Email Service carries
+			transactional email only, so sending to an audience is disabled until the SES secrets are set on
+			this Worker:
+			<code class="px-1.5 py-0.5 rounded bg-warning-100 dark:bg-white/[0.06] text-xs">AWS_REGION</code>,
+			<code class="px-1.5 py-0.5 rounded bg-warning-100 dark:bg-white/[0.06] text-xs">AWS_ACCESS_KEY_ID</code>,
+			<code class="px-1.5 py-0.5 rounded bg-warning-100 dark:bg-white/[0.06] text-xs">AWS_SECRET_ACCESS_KEY</code>.
+			Transactional email — the application thank-you, the recruiter alert, the waiting-list welcome —
+			is unaffected and still goes out.
+		</div>
+	) : (
+		<div>
+			<strong class="font-semibold">No way to send email.</strong> This Worker has neither the
+			<code class="px-1.5 py-0.5 rounded bg-warning-100 dark:bg-white/[0.06] text-xs">EMAIL</code>
+			binding (Cloudflare Email Service) nor the
+			<code class="px-1.5 py-0.5 rounded bg-warning-100 dark:bg-white/[0.06] text-xs">AWS_*</code>
+			secrets (SES), so sending is disabled. You can still edit &amp; preview templates.
+		</div>
+	)}
+</div>

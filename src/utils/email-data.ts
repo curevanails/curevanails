@@ -1,5 +1,6 @@
 import { env } from "cloudflare:workers";
 import { ensureEmailSchema } from "./email-db";
+import { canSend } from "./email/mailer";
 
 /**
  * Data loaders for the email dashboard pages (`src/pages/notify/*`).
@@ -79,14 +80,20 @@ export function mailDb(): D1Database {
 	return env.DB as D1Database;
 }
 
-/** True when the AWS secrets needed to talk to SES are set on this Worker. */
-export function sesConfigured(): boolean {
-	const record = env as unknown as Record<string, unknown>;
-	return (
-		typeof record.AWS_REGION === "string" &&
-		typeof record.AWS_ACCESS_KEY_ID === "string" &&
-		typeof record.AWS_SECRET_ACCESS_KEY === "string"
-	);
+/**
+ * What this Worker could actually send right now, asked of the send path itself
+ * (`canSend` builds the very mailer a send would build), so a greyed-out button
+ * can never disagree with what pressing it would do.
+ *
+ * The two answers differ: a campaign is marketing and needs SES, while a
+ * transactional send may also go through the Cloudflare `EMAIL` binding.
+ */
+export function canSendTransactional(): boolean {
+	return canSend(env as unknown as Record<string, unknown>, "transactional");
+}
+
+export function canSendCampaign(): boolean {
+	return canSend(env as unknown as Record<string, unknown>, "marketing");
 }
 
 /**

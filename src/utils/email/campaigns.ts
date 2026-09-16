@@ -1,6 +1,7 @@
 import { env } from "cloudflare:workers";
 import { ensureEmailSchema } from "../email-db";
-import { DEFAULT_PUBLIC_URL, createSesClient, sesCredentialsFromEnv } from "./ses-client";
+import { createMailer, type Mailer } from "./mailer";
+import { DEFAULT_PUBLIC_URL } from "./sender";
 import { sendCampaignByAudience, type Audience } from "./send-service";
 
 /**
@@ -45,12 +46,13 @@ export async function runDueCampaigns(): Promise<void> {
 	if (campaigns.length === 0) return;
 
 	const envRecord = env as unknown as Record<string, unknown>;
-	let client: ReturnType<typeof createSesClient>;
+	let mailer: Mailer;
 	try {
-		client = createSesClient(sesCredentialsFromEnv(envRecord));
+		// A campaign is marketing, so this is SES or nothing — see mailer.ts.
+		mailer = createMailer(envRecord, "marketing");
 	} catch (err) {
-		// SES not configured — mark the due campaigns failed so they don't spin.
-		const message = err instanceof Error ? err.message : "SES not configured.";
+		// No transport — mark the due campaigns failed so they don't spin.
+		const message = err instanceof Error ? err.message : "Email sending not configured.";
 		for (const c of campaigns) {
 			await markFailed(db, c.id, message);
 		}
@@ -78,7 +80,7 @@ export async function runDueCampaigns(): Promise<void> {
 				c.variables && c.variables !== "null"
 					? (JSON.parse(c.variables) as Record<string, unknown>)
 					: {};
-			const result = await sendCampaignByAudience(client, db, {
+			const result = await sendCampaignByAudience(mailer, db, {
 				templateId: c.template_id,
 				audience: c.audience,
 				baseUrl,

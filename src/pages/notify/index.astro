@@ -11,19 +11,19 @@ import {
 	loadMailData,
 	loadTemplates,
 	mailDb,
-	sesConfigured,
+	canSendCampaign,
 	type AudienceCounts,
 	type TemplateRow,
 } from "../../utils/email-data";
 import { emailNav } from "../../utils/email-nav";
 import MailLayout from "../../layouts/MailLayout.astro";
-import SesNotice from "../../components/mail/SesNotice.astro";
+import SendNotice from "../../components/mail/SendNotice.astro";
 
 // Server-rendered, never cached. Gated by the admin auth in src/middleware.ts.
 export const prerender = false;
 
 const nav = emailNav();
-const ses = sesConfigured();
+const canCampaign = canSendCampaign();
 
 const { data, error: loadError } = await loadMailData(mailDb(), async (db) => ({
 	templates: await loadTemplates(db),
@@ -52,7 +52,7 @@ const campaignsHref = nav.campaigns;
 	active="mail"
 	loadError={loadError}
 >
-	{!ses && <SesNotice />}
+	{!canCampaign && <SendNotice kind="campaign" />}
 
 	{!loadError && (
 		<div id="cp-container" class="flex flex-col xl:flex-row gap-6 xl:gap-0 items-stretch" style="--left-w: 50%">
@@ -168,7 +168,7 @@ const campaignsHref = nav.campaigns;
 						<p id="schedule-echo" class="text-xs text-gray-400 dark:text-gray-500 mt-1.5">Sends automatically at this Mountain Time (checked every ~5 min).</p>
 					</div>
 
-					<button id="send-btn" type="button" onclick="submitCampaign()" disabled={!ses || templates.length === 0}
+					<button id="send-btn" type="button" onclick="submitCampaign()" disabled={!canCampaign || templates.length === 0}
 						class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-brand-500 px-4 py-3 text-sm font-medium text-white shadow-theme-xs hover:bg-brand-600 transition disabled:opacity-40 disabled:cursor-not-allowed">
 						<span class="material-symbols-outlined text-base" id="send-btn-icon">send</span><span id="send-btn-label">Send campaign</span>
 					</button>
@@ -205,7 +205,7 @@ const campaignsHref = nav.campaigns;
 		</div>
 	)}
 
-	<script slot="scripts" is:inline define:vars={{ templatesForClient, ses, campaignsHref }}>
+	<script slot="scripts" is:inline define:vars={{ templatesForClient, canCampaign, campaignsHref }}>
 		const TEMPLATES = templatesForClient;
 
 		function fillSample(str, discount) {
@@ -239,7 +239,7 @@ const campaignsHref = nav.campaigns;
 		}
 
 		async function sendCampaign() {
-			if (!ses) return;
+			if (!canCampaign) return;
 			const btn = document.getElementById("send-btn");
 			const result = document.getElementById("send-result");
 			const templateSel = document.getElementById("template");
@@ -519,7 +519,7 @@ const campaignsHref = nav.campaigns;
 		});
 
 		function submitCampaign() {
-			if (!ses) return;
+			if (!canCampaign) return;
 			if (_when === "later") scheduleCampaign();
 			else sendCampaign();
 		}

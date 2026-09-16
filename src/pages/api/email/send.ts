@@ -2,7 +2,7 @@ import type { APIRoute } from "astro";
 import { env } from "cloudflare:workers";
 import { z } from "zod";
 import { ensureEmailSchema } from "../../../utils/email-db";
-import { createSesClient, sesCredentialsFromEnv } from "../../../utils/email/ses-client";
+import { createMailer, type Mailer } from "../../../utils/email/mailer";
 import {
 	sendCampaign,
 	type CampaignTemplate,
@@ -52,13 +52,15 @@ export const POST: APIRoute = async ({ request }) => {
 
 	const envRecord = env as unknown as Record<string, unknown>;
 
-	// SES credentials — 500 with a clear message if the secrets aren't set.
-	let client: ReturnType<typeof createSesClient>;
+	// Transport — 500 with a clear message if nothing may carry this. A send to
+	// an audience is marketing, which Cloudflare Email Service does not permit,
+	// so this one needs SES specifically (see mailer.ts).
+	let mailer: Mailer;
 	try {
-		client = createSesClient(sesCredentialsFromEnv(envRecord));
+		mailer = createMailer(envRecord, "marketing");
 	} catch (err) {
 		return json(
-			{ ok: false, error: err instanceof Error ? err.message : "SES not configured." },
+			{ ok: false, error: err instanceof Error ? err.message : "Email sending not configured." },
 			500,
 		);
 	}
@@ -113,7 +115,7 @@ export const POST: APIRoute = async ({ request }) => {
 		new URL(request.url).origin;
 
 	try {
-		const summary = await sendCampaign(client, db, {
+		const summary = await sendCampaign(mailer, db, {
 			template,
 			recipients,
 			baseUrl,

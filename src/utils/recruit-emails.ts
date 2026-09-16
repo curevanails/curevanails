@@ -8,10 +8,11 @@
  *      application (only when they supplied an email — it's optional).
  *
  * Both are DB "system templates" (see email-db.ts `SYSTEM_TEMPLATES`) rendered
- * via Handlebars and sent through the shared `sendOne` path, so each send is
- * logged to `email_logs` and shows up in the notify dashboard alongside
- * campaign sends. Everything here is swallowed on error — a failed or
- * unconfigured email must never affect the applicant's submission.
+ * via Handlebars and sent through the shared `sendOne` path (whichever
+ * transport `mailer.ts` picks), so each send is logged to `email_logs` and
+ * shows up in the notify dashboard alongside campaign sends. Everything here
+ * is swallowed on error — a failed or unconfigured email must never affect the
+ * applicant's submission.
  */
 
 import { env as workerEnv } from "cloudflare:workers";
@@ -22,7 +23,7 @@ import {
 	markAckEmailSent,
 	type UnthankedApplication,
 } from "./recruit-db";
-import { createSesClient, isProductionAccessEnabled, sesCredentialsFromEnv } from "./email/ses-client";
+import { createMailer, type Mailer } from "./email/mailer";
 import {
 	logSendSkipped,
 	sendOne,
@@ -30,6 +31,7 @@ import {
 	type Recipient,
 } from "./email/send-service";
 import { RECRUIT_NOTIFY_TO, getSetting, parseRecipients } from "./app-settings";
+import { fmtSchedule } from "./email-format";
 
 /** Canonical admin dashboard (the standalone `admin` Worker serves it at root). */
 const ADMIN_DASHBOARD_URL = "https://admin.curevanails.com";
@@ -49,6 +51,15 @@ export interface ApplicationSummary {
 	employmentType: string[];
 	portfolioLink: string | null;
 	whyCureva: string | null;
+	/** ISO instant the application was saved. Shown to the recruiter, not the candidate. */
+	appliedAt?: string | null;
+}
+
+/** Mountain Time, matching every other timestamp an operator reads. */
+function appliedAtLabel(iso: string | null | undefined): string {
+	if (!iso) return "";
+	const ms = Date.parse(iso);
+	return Number.isFinite(ms) ? fmtSchedule(ms) : "";
 }
 
 function humanize(v: string): string {
@@ -76,6 +87,11 @@ function templateVars(app: ApplicationSummary): Record<string, unknown> {
 		graduation_date: app.graduationDate ?? "",
 		portfolio_link: app.portfolioLink ?? "",
 		why_cureva: app.whyCureva ?? "",
+		// The alert template has an "Applied" row behind `{{#if applied_at}}`.
+		// Nothing ever supplied it, so the row silently never rendered and the
+		// recruiter could not see when an application arrived — which matters
+		// most for the ones the catch-up thanks weeks later.
+		applied_at: appliedAtLabel(app.appliedAt),
 		dashboard_url: ADMIN_DASHBOARD_URL,
 	};
 }
@@ -83,11 +99,11 @@ function templateVars(app: ApplicationSummary): Record<string, unknown> {
 /**
  * Send the candidate their thank-you and stamp it. Shared by the send-on-submit
  * path and the catch-up below, so a candidate thanked late gets exactly the
- * email they would have got at the time. The stamp lands only once SES has
- * accepted the message, so the flag means "we really did thank them".
+ * email they would have got at the time. The stamp lands only once the
+ * transport has accepted the message, so the flag means "we really did thank them".
  */
 async function sendAck(
-	client: ReturnType<typeof createSesClient>,
+	mailer: Mailer,
 	db: D1Database,
 	template: CampaignTemplate,
 	app: ApplicationSummary,
@@ -101,7 +117,7 @@ async function sendAck(
 	// Stamped BEFORE the send, so a failure still counts as an attempt and the
 	// scheduled catch-up backs off instead of hammering the same address.
 	await markAckAttempt(db, app.id);
-	await sendOne(client, db, {
+	await sendOne(mailer, db, {
 		template,
 		recipient,
 		baseUrl: PUBLIC_SITE_URL,
@@ -135,6 +151,7 @@ function toSummary(row: UnthankedApplication): ApplicationSummary {
 		employmentType: parseStoredList(row.employment_type),
 		portfolioLink: row.portfolio_link,
 		whyCureva: row.why_cureva,
+		appliedAt: row.created_at,
 	};
 }
 
@@ -182,11 +199,15 @@ export async function sendPendingAcks(
 ): Promise<AckCatchUpResult> {
 	await ensureEmailSchema(db);
 
-	let client: ReturnType<typeof createSesClient>;
+	let mailer: Mailer;
 	try {
-		client = createSesClient(sesCredentialsFromEnv(env));
+		mailer = createMailer(env);
 	} catch (err) {
-		return { sent: 0, failed: 0, blocked: err instanceof Error ? err.message : "SES not configured" };
+		return {
+			sent: 0,
+			failed: 0,
+			blocked: err instanceof Error ? err.message : "Email sending not configured",
+		};
 	}
 
 	const template = await loadTemplate(db, "tpl-recruit-ack");
@@ -197,7 +218,7 @@ export async function sendPendingAcks(
 	const cutoff = retryAfterMs > 0 ? new Date(Date.now() - retryAfterMs).toISOString() : undefined;
 	for (const row of await listUnthankedApplications(db, limit, cutoff)) {
 		try {
-			await sendAck(client, db, template, toSummary(row));
+			await sendAck(mailer, db, template, toSummary(row));
 			sent++;
 		} catch (err) {
 			// Logged to email_logs by sendOne; the row keeps its NULL stamp and
@@ -214,11 +235,11 @@ export async function sendPendingAcks(
  * five minutes). Reads its own bindings like runDueCampaigns does, and never
  * throws — a bad tick must not take the campaign runner down with it.
  *
- * Cheap to run that often because it asks first: while the account is still
- * in the SES sandbox it sends nothing and logs one line, and the moment AWS
- * grants production access the next tick — five minutes at most — sends
- * every candidate their email. Nobody presses anything; there is nothing to
- * press.
+ * Cheap to run that often because it asks first: a transport that is behind a
+ * sandbox (SES before production access) sends nothing and logs one line, and
+ * the moment it can reach anyone — always, on Cloudflare Email Service — the
+ * next tick, five minutes at most, sends every candidate their email. Nobody
+ * presses anything; there is nothing to press.
  */
 export async function retryPendingAcks(): Promise<void> {
 	try {
@@ -228,16 +249,16 @@ export async function retryPendingAcks(): Promise<void> {
 		// Nothing owed, nothing to do — and no SES call either.
 		if ((await listUnthankedApplications(db, 1)).length === 0) return;
 
-		// Ask before trying. In the sandbox every candidate address is rejected,
+		// Ask before trying. In a sandbox every candidate address is rejected,
 		// so attempting would only write a failed row per candidate per tick and
-		// tell us nothing we did not know. When SES will not answer, try anyway.
-		let client: ReturnType<typeof createSesClient>;
+		// tell us nothing we did not know. When the transport will not say, try anyway.
+		let mailer: Mailer;
 		try {
-			client = createSesClient(sesCredentialsFromEnv(env));
+			mailer = createMailer(env);
 		} catch {
 			return; // unconfigured — the submit path already logged this
 		}
-		if ((await isProductionAccessEnabled(client)) === false) {
+		if ((await mailer.canReachAnyone()) === false) {
 			console.log("recruit ack catch-up: SES still in sandbox, candidates waiting");
 			return;
 		}
@@ -261,16 +282,16 @@ export async function sendRecruitEmails(
 	// Ensure the system templates exist before we try to load them.
 	await ensureEmailSchema(db);
 
-	// SES not configured (secrets unset) → nothing to send. The application is
-	// already saved. Record why against the candidate's address, so a silently
-	// unconfigured environment is visible in the dashboard instead of looking
-	// like the feature was never built.
-	let client: ReturnType<typeof createSesClient>;
+	// No transport (no `EMAIL` binding, no SES secrets) → nothing to send. The
+	// application is already saved. Record why against the candidate's address,
+	// so a silently unconfigured environment is visible in the dashboard instead
+	// of looking like the feature was never built.
+	let mailer: Mailer;
 	try {
-		client = createSesClient(sesCredentialsFromEnv(env));
+		mailer = createMailer(env);
 	} catch (err) {
-		const reason = err instanceof Error ? err.message : "SES not configured";
-		console.warn("recruit emails skipped — SES not configured", err);
+		const reason = err instanceof Error ? err.message : "Email sending not configured";
+		console.warn("recruit emails skipped — email sending not configured", err);
 		if (app.email) {
 			await logSendSkipped(db, {
 				templateId: "tpl-recruit-ack",
@@ -290,11 +311,15 @@ export async function sendRecruitEmails(
 		for (const to of parseRecipients(await getSetting(db, RECRUIT_NOTIFY_TO))) {
 			const recipient: Recipient = { id: app.id, email: to, name: null, unsubscribe_token: "" };
 			try {
-				await sendOne(client, db, {
+				await sendOne(mailer, db, {
 					template: alertTpl,
 					recipient,
 					baseUrl: ADMIN_DASHBOARD_URL,
 					extraVars: vars,
+					// The template's footer says "reply to reach the candidate", so
+					// make that true. Without it Reply goes to the From address,
+					// which is a send-only mailbox.
+					...(app.email ? { replyTo: app.email } : {}),
 				});
 			} catch (err) {
 				console.error("recruit alert send failed", err);
@@ -307,7 +332,7 @@ export async function sendRecruitEmails(
 		const ackTpl = await loadTemplate(db, "tpl-recruit-ack");
 		if (ackTpl) {
 			try {
-				await sendAck(client, db, ackTpl, app);
+				await sendAck(mailer, db, ackTpl, app);
 			} catch (err) {
 				// The row keeps its NULL stamp, so the catch-up above can reach
 				// this candidate later — a failure here is a delay, not a loss.

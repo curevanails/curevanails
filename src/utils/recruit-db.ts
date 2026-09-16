@@ -206,6 +206,7 @@ export async function markAckEmailSent(
 /** A saved application that supplied an address but was never thanked. */
 export interface UnthankedApplication {
 	id: string;
+	created_at: string;
 	first_name: string;
 	last_name: string;
 	email: string;
@@ -243,7 +244,7 @@ export async function listUnthankedApplications(
 	await ensureApplicationsSchema(db);
 	const res = await db
 		.prepare(
-			`SELECT id, first_name, last_name, email, phone, positions, current_status,
+			`SELECT id, created_at, first_name, last_name, email, phone, positions, current_status,
 			        graduation_date, background, employment_type, portfolio_link, why_cureva
 			   FROM job_applications
 			  WHERE ack_email_sent_at IS NULL

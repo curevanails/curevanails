@@ -3,8 +3,9 @@
 > **Hosted on the `admin` Worker, in the `curevanails` codebase.** This was
 > formerly the standalone `notifications-service` repo (then the `notify`
 > Worker); both were retired. Email now lives on `admin.curevanails.com`: the
-> dashboard at `/mail` (gated by the admin session), the SES send + campaign
-> cron, and the SNS webhook — all deployed via `pnpm deploy:admin`. Source lives
+> dashboard at `/mail` (gated by the admin session), the send path (Cloudflare
+> Email Service, SES as fallback) + campaign cron, and the SNS webhook — all
+> deployed via `pnpm deploy:admin`. Source lives
 > under `src/pages/notify/*` (served via the `/mail` rewrite),
 > `src/pages/api/email/*`, and `src/utils/email/*`. The paths below (`src/...`)
 > are relative to the repo root. Some sections below still describe the old
@@ -12,8 +13,9 @@
 > and the shared admin login.
 
 Transactional / campaign email for CureVà. Sends templated emails (welcome,
-opening announcement, discount codes) to the **waitlist** and tracks
-delivery / bounces / complaints via AWS SES + SNS.
+opening announcement, discount codes) to the **waitlist**, sends the
+transactional recruit / waitlist emails, and tracks delivery / bounces /
+complaints (via SNS when the SES fallback is in use).
 
 Architecture (diagrams): [`ARCHITECTURE.md`](ARCHITECTURE.md) · design doc: [`EMAIL.md`](EMAIL.md) · testing: [`TESTING.md`](TESTING.md).
 
@@ -24,13 +26,13 @@ Architecture (diagrams): [`ARCHITECTURE.md`](ARCHITECTURE.md) · design doc: [`E
 | Framework | Astro `^6.3`, `output: "server"` |
 | Runtime | Cloudflare Workers (`@astrojs/cloudflare`) |
 | Database | Cloudflare D1 (binding `DB`) — shared with the main CureVà site |
-| Email | AWS SES v2 (`@aws-sdk/client-sesv2`) + SNS event webhook |
+| Email | Cloudflare Email Service (`send_email` binding `EMAIL`); AWS SES v2 (`@aws-sdk/client-sesv2`) + SNS webhook as the fallback |
 | Templating | Handlebars |
 
 ## Layout
 
 ```
-src/utils/email/        SES client, Handlebars render, suppression, SNS verify, send loop
+src/utils/email/        mailer (transport pick), sender identity, SES fallback, Handlebars render, suppression, SNS verify, send loop
 src/utils/email-db.ts   email tables + default-template seeding (lazy schema)
 src/utils/waitlist-db.ts subscriber schema (unsubscribe_token, email_status)
 src/layouts/MailLayout.astro      shared chrome for every dashboard page (sidebar, header, theme)
@@ -71,7 +73,8 @@ pnpm ship        # typecheck && test:e2e && deploy  (gated local deploy)
 
 End-to-end tests (Playwright, against the built Worker under Miniflare) cover
 the auth gate, template CRUD, the send-path **safety invariant** (no test can
-trigger a real AWS SES send), the SNS webhook, and the public unsubscribe page.
+trigger a real delivery — the `EMAIL` binding is simulated under Miniflare and
+no SES secrets are set), the SNS webhook, and the public unsubscribe page.
 CI (`.github/workflows/ci.yml`) runs them on every push/PR and **deploys to
 Cloudflare only after they pass** (pushes to `main`). Full guide:
 [`TESTING.md`](TESTING.md).
@@ -90,13 +93,16 @@ D1 binding `DB` is set in [`wrangler.jsonc`](wrangler.jsonc) — point it at the
 same database the CureVà site uses (the `waitlist` table is the subscriber
 list).
 
-SES credentials are **secrets**, not vars:
+Sending needs no secrets: the `send_email` binding `EMAIL` in each
+`wrangler*.jsonc` is the transport, once `curevanails.com` is onboarded
+(`wrangler email sending enable curevanails.com`). The SES fallback's
+credentials are **secrets**, not vars:
 
 ```bash
-wrangler secret put AWS_REGION
-wrangler secret put AWS_ACCESS_KEY_ID
-wrangler secret put AWS_SECRET_ACCESS_KEY
 wrangler secret put PUBLIC_SITE_URL   # optional, for unsubscribe links
+wrangler secret put AWS_REGION            # SES fallback only
+wrangler secret put AWS_ACCESS_KEY_ID     # SES fallback only
+wrangler secret put AWS_SECRET_ACCESS_KEY # SES fallback only
 ```
 
 Local dev: copy `.dev.vars.example` → `.dev.vars` and fill in.

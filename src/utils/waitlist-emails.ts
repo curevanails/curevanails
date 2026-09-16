@@ -16,7 +16,7 @@
  */
 
 import { ensureEmailSchema } from "./email-db";
-import { createSesClient, sesCredentialsFromEnv } from "./email/ses-client";
+import { createMailer, type Mailer } from "./email/mailer";
 import {
 	logSendSkipped,
 	sendOne,
@@ -63,13 +63,13 @@ export async function sendWaitlistWelcome(
 		return;
 	}
 
-	// SES not configured (secrets unset) → nothing to send.
-	let client: ReturnType<typeof createSesClient>;
+	// No transport (no `EMAIL` binding, no SES secrets) → nothing to send.
+	let mailer: Mailer;
 	try {
-		client = createSesClient(sesCredentialsFromEnv(env));
+		mailer = createMailer(env);
 	} catch (err) {
-		console.warn("waitlist welcome skipped — SES not configured", err);
-		await skip(err instanceof Error ? err.message : "SES not configured");
+		console.warn("waitlist welcome skipped — email sending not configured", err);
+		await skip(err instanceof Error ? err.message : "Email sending not configured");
 		return;
 	}
 
@@ -92,7 +92,7 @@ export async function sendWaitlistWelcome(
 	};
 
 	try {
-		await sendOne(client, db, {
+		await sendOne(mailer, db, {
 			template,
 			recipient,
 			baseUrl: PUBLIC_SITE_URL,
