@@ -18,6 +18,13 @@
 	// (`/`) of this Worker. See src/middleware.ts.
 	"vars": {
 		"GETREADY_STANDALONE": "true",
+		// Turnstile. This Worker serves the same public forms as the main site
+		// (/recruit/apply, the waitlist form), and `verifyTurnstile` FAILS OPEN
+		// when either half is missing — so without these a form here takes
+		// submissions with no bot check at all. The site key is public; the
+		// secret is a secret:
+		//   wrangler secret put TURNSTILE_SECRET_KEY --config wrangler.getready.jsonc
+		"TURNSTILE_SITE_KEY": "0x4AAAAAAEqCGMiaY9hyOCaI",
 		// SES Configuration Set name. Optional and empty by default — SES rejects
 		// the entire send when the named set doesn't exist, so this stays blank
 		// until the set is actually created in AWS. Setting it is what makes SES
