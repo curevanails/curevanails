@@ -11,6 +11,17 @@
 	// curevanails.com`. Remove the binding and the Worker falls back to AWS SES
 	// via the AWS_* secrets.
 	"send_email": [{ "name": "EMAIL" }],
+	// Both hostnames are custom domains on this Worker, and listing them here is
+	// what creates the `www` DNS record on deploy — the zone had no `www` record
+	// at all, so the address most people type by habit simply did not resolve.
+	// The apex is listed alongside it deliberately: it was attached from the
+	// dashboard, and naming only `www` here would leave the config describing
+	// half the truth. `src/middleware.ts` 308s `www` to the apex, so this adds a
+	// working address, not a second site.
+	"routes": [
+		{ "pattern": "curevanails.com", "custom_domain": true },
+		{ "pattern": "www.curevanails.com", "custom_domain": true },
+	],
 	"d1_databases": [
 		{
 			"binding": "DB",
