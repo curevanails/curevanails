@@ -1,5 +1,7 @@
 ---
 import { env } from "cloudflare:workers";
+import { TZ } from "../../utils/email-format";
+import { dateKey } from "../../utils/recruit-format";
 import {
 	WAITLIST_STATUSES,
 	WAITLIST_STATUS_LABELS,
@@ -33,15 +35,19 @@ const STATUS_CLASS: Record<WaitlistStatus, string> = {
 	redeemed: "bg-emerald-100 text-emerald-800 border-emerald-300",
 };
 
+// Mountain Time, like the recruit pipeline and the email dashboard — see
+// `fmtDate` in src/utils/recruit-format.ts for why the zone is explicit.
 function fmtDate(iso: string): string {
 	const d = new Date(iso);
 	return Number.isNaN(d.getTime())
 		? iso
-		: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+		: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: TZ });
 }
 function fmtTime(iso: string): string {
 	const d = new Date(iso);
-	return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+	return Number.isNaN(d.getTime())
+		? ""
+		: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: TZ });
 }
 function statusOf(s: string | null): WaitlistStatus {
 	return s && (WAITLIST_STATUSES as readonly string[]).includes(s)
@@ -243,7 +249,7 @@ const STAT_CARDS: { key: string; label: string; ring: string; dot: string; icon:
 												class="wl-group border-b border-gray-100 last:border-0"
 												data-search={searchBlob}
 												data-status={st}
-												data-date={e.created_at.slice(0, 10)}
+												data-date={dateKey(e.created_at)}
 											>
 												<tr class="wl-main cursor-pointer" onclick="toggleDetail(this)">
 													<td class="px-5 py-3.5 align-middle whitespace-nowrap">

@@ -64,6 +64,12 @@
 		// protection on; setting only one is a misconfiguration the endpoint
 		// logs loudly about.
 		"TURNSTILE_SITE_KEY": "0x4AAAAAAEqCGMiaY9hyOCaI",
+		// EmDash first-run setup is CLOSED by src/middleware.ts on every Worker:
+		// until an operator completes it, `/_emdash/admin/setup` is an open
+		// registration form for the CMS admin of the live site. To complete it,
+		// set this to "true", deploy, finish the setup at
+		// https://curevanails.com/_emdash/admin/setup, then remove it and deploy.
+		// "EMDASH_SETUP_OPEN": "true",
 	},
 	// Admin auth secrets (set with `wrangler secret put`, NOT vars):
 	//   ADMIN_PASSWORD  (required — the /admin area 404s when unset)

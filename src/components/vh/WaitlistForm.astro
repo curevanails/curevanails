@@ -132,7 +132,12 @@ const turnstileSite = turnstileSiteKey();
       var tsWidget = form.querySelector('.cf-turnstile');
       var tsInput = form.querySelector('[name="cf-turnstile-response"]');
       if (tsWidget && (!tsInput || !tsInput.value)) {
-        msg.textContent = 'Please complete the human check.';
+        /* No hidden input = the Turnstile script never loaded (blocked,
+           captive portal, offline) — not a skipped check. Say so; there is
+           nothing on screen to complete. */
+        msg.textContent = tsInput
+          ? 'Please complete the human check.'
+          : 'The human check could not load. Please reload the page, or try again on a different network.';
         msg.className = 'wl-msg js-wl-msg bad';
         return;
       }

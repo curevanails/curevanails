@@ -22,6 +22,7 @@ import {
 	ensureApplicationsSchema,
 } from "../../utils/recruit-db";
 import {
+	dateKey,
 	STATUS_CLASS,
 	type ApplicationRow,
 	fmtDate,
@@ -222,7 +223,7 @@ const FIELD_VALUE = "font-medium text-gray-700";
 										data-positions={positions.join(",")}
 										data-cstatus={app.current_status}
 										data-background={app.background}
-										data-date={app.created_at.slice(0, 10)}
+										data-date={dateKey(app.created_at)}
 									>
 										<tr class="app-main cursor-pointer" onclick="toggleDetail(this)">
 											<td class="px-5 py-3.5 align-middle">
