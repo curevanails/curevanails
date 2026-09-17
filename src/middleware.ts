@@ -52,6 +52,25 @@ function isStandalone(flag: string): boolean {
 	return workerVar(flag) === "true";
 }
 
+/**
+ * The path every gate below compares against: percent-decoded, doubled
+ * slashes collapsed, trailing slash dropped. Astro routes on the decoded form
+ * (`decodeURI` + collapsed leading slashes), so a gate that looked at the raw
+ * pathname could be slipped with `/%61dmin/recruit` or `//admin/recruit` and
+ * still land on the real page. Cloudflare's edge normalises these today; this
+ * keeps the gate honest without leaning on it. A malformed escape is left as
+ * is — Astro answers it with a 400.
+ */
+function normalizePath(raw: string): string {
+	let p = raw;
+	try {
+		p = decodeURIComponent(p);
+	} catch {
+		/* malformed escape — gate on the raw path */
+	}
+	return p.replace(/\/{2,}/g, "/").replace(/\/+$/, "") || "/";
+}
+
 /** The secret used to verify session cookies (SESSION_SECRET, else ADMIN_PASSWORD). */
 function signingSecret(password: string): string {
 	return resolveSessionSecret(password, workerVar("SESSION_SECRET"));
@@ -117,11 +136,35 @@ export const onRequest = defineMiddleware(async (context, next) => {
 		return context.redirect(canonical.toString(), 308);
 	}
 
-	// Normalize a trailing slash so it can't flip a route between the admin gate
-	// and a public exemption (Astro's default `trailingSlash: "ignore"` serves
-	// both `/admin/login` and `/admin/login/`).
-	const pathname = context.url.pathname.replace(/\/+$/, "") || "/";
+	// Decoded, collapsed, no trailing slash — so an encoded letter, a doubled
+	// slash or a trailing slash can't flip a route between the admin gate and a
+	// public exemption (Astro's default `trailingSlash: "ignore"` serves both
+	// `/admin/login` and `/admin/login/`). See normalizePath.
+	const pathname = normalizePath(context.url.pathname);
 	const password = workerVar("ADMIN_PASSWORD");
+
+	// ===== EmDash CMS: two doors that stay shut on every Worker =====
+	// 1. First-run setup. Until an operator completes it, `/_emdash/admin` is an
+	//    open registration form: whoever reaches it first becomes the sole CMS
+	//    admin of the live site — free to publish pages on curevanails.com and
+	//    to read the shared MEDIA bucket. Nobody has completed it in production,
+	//    so the door is closed here and opened only on purpose: set the var
+	//    `EMDASH_SETUP_OPEN="true"` in wrangler.jsonc, deploy, finish
+	//    `/_emdash/admin/setup` yourself, remove the var, deploy again.
+	if (
+		(pathname.startsWith("/_emdash/api/setup") || pathname.startsWith("/_emdash/admin/setup")) &&
+		workerVar("EMDASH_SETUP_OPEN") !== "true"
+	) {
+		return new Response("Not found", { status: 404 });
+	}
+	// 2. Applicant résumés. `/api/recruit` stores them in the same R2 bucket the
+	//    CMS uses for media, and EmDash serves any object in that bucket, to
+	//    anyone, from `/_emdash/api/media/file/<key>` — with a year-long public
+	//    cache header. The one sanctioned way to a résumé is the session-gated
+	//    `/admin/file`, so the `recruit/` prefix is unreachable through the CMS.
+	if (/^\/_emdash\/api\/media\/file\/recruit(\/|$)/i.test(pathname)) {
+		return new Response("Not found", { status: 404 });
+	}
 
 	// The physical email-dashboard pages live at `/notify/*` and are only meant to
 	// be reached via the internal `/mail` rewrite (which bypasses this middleware).

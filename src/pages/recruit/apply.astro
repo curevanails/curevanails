@@ -572,6 +572,35 @@ textarea.inp{resize:vertical;min-height:5.5em}
     var resume = document.querySelector('.js-resume');
     var dropFile = document.querySelector('.js-dropfile');
 
+    /* ---- the human check that never arrived ---------------------------
+       Turnstile is one script from challenges.cloudflare.com. On a venue's
+       captive-portal Wi-Fi, behind an ad-blocker, or offline it never loads
+       — and with the widget in interaction-only mode there is nothing on
+       screen to hint at that. The script injects a hidden input into the
+       widget the moment it renders, so that input's absence a few seconds
+       after load IS the signal. Say what happened here, at the submit
+       button, before the visitor has filled in eight fields and hit a
+       wall. The endpoint still verifies — this is only the message. */
+    var HUMAN_CHECK_MISSING = 'The human check could not load. Please reload the page, or try again on a different network (mobile data usually works).';
+    (function watchHumanCheck() {
+      var widget = form.querySelector('.cf-turnstile');
+      if (!widget) return;
+      var loaded = function () { return !!form.querySelector('[name="cf-turnstile-response"]'); };
+      var tick = function () {
+        if (loaded()) {
+          /* It got there in the end — take our own notice back. */
+          if (alertEl.textContent === HUMAN_CHECK_MISSING) { alertEl.textContent = ''; alertEl.className = 'form-alert js-alert'; }
+          return;
+        }
+        if (!alertEl.textContent) { alertEl.textContent = HUMAN_CHECK_MISSING; alertEl.className = 'form-alert js-alert bad'; }
+        setTimeout(tick, 5000);
+      };
+      var script = document.querySelector('script[src*="challenges.cloudflare.com/turnstile"]');
+      if (script) script.addEventListener('error', tick);
+      var arm = function () { setTimeout(tick, 8000); };
+      if (document.readyState === 'complete') arm(); else window.addEventListener('load', arm);
+    })();
+
     /* ---- radios deselect ---------------------------------------------
        A native radio cannot be unset once set: the only way out of a group
        is to pick a different answer. Every one of these questions is
@@ -858,10 +887,13 @@ textarea.inp{resize:vertical;min-height:5.5em}
          hidden input inside this form; an empty one means the visitor was
          challenged and has not finished. The endpoint checks this again — this
          is the message, not the enforcement. */
-      var needsHuman = false;
+      var needsHuman = false, humanMissing = false;
       var tsWidget = form.querySelector('.cf-turnstile');
       if (tsWidget) {
         var tsInput = form.querySelector('[name="cf-turnstile-response"]');
+        /* No hidden input at all: the script never ran (see watchHumanCheck
+           above), which is a different message from "finish the check". */
+        if (!tsInput) humanMissing = true;
         if (!tsInput || !tsInput.value) {
           needsHuman = true; problems++; if (!firstBad) firstBad = tsWidget;
         }
@@ -877,7 +909,7 @@ textarea.inp{resize:vertical;min-height:5.5em}
         }
       }
 
-      return { problems: problems, firstBad: firstBad, needsHuman: needsHuman };
+      return { problems: problems, firstBad: firstBad, needsHuman: needsHuman, humanMissing: humanMissing };
     }
 
     /* ---- live checks -------------------------------------------------
@@ -937,7 +969,7 @@ textarea.inp{resize:vertical;min-height:5.5em}
       var res = validate();
       if (res.problems) {
         alertEl.textContent = res.needsHuman && res.problems === 1
-          ? 'Please complete the human check above.'
+          ? (res.humanMissing ? HUMAN_CHECK_MISSING : 'Please complete the human check above.')
           : 'Please complete the highlighted fields (' + res.problems + ' remaining).';
         alertEl.className = 'form-alert js-alert bad';
         if (res.firstBad && res.firstBad.getBoundingClientRect) {

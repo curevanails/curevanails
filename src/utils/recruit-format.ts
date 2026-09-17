@@ -13,6 +13,7 @@ import {
 	POSITION_LABELS,
 	type ApplicationStatus,
 } from "./recruit-db";
+import { TZ } from "./email-format";
 
 /** One row of `job_applications`, as the admin pages read it. */
 export interface ApplicationRow {
@@ -86,18 +87,32 @@ export function parseList(json: string | null): string[] {
 	}
 }
 
+/**
+ * Dates and times render in Mountain Time (`TZ`), like the email dashboard
+ * does. Workers run in UTC, so without the explicit zone an application sent
+ * at 7 PM in Salt Lake City reads as 1 AM the next day — and lands on the
+ * wrong day of the pipeline's date filter.
+ */
 export function fmtDate(iso: string): string {
 	const d = new Date(iso);
 	return Number.isNaN(d.getTime())
 		? iso
-		: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+		: d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: TZ });
 }
 
 export function fmtTime(iso: string): string {
 	const d = new Date(iso);
 	return Number.isNaN(d.getTime())
 		? ""
-		: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+		: d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: TZ });
+}
+
+/** "YYYY-MM-DD" of the instant in Mountain Time — what the date filters compare against. */
+export function dateKey(iso: string): string {
+	const d = new Date(iso);
+	return Number.isNaN(d.getTime())
+		? iso.slice(0, 10)
+		: d.toLocaleDateString("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: TZ });
 }
 
 /** "2027-05" → "May 2027" — the form asks for a Month / Year. */

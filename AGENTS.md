@@ -42,7 +42,7 @@ After a change, verify end-to-end before committing:
 3. `/` 302s to `/coming-soon`, which renders the version-H holding page with the countdown, the waiting-list form and the first-visit dialog. **Run `pnpm test:e2e`** — `e2e/design.spec.ts` is the display gate (runs in Chromium AND WebKit: template leaks, cursor contrast on both grounds, the accordion at four widths, the month picker, the theme's raised/recessed pair, and every page with JavaScript off).
 4. No page offers booking. The studio opens Spring 2027 (`src/data/opening.ts`), so every call to action leads to the waitlist. When booking opens, restore the Mangomint widget on `/early-access` — it is one commit back in the history.
 5. Blog routes respond: `/posts`, a single post, `/search`, `/rss.xml`.
-6. `/_emdash/admin` loads.
+6. `/_emdash/admin` 302s to `/_emdash/admin/setup`, which returns **404**: the CMS first-run setup is closed by `src/middleware.ts` until `EMDASH_SETUP_OPEN="true"` is set (see `wrangler.jsonc`). `/_emdash/api/media/file/recruit/…` is 404 too — résumés are reachable only through `/admin/file`.
 7. If you touched recruit/admin: `/recruit` renders the form; `/admin` redirects to `/admin/login` when signed out; logging in shows the dashboard. (See [`docs/ADMIN.md`](docs/ADMIN.md).) Run `pnpm test:e2e` — the Playwright suite in `e2e/` covers the apply form and the admin dashboard end-to-end (see [`docs/TESTING.md`](docs/TESTING.md)).
 
 ## Key Files
